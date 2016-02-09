@@ -35,7 +35,7 @@
 
 #undef RSTHREAD_SELF_LOCKING_GUARD
 //#define RSMUTEX_DEBUG 300 // Milliseconds for print in the stderr
-//#define RSMUTEX_DEBUG 
+#define RSMUTEX_DEBUG 
 
 class RsMutex
 {
@@ -138,7 +138,7 @@ class RsStackMutex
 #ifdef RSMUTEX_DEBUG
 			double ts = getCurrentTS() ;
 
-			if(ts - _time_stamp > 1.0)
+			if(ts - _time_stamp > 0.2)
 				std::cerr << "Mutex " << (void*)&mMtx << " \"" << mMtx.name() << "\"" 
 					<< " locked for " << ts - _time_stamp 
 					<< " seconds in thread " << pthread_self() 

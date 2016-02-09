@@ -191,6 +191,7 @@
 #include <math.h>
 #include <sstream>
 
+#include "util/rsscopetimer.h"
 #include "rsgxsnetservice.h"
 #include "retroshare/rsconfig.h"
 #include "retroshare/rsreputations.h"
@@ -329,6 +330,8 @@ RsGxsNetService::~RsGxsNetService()
 
 int RsGxsNetService::tick()
 {
+    RsScopeTimer tmer(__PRETTY_FUNCTION__,0.2) ;
+    
 	// always check for new items arriving
 	// from peers
     if(receivedItems())
@@ -1706,6 +1709,7 @@ void RsGxsNetService::data_tick()
         //Start waiting as nothing to do in runup
         usleep((int) (timeDelta * 1000 * 1000)); // timeDelta sec
 
+    RsScopeTimer tmer(__PRETTY_FUNCTION__,0.2) ;
         if(mUpdateCounter >= 120) // 60 seconds
         {
             updateServerSyncTS();

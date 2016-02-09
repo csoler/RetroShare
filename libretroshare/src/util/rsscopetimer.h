@@ -37,7 +37,7 @@
 class RsScopeTimer
 {
 public:
-	RsScopeTimer(const std::string& name);
+	RsScopeTimer(const std::string& name, double duration_limit=0.0);
 	~RsScopeTimer();
 
 	void start();
@@ -49,4 +49,5 @@ private:
 private:
 	std::string _name ;
 	double _seconds ;
+    	double mDurationLimit ;
 };

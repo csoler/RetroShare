@@ -30,6 +30,7 @@
 #include "rsgenexchange.h"
 #include "gxssecurity.h"
 #include "util/contentvalue.h"
+#include "util/rsscopetimer.h"
 #include "retroshare/rsgxsflags.h"
 #include "retroshare/rsgxscircles.h"
 #include "retroshare/rsgrouter.h"
@@ -158,7 +159,6 @@ RsGenExchange::~RsGenExchange()
 
 void RsGenExchange::data_tick()
 {
-
     static const double timeDelta = 0.1; // slow tick in sec
 
         tick();
@@ -167,6 +167,8 @@ void RsGenExchange::data_tick()
 
 void RsGenExchange::tick()
 {
+    RsScopeTimer tmer(__PRETTY_FUNCTION__,0.1) ;
+    
 	// Meta Changes should happen first.
 	// This is important, as services want to change Meta, then get results.
 	// Services shouldn't rely on this ordering - but some do.

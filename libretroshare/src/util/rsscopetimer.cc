@@ -27,15 +27,16 @@
 #include <sys/time.h>
 #include "rsscopetimer.h"
 
-RsScopeTimer::RsScopeTimer(const std::string& name)
+RsScopeTimer::RsScopeTimer(const std::string& name,double duration_limit)
+	:_name(name),mDurationLimit(duration_limit)
 {
-	_name = name ;
 	start();
 }
 
 RsScopeTimer::~RsScopeTimer()
 {
-	if (!_name.empty())
+    double d= duration() ;
+	if (!_name.empty() && d > mDurationLimit)
 	{
 		std::cerr << "Time for \"" << _name << "\": " << duration() << std::endl;
 	}
