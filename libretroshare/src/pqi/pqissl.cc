@@ -438,6 +438,19 @@ int	pqissl::tick()
 
 int 	pqissl::ConnectAttempt()
 {
+    uint32_t check_result ;
+    uint32_t checking_flags = RSBANLIST_CHECKING_FLAGS_BLACKLIST;
+    if (rsPeers->servicePermissionFlags(PeerId()) & RS_NODE_PERM_REQUIRE_WL)
+        checking_flags |= RSBANLIST_CHECKING_FLAGS_WHITELIST;
+
+    if(!rsBanList->isAddressAccepted(remote_addr,checking_flags,&check_result))
+    {
+	    std::cerr << "(SS) refusing connection attempt to IP address " << sockaddr_storage_iptostring(remote_addr) << ". Reason: " <<
+	                 ((check_result == RSBANLIST_CHECK_RESULT_NOT_WHITELISTED)?"not whitelisted (peer requires whitelist)":"blacklisted") << std::endl;
+        
+	    return -1 ;
+    }
+	
 	switch(waiting)
 	{
 		case WAITING_NOT:
