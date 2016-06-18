@@ -40,6 +40,10 @@
 #include "pqi/p3linkmgr.h"
 #include <unistd.h>
 
+#define PQISSLUDP_DEBUG 1
+
+#define PQISSLUDPDEBUG std::cerr << "pqissludp(" << (void*)this << ") : peer " << PeerId() << " "
+
 static struct RsLog::logInfo pqissludpzoneInfo = {RsLog::Default, "pqissludp"};
 #define pqissludpzone &pqissludpzoneInfo
 
@@ -62,6 +66,9 @@ pqissludp::pqissludp(PQInterface *parent, p3LinkMgr *lm) :
 	sockaddr_storage_clear(remote_addr);
 	sockaddr_storage_clear(mConnectProxyAddr);
 	sockaddr_storage_clear(mConnectSrcAddr);
+#ifdef PQISSLUDP_DEBUG
+    PQISSLUDPDEBUG << " created" << std::endl;
+#endif
 }
 
 
@@ -77,6 +84,9 @@ pqissludp::~pqissludp()
 	 *  This means that reset() will be called twice, but this should
 	 *  be harmless.
 	 */
+#ifdef PQISSLUDP_DEBUG
+    PQISSLUDPDEBUG << " deleted" << std::endl;
+#endif
 	stoplistening(); /* remove from p3proxy listenqueue */
 	reset();
 
@@ -92,6 +102,9 @@ int pqissludp::reset_locked()
 	mConnectFlags = 0;
 	mConnectPeriod = PQI_SSLUDP_DEF_CONN_PERIOD;
 
+#ifdef PQISSLUDP_DEBUG
+    PQISSLUDPDEBUG << " resetting" << std::endl;
+#endif
 	return pqissl::reset_locked();
 }
 
@@ -114,24 +127,36 @@ int	pqissludp::attach()
 		std::cerr << "pqissludp::attach() Opening DIRECT Socket";
 		std::cerr << std::endl;
 		sockfd = tou_socket(RSUDP_TOU_RECVER_DIRECT_IDX,TOU_RECEIVER_TYPE_UDPPEER,0);
+#ifdef PQISSLUDP_DEBUG
+		PQISSLUDPDEBUG << " attaching in UDP_DIRECT mode" << std::endl;
+#endif
 	}
 	else if (mConnectFlags & RS_CB_FLAG_MODE_UDP_PROXY)
 	{
 		std::cerr << "pqissludp::attach() Opening PROXY Socket";
 		std::cerr << std::endl;
 		sockfd = tou_socket(RSUDP_TOU_RECVER_PROXY_IDX,TOU_RECEIVER_TYPE_UDPPEER,0);
+#ifdef PQISSLUDP_DEBUG
+		PQISSLUDPDEBUG << " attaching in UDP_PROXY mode" << std::endl;
+#endif
 	}
 	else if (mConnectFlags & RS_CB_FLAG_MODE_UDP_RELAY)
 	{
 		std::cerr << "pqissludp::attach() Opening RELAY Socket";
 		std::cerr << std::endl;
 		sockfd = tou_socket(RSUDP_TOU_RECVER_RELAY_IDX,TOU_RECEIVER_TYPE_UDPRELAY,0);
+#ifdef PQISSLUDP_DEBUG
+		PQISSLUDPDEBUG << " attaching in UDP_RELAY mode" << std::endl;
+#endif
 	}
 	else 
 	{
 		std::cerr << "pqissludp::attach() ERROR unknown Connect Mode" << std::endl;
 		std::cerr << "pqissludp::attach() mConnectFlags: " << std::hex << mConnectFlags << std::dec;
 		std::cerr << std::endl;
+#ifdef PQISSLUDP_DEBUG
+		PQISSLUDPDEBUG << " unknown mode! ERROR" << std::endl;
+#endif
 		sockfd = -1;
 	}
 
@@ -155,6 +180,9 @@ int pqissludp::Initiate_Connection()
 {
 	int err=0;
 
+#ifdef PQISSLUDP_DEBUG
+	PQISSLUDPDEBUG << " initiating outgoing connection to Peer" << std::endl;
+#endif
 	attach(); /* open socket */
 	//remote_addr.sin_family = AF_INET;
 
@@ -165,20 +193,32 @@ int pqissludp::Initiate_Connection()
 	if (mConnectFlags & RS_CB_FLAG_ORDER_ACTIVE)
 	{
 		sslmode = PQISSL_ACTIVE;
+#ifdef PQISSLUDP_DEBUG
+		PQISSLUDPDEBUG << " using on purpose ACTIVE ssl mode" << std::endl;
+#endif
 	}
 	else if (mConnectFlags & RS_CB_FLAG_ORDER_PASSIVE)
 	{
 		sslmode = PQISSL_PASSIVE;
+#ifdef PQISSLUDP_DEBUG
+		PQISSLUDPDEBUG << " using on purpose PASSIVE ssl mode" << std::endl;
+#endif
 	}
 	else // likely UNSPEC - use old method to decide.
 	{
 		if (PeerId() < mLinkMgr->getOwnId())
 		{
 			sslmode = PQISSL_ACTIVE;
+#ifdef PQISSLUDP_DEBUG
+			PQISSLUDPDEBUG << " using ACTIVE ssl mode based on peer ids" << std::endl;
+#endif
 		}
 		else
 		{
 			sslmode = PQISSL_PASSIVE;
+#ifdef PQISSLUDP_DEBUG
+			PQISSLUDPDEBUG << " using PASSIVE ssl mode based on peer ids" << std::endl;
+#endif
 		}
 	}
 
@@ -186,6 +226,9 @@ int pqissludp::Initiate_Connection()
 	{
   		rslog(RSL_WARNING, pqissludpzone, 
 		 "pqissludp::Initiate_Connection() Already Attempt in Progress!");
+#ifdef PQISSLUDP_DEBUG
+		PQISSLUDPDEBUG << " attempt already in progress. Giving up." << std::endl;
+#endif
 		return -1;
 	}
 
@@ -194,6 +237,9 @@ int pqissludp::Initiate_Connection()
   		rslog(RSL_ALERT, pqissludpzone, 
 		 "pqissludp::Initiate_Connection() Socket Creation Failed!");
 		waiting = WAITING_FAIL_INTERFACE;
+#ifdef PQISSLUDP_DEBUG
+		PQISSLUDPDEBUG << " Socket failed. Giving up." << std::endl;
+#endif
 		return -1;
 	}
 
@@ -216,12 +262,18 @@ int pqissludp::Initiate_Connection()
 		}
 		rslog(RSL_WARNING, pqissludpzone, out);
 	}
+#ifdef PQISSLUDP_DEBUG
+	PQISSLUDPDEBUG << " remote address: " << sockaddr_storage_tostring(remote_addr) << std::endl;
+#endif
 
 	if (sockaddr_storage_isnull(remote_addr))
 	{
 		rslog(RSL_WARNING, pqissludpzone, "pqissludp::Initiate_Connection() Invalid (0.0.0.0) Remote Address, Aborting Connect.");
 		waiting = WAITING_FAIL_INTERFACE;
 
+#ifdef PQISSLUDP_DEBUG
+		PQISSLUDPDEBUG << " Null remote address. Giving up." << std::endl;
+#endif
 		reset_locked();
 		return -1;
 	}
@@ -235,17 +287,25 @@ int pqissludp::Initiate_Connection()
 	if (mConnectFlags & RS_CB_FLAG_MODE_UDP_DIRECT)
 	{
 		err = tou_connect(sockfd, (struct sockaddr *) &remote_addr, sizeof(remote_addr), mConnectPeriod);
+#ifdef PQISSLUDP_DEBUG
+		PQISSLUDPDEBUG << " Calling tou_connect via UDP_DIRECT. Err=" << err << std::endl;
+#endif
 	}
 	else if (mConnectFlags & RS_CB_FLAG_MODE_UDP_PROXY)
 	{
 		err = tou_connect(sockfd, (struct sockaddr *) &remote_addr, sizeof(remote_addr), mConnectPeriod);
+#ifdef PQISSLUDP_DEBUG
+		PQISSLUDPDEBUG << " Calling tou_connect via UDP_PROXY. Err=" << err << std::endl;
+#endif
 	}
 	else if (mConnectFlags & RS_CB_FLAG_MODE_UDP_RELAY)
 	{
-		std::cerr << "Calling tou_connect_via_relay(";
-		std::cerr << sockaddr_storage_tostring(mConnectSrcAddr) << ",";
-		std::cerr << sockaddr_storage_tostring(mConnectProxyAddr) << ",";
-		std::cerr << sockaddr_storage_tostring(remote_addr) << ")" << std::endl;
+#ifdef PQISSLUDP_DEBUG
+		PQISSLUDPDEBUG << " Calling tou_connect via UDP_RELAY. "
+		<< " srcAddr: " << sockaddr_storage_tostring(mConnectSrcAddr) << ","
+		<< " ProxyAddr: " << sockaddr_storage_tostring(mConnectProxyAddr) << ","
+		<< " remoteAddr: " << sockaddr_storage_tostring(remote_addr) << ")" << std::endl;
+#endif
 
 		
 		{
@@ -283,6 +343,9 @@ int pqissludp::Initiate_Connection()
 			
 			err = tou_connect_via_relay(sockfd, &srcaddr, &proxyaddr, &remoteaddr);
 			
+#ifdef PQISSLUDP_DEBUG
+			PQISSLUDPDEBUG << " UDP_PROXY result: Err=" << err << std::endl;
+#endif
 		}
 		
 
@@ -297,10 +360,14 @@ int pqissludp::Initiate_Connection()
 
         parent()->setRateCap( UDP_RELAY_TRANSPORT_OVERHEAD_FACTOR * mConnectBandwidth / 1000.0,
 				UDP_RELAY_TRANSPORT_OVERHEAD_FACTOR * mConnectBandwidth / 1000.0); // Set RateCap.
+        
+#ifdef PQISSLUDP_DEBUG
+	PQISSLUDPDEBUG << " setting rate caps " << UDP_RELAY_TRANSPORT_OVERHEAD_FACTOR * mConnectBandwidth / 1000.0 << std::endl;
+#endif
+        
 	}
 
-	if (0 != err)
-	/* <===================== UDP Difference *******************/
+	if (0 != err) /* <===================== UDP Difference *******************/
 	{
 		int tou_err = tou_errno(sockfd);
 		
@@ -314,6 +381,9 @@ int pqissludp::Initiate_Connection()
 			out += " EINPROGRESS Waiting for Socket Connection";
 			rslog(RSL_WARNING, pqissludpzone, out);
   
+#ifdef PQISSLUDP_DEBUG
+			PQISSLUDPDEBUG << " Connection: socket still waiting" << std::endl;
+#endif
 			return 0;
 		}
 		else if ((tou_err == ENETUNREACH) || (tou_err == ETIMEDOUT))
@@ -322,6 +392,9 @@ int pqissludp::Initiate_Connection()
 
 			// Then send unreachable message.
 			waiting = WAITING_FAIL_INTERFACE;
+#ifdef PQISSLUDP_DEBUG
+			PQISSLUDPDEBUG << " Connection: still waiting/timeout. Reseting." << std::endl;
+#endif
 		}
 
 		rs_sprintf_append(out, "Error: Connection Failed: %d - %s", tou_err, socket_errorType(tou_err).c_str());
@@ -336,6 +409,9 @@ int pqissludp::Initiate_Connection()
 	{
   		rslog(RSL_DEBUG_BASIC, pqissludpzone,
 		 "pqissludp::Init_Connection() connect returned 0");
+#ifdef PQISSLUDP_DEBUG
+		PQISSLUDPDEBUG << " Connection succeed!" << std::endl;
+#endif
 	}
 
 	waiting = WAITING_SOCK_CONNECT;
@@ -352,8 +428,14 @@ int pqissludp::Basic_Connection_Complete()
 	rslog(RSL_DEBUG_BASIC, pqissludpzone, 
 	  "pqissludp::Basic_Connection_Complete()...");
 
+#ifdef PQISSLUDP_DEBUG
+	PQISSLUDPDEBUG << " basic connection complete:" << std::endl;
+#endif
 	if (CheckConnectionTimeout())
 	{
+#ifdef PQISSLUDP_DEBUG
+	PQISSLUDPDEBUG << "    timeout!" << std::endl;
+#endif
 		return -1;
 	}
 
@@ -361,6 +443,9 @@ int pqissludp::Basic_Connection_Complete()
 	{
 		rslog(RSL_DEBUG_BASIC, pqissludpzone, 
 	  		"pqissludp::Basic_Connection_Complete() Wrong Mode");
+#ifdef PQISSLUDP_DEBUG
+	PQISSLUDPDEBUG << "    wrong mode!" << std::endl;
+#endif
 		return -1;
 	}
 
@@ -373,6 +458,9 @@ int pqissludp::Basic_Connection_Complete()
 		if (err == EINPROGRESS)
 		{
 			rslog(RSL_DEBUG_BASIC, pqissludpzone, "pqissludp::Basic_Connection_Complete() EINPROGRESS: cert: " + PeerId().toStdString());
+#ifdef PQISSLUDP_DEBUG
+			PQISSLUDPDEBUG << "    timeout: in progress with node..." << std::endl;
+#endif
 		}
 		else if ((err == ENETUNREACH) || (err == ETIMEDOUT))
 		{
@@ -383,6 +471,9 @@ int pqissludp::Basic_Connection_Complete()
 			rs_sprintf_append(out, "Error: Connection Failed: %d - %s", err, socket_errorType(err).c_str());
 			rslog(RSL_DEBUG_BASIC, pqissludpzone, out);
 
+#ifdef PQISSLUDP_DEBUG
+			PQISSLUDPDEBUG << "    timeout: reseting." << std::endl;
+#endif
 			reset_locked();
 
 			// Then send unreachable message.
@@ -398,6 +489,9 @@ int pqissludp::Basic_Connection_Complete()
 	{
 		rslog(RSL_WARNING, pqissludpzone, "pqissludp::Basic_Connection_Complete() Connection Complete: cert: " + PeerId().toStdString());
 
+#ifdef PQISSLUDP_DEBUG
+		PQISSLUDPDEBUG << "    connection completed with node" << std::endl;
+#endif
 		return 1;
 	}
 	else
@@ -405,6 +499,9 @@ int pqissludp::Basic_Connection_Complete()
 		// not ready return -1;
   		rslog(RSL_DEBUG_BASIC, pqissludpzone, 
 	  	  "pqissludp::Basic_Connection_Complete() Not Yet Ready!");
+#ifdef PQISSLUDP_DEBUG
+		PQISSLUDPDEBUG << "    connection not yet ready with node " << std::endl;
+#endif
 		return 0;
 	}
 
@@ -459,6 +556,9 @@ int pqissludp::stoplistening()
 {
 	rslog(RSL_DEBUG_BASIC, pqissludpzone, "pqissludp::stoplistening() (NULLOP)");
 
+#ifdef PQISSLUDP_DEBUG
+	PQISSLUDPDEBUG << " Stop listenning." << std::endl;
+#endif
 	return 1; //udpproxy->stoplistening();
 }
 
@@ -552,6 +652,9 @@ bool 	pqissludp::moretoread(uint32_t usec)
         {
 		std::cerr << "pqissludp::moretoread() INVALID sockfd PARAMETER ... bad shutdown?";
 		std::cerr << std::endl;
+#ifdef PQISSLUDP_DEBUG
+		PQISSLUDPDEBUG << " moretoread: invalid sockfd parameter!" << std::endl;
+#endif
 		return false;
 	}
 
@@ -595,22 +698,34 @@ bool 	pqissludp::moretoread(uint32_t usec)
 		if ((err == EAGAIN) || (err == EINPROGRESS))
 		{
 			rslog(RSL_DEBUG_BASIC, pqissludpzone, "pqissludp::moretoread() EAGAIN/EINPROGRESS: cert " + PeerId().toStdString());
+#ifdef PQISSLUDP_DEBUG
+			PQISSLUDPDEBUG << " moretoread: EAGAIN/EINPROGRESS!" << std::endl;
+#endif
 			return 0;
 
 		}
 		else if ((err == ENETUNREACH) || (err == ETIMEDOUT))
 		{
 			rslog(RSL_WARNING, pqissludpzone, "pqissludp::moretoread() ENETUNREACH/ETIMEDOUT: cert " + PeerId().toStdString());
+#ifdef PQISSLUDP_DEBUG
+			PQISSLUDPDEBUG << " moretoread: ENETUNREACH/ETIMEOUT: reseting!" << std::endl;
+#endif
 		}
 		else if (err == EBADF)
 		{
 			rslog(RSL_WARNING, pqissludpzone, "pqissludp::moretoread() EBADF: cert " + PeerId().toStdString());
+#ifdef PQISSLUDP_DEBUG
+			PQISSLUDPDEBUG << " moretoread: EBADF: reseting!" << std::endl;
+#endif
 		}
 		else 
 		{
 			std::string out = "pqissludp::moretoread() ";
 			rs_sprintf_append(out, " Unknown ERROR: %d: cert ", err, PeerId().toStdString().c_str());
 			rslog(RSL_WARNING, pqissludpzone, out);
+#ifdef PQISSLUDP_DEBUG
+			PQISSLUDPDEBUG << " moretoread: unknown error: reseting!" << std::endl;
+#endif
 		}
 
 		reset_locked();
@@ -618,7 +733,12 @@ bool 	pqissludp::moretoread(uint32_t usec)
 	}
     
 	if(SSL_pending(ssl_connection) > 0)
+    {
+#ifdef PQISSLUDP_DEBUG
+		PQISSLUDPDEBUG << " moretoread, ssl data pending. returning true!" << std::endl;
+#endif
         	return 1 ;
+    }
 
 	/* otherwise - not error - strange! */
 	rslog(RSL_DEBUG_BASIC, pqissludpzone, 
@@ -642,6 +762,9 @@ bool 	pqissludp::cansend(uint32_t usec)
         {
 		std::cerr << "pqissludp::cansend() INVALID sockfd PARAMETER ... bad shutdown?";
 		std::cerr << std::endl;
+#ifdef PQISSLUDP_DEBUG
+		PQISSLUDPDEBUG << " cansend() returning false. Invalid sockfd param." << std::endl;
+#endif
 		return false;
 	}
 
