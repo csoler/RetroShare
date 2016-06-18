@@ -52,7 +52,7 @@ static double getTimeStamp()
 	}
 	return ts;
 }
-#define PQISSLUDPDEBUG std::cerr << "pqissludp(" << (void*)this << ") " << getTimeStamp() << ": peer " << PeerId() << " "
+#define PQISSLUDPDEBUG std::cerr << "pqissludp(" << (void*)this << ") " << std::setprecision(16) << getTimeStamp() << ": peer " << PeerId() << " "
 
 static struct RsLog::logInfo pqissludpzoneInfo = {RsLog::Default, "pqissludp"};
 #define pqissludpzone &pqissludpzoneInfo
