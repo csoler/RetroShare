@@ -42,7 +42,17 @@
 
 #define PQISSLUDP_DEBUG 1
 
-#define PQISSLUDPDEBUG std::cerr << "pqissludp(" << (void*)this << ") : peer " << PeerId() << " "
+static double getTimeStamp()
+{
+	struct timeval tv;
+	double ts = 0;
+	if (0 == gettimeofday(&tv, NULL))
+	{
+		ts = tv.tv_sec + (tv.tv_usec / 1000000.0);
+	}
+	return ts;
+}
+#define PQISSLUDPDEBUG std::cerr << "pqissludp(" << (void*)this << ") " << getTimeStamp() << ": peer " << PeerId() << " "
 
 static struct RsLog::logInfo pqissludpzoneInfo = {RsLog::Default, "pqissludp"};
 #define pqissludpzone &pqissludpzoneInfo
