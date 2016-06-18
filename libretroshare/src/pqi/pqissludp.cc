@@ -38,6 +38,9 @@
 #include "util/rsstring.h"
 
 #include "pqi/p3linkmgr.h"
+
+#include "retroshare/rsbanlist.h"
+#include "retroshare/rspeers.h"
 #include <unistd.h>
 
 #define PQISSLUDP_DEBUG 1
@@ -189,7 +192,18 @@ int	pqissludp::attach()
 int pqissludp::Initiate_Connection()
 {
 	int err=0;
+    
+    uint32_t checking_flags = RSBANLIST_CHECKING_FLAGS_BLACKLIST;
+    if (rsPeers->servicePermissionFlags(PeerId()) & RS_NODE_PERM_REQUIRE_WL)
+        checking_flags |= RSBANLIST_CHECKING_FLAGS_WHITELIST;
 
+    uint32_t check_result ;
+    if(!rsBanList->isAddressAccepted(remote_addr,checking_flags,&check_result))
+    {
+	    std::cerr << "(SS) PQISSLUDP: refusing to initiate connection to blacklisted IP " << sockaddr_storage_tostring(remote_addr) << std::endl;
+	    return -1;
+    }
+        
 #ifdef PQISSLUDP_DEBUG
 	PQISSLUDPDEBUG << " initiating outgoing connection to Peer" << std::endl;
 #endif
