@@ -151,12 +151,25 @@ pqissl::pqissl(pqissllistener *l, PQInterface *parent, p3LinkMgr *lm)
 
 int	pqissl::connect(const struct sockaddr_storage &raddr)
 {
-	RsStackMutex stack(mSslMtx); /**** LOCKED MUTEX ****/
+    uint32_t check_result ;
+    uint32_t checking_flags = RSBANLIST_CHECKING_FLAGS_BLACKLIST;
+    if (rsPeers->servicePermissionFlags(PeerId()) & RS_NODE_PERM_REQUIRE_WL)
+	    checking_flags |= RSBANLIST_CHECKING_FLAGS_WHITELIST;
 
-	// reset failures
-	remote_addr = raddr;
+    if(!rsBanList->isAddressAccepted(raddr,checking_flags,&check_result))
+    {
+	    std::cerr << "(SS) refusing connection attempt to IP address " << sockaddr_storage_iptostring(raddr) << ". Reason: " <<
+	                 ((check_result == RSBANLIST_CHECK_RESULT_NOT_WHITELISTED)?"not whitelisted (peer requires whitelist)":"blacklisted") << std::endl;
 
-	return ConnectAttempt();
+	    return -1 ;
+    }
+
+    RsStackMutex stack(mSslMtx); /**** LOCKED MUTEX ****/
+
+    // reset failures
+    remote_addr = raddr;
+
+    return ConnectAttempt();
 }
 
 // tells pqilistener to listen for us.
@@ -438,19 +451,6 @@ int	pqissl::tick()
 
 int 	pqissl::ConnectAttempt()
 {
-    uint32_t check_result ;
-    uint32_t checking_flags = RSBANLIST_CHECKING_FLAGS_BLACKLIST;
-    if (rsPeers->servicePermissionFlags(PeerId()) & RS_NODE_PERM_REQUIRE_WL)
-        checking_flags |= RSBANLIST_CHECKING_FLAGS_WHITELIST;
-
-    if(!rsBanList->isAddressAccepted(remote_addr,checking_flags,&check_result))
-    {
-	    std::cerr << "(SS) refusing connection attempt to IP address " << sockaddr_storage_iptostring(remote_addr) << ". Reason: " <<
-	                 ((check_result == RSBANLIST_CHECK_RESULT_NOT_WHITELISTED)?"not whitelisted (peer requires whitelist)":"blacklisted") << std::endl;
-        
-	    return -1 ;
-    }
-	
 	switch(waiting)
 	{
 		case WAITING_NOT:
@@ -1360,8 +1360,21 @@ int	pqissl::accept(SSL *ssl, int fd, const struct sockaddr_storage &foreign_addr
 {
 #ifdef PQISSL_DEBUG
 	std::cerr << "pqissl::accept()";
-    std::cerr << std::endl;
+	std::cerr << std::endl;
 #endif
+	uint32_t check_result;
+	uint32_t checking_flags = RSBANLIST_CHECKING_FLAGS_BLACKLIST;
+	if (rsPeers->servicePermissionFlags(PeerId()) & RS_NODE_PERM_REQUIRE_WL)
+		checking_flags |= RSBANLIST_CHECKING_FLAGS_WHITELIST;
+
+	if(!rsBanList->isAddressAccepted(foreign_addr,checking_flags,&check_result))
+	{
+		std::cerr << "(SS) refusing incoming SSL connection from blacklisted foreign address " << sockaddr_storage_iptostring(foreign_addr)
+		          << ". Reason: " << check_result << "." << std::endl;
+		RsServer::notify()->AddFeedItem(RS_FEED_ITEM_SEC_IP_BLACKLISTED, PeerId().toStdString(), sockaddr_storage_iptostring(foreign_addr), "", "", check_result);
+		reset_locked();
+		return -1;
+	}
 
 	RsStackMutex stack(mSslMtx); /**** LOCKED MUTEX ****/
 
@@ -1370,20 +1383,7 @@ int	pqissl::accept(SSL *ssl, int fd, const struct sockaddr_storage &foreign_addr
 
 int	pqissl::accept_locked(SSL *ssl, int fd, const struct sockaddr_storage &foreign_addr) // initiate incoming connection.
 {
-    uint32_t check_result;
-    uint32_t checking_flags = RSBANLIST_CHECKING_FLAGS_BLACKLIST;
-    if (rsPeers->servicePermissionFlags(PeerId()) & RS_NODE_PERM_REQUIRE_WL)
-        checking_flags |= RSBANLIST_CHECKING_FLAGS_WHITELIST;
-
-    if(!rsBanList->isAddressAccepted(foreign_addr,checking_flags,&check_result))
-    {
-        std::cerr << "(SS) refusing incoming SSL connection from blacklisted foreign address " << sockaddr_storage_iptostring(foreign_addr)
-              << ". Reason: " << check_result << "." << std::endl;
-        RsServer::notify()->AddFeedItem(RS_FEED_ITEM_SEC_IP_BLACKLISTED, PeerId().toStdString(), sockaddr_storage_iptostring(foreign_addr), "", "", check_result);
-            reset_locked();
-        return -1;
-    }
-	if (waiting != WAITING_NOT)
+ 	if (waiting != WAITING_NOT)
 	{
 		rslog(RSL_WARNING, pqisslzone, "pqissl::accept() Peer: " + PeerId().toStdString() + " - Two connections in progress - Shut 1 down!");
 
