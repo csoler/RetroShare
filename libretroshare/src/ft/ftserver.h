@@ -107,7 +107,10 @@ public:
     /************** (Implements RsFiles) ***************************/
     /***************************************************************/
 
-    void StartupThreads();
+    virtual void powerOn() { StartupThreads() ; p3Service::powerOn();}	// derives pqiService
+    virtual void powerOff() { StopThreads() ; p3Service::powerOff();}
+
+    void StartupThreads();	// implements RsFiles
     void StopThreads();
 
     // member access

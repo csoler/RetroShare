@@ -52,6 +52,7 @@ p3ServiceServer::p3ServiceServer(pqiPublisher *pub, p3ServiceControl *ctrl) : mP
 	pqioutput(PQL_DEBUG_BASIC, pqiservicezone, 
 		"p3ServiceServer::p3ServiceServer()");
 #endif
+    mServiceControl->setServiceServer(this);
 
 	return;
 }
@@ -156,7 +157,8 @@ bool	p3ServiceServer::recvItem(RsRawItem *item)
 		std::cerr << std::endl;
 #endif
 
-		return (it->second) -> recv(item);
+        if(it->second->enabled())
+            return (it->second) -> recv(item);
 	}
 
 	delete item;
@@ -164,6 +166,24 @@ bool	p3ServiceServer::recvItem(RsRawItem *item)
 }
 
 
+void p3ServiceServer::switchService(uint32_t service_id,bool on)
+{
+    RsStackMutex stack(srvMtx); /********* LOCKED *********/
+    std::map<uint32_t,pqiService*>::const_iterator it = services.find(service_id) ;
+
+    if(it == services.end())
+    {
+        std::cerr << "(EE) Cannot switch off service " << (void *)(intptr_t)service_id << " because it does not exist!" << std::endl;
+        return;
+    }
+
+    if(on && !it->second->enabled())
+        it->second->powerOn();
+    else if(!on && it->second->enabled())
+        it->second->powerOff();
+    else
+        std::cerr << "(WW) Inconsistent order for service switch. Service is already on or off so there is nothing to do." << std::endl;
+}
 
 bool p3ServiceServer::sendItem(RsRawItem *item)
 {
@@ -219,7 +239,8 @@ int	p3ServiceServer::tick()
 #endif
 
 		// now we should actually tick the service.
-		(it -> second) -> tick();
+        if(it->second->enabled())
+            it ->second->tick();
 	}
 	return 1;
 }

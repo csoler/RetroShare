@@ -141,22 +141,12 @@ void RSPermissionMatrixWidget::switchPermission(uint32_t service,const RsPeerId&
 void RSPermissionMatrixWidget::switchPermission(uint32_t service)
 {
     RsServicePermissions serv_perms ;
-
-    if(!rsServiceControl->getServicePermissions(service,serv_perms))
-        return ;
+    rsServiceControl->getServicePermissions(service,serv_perms) ;
 
     if(serv_perms.mDefaultAllowed)
-    {
-        serv_perms.mPeersAllowed.clear() ;
-    serv_perms.mDefaultAllowed = false ;
-    }
+        rsServiceControl->switchServiceOnOff(service,false);
     else
-    {
-        serv_perms.mDefaultAllowed = true ;
-        serv_perms.mPeersDenied.clear() ;
-    }
-
-    rsServiceControl->updateServicePermissions(service,serv_perms);
+        rsServiceControl->switchServiceOnOff(service,true);
 }
 
 void RSPermissionMatrixWidget::mouseMoveEvent(QMouseEvent *e)

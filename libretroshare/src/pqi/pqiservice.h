@@ -60,25 +60,42 @@ class p3ServiceServerIface;
 
 class pqiService
 {
-	protected:
+protected:
 
-	pqiService() // our type of packets.
-	:mServiceServer(NULL) { return; }
+    pqiService() // our type of packets.
+        :mServiceServer(NULL) , mEnabled(true) {}
 
-virtual ~pqiService() { return; }
+    virtual ~pqiService() {}
 
-	public:
-void 	setServiceServer(p3ServiceServerIface *server);
-	// 
-virtual bool	recv(RsRawItem *) = 0;
-virtual bool	send(RsRawItem *item);
+public:
+    void 	setServiceServer(p3ServiceServerIface *server);
+    //
+    virtual bool	recv(RsRawItem *) = 0;
+    virtual bool	send(RsRawItem *item);
 
-virtual RsServiceInfo getServiceInfo() = 0;
+    virtual RsServiceInfo getServiceInfo() = 0;
 
-virtual int	tick() { return 0; }
+    virtual int	tick() { return 0; }
 
-	private:
-	p3ServiceServerIface *mServiceServer; // const, no need for mutex.
+    /*!
+     * \brief enabled
+     * 			Allows to switch the ticking of the service. This is handled by p3ServiceServer. The enabled() function is only used to efficiently store
+     * 			the value of the variable that is used by p3ServiceServer to tick the service or not.
+     *
+     * 		powerOff() and powerOn() can be re-derived if it is neveccary to e.g. switch some threads off. By default calling these functions will only
+     * 		cause the ticking to stop/start.
+     *
+     * \return
+     */
+
+    virtual void powerOff() { mEnabled = false ; }
+    virtual void powerOn () { mEnabled = true ; }
+
+    inline bool enabled() const { return mEnabled ; }
+
+private:
+    p3ServiceServerIface *mServiceServer; // const, no need for mutex.
+    bool mEnabled ;
 };
 
 #include <map>
@@ -106,24 +123,25 @@ virtual bool	sendItem(RsRawItem *) = 0;
 class p3ServiceServer : public p3ServiceServerIface
 {
 public:
-	p3ServiceServer(pqiPublisher *pub, p3ServiceControl *ctrl);
+    p3ServiceServer(pqiPublisher *pub, p3ServiceControl *ctrl);
 
-int	addService(pqiService *, bool defaultOn);
-int	removeService(pqiService *);
+    int	addService(pqiService *, bool defaultOn);
+    int	removeService(pqiService *);
 
-bool	recvItem(RsRawItem *);
-bool	sendItem(RsRawItem *);
+    bool	recvItem(RsRawItem *);
+    bool	sendItem(RsRawItem *);
 
-int	tick();
-public:
+    int	tick();
+
+    void switchService(uint32_t service_id,bool on) ;
 
 private:
 
-	pqiPublisher *mPublisher;	// constant no need for mutex.
-	p3ServiceControl *mServiceControl;
+    pqiPublisher *mPublisher;	// constant no need for mutex.
+    p3ServiceControl *mServiceControl;
 
-	RsMutex srvMtx; 
-	std::map<uint32_t, pqiService *> services;
+    RsMutex srvMtx;
+    std::map<uint32_t, pqiService *> services;
 
 };
 

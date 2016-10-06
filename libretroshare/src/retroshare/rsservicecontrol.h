@@ -102,20 +102,31 @@ public:
 
 class RsServiceControl
 {
-	public:
+public:
 
-	RsServiceControl()  { return; }
-virtual ~RsServiceControl() { return; }
+    RsServiceControl()  { return; }
+    virtual ~RsServiceControl() { return; }
 
-virtual bool getOwnServices(RsPeerServiceInfo &info) = 0;
+    virtual bool getOwnServices(RsPeerServiceInfo &info) = 0;
 
-virtual bool getServicesAllowed(const RsPeerId &peerId, RsPeerServiceInfo &info) = 0;
-virtual bool getServicesProvided(const RsPeerId &peerId, RsPeerServiceInfo &info) = 0;
-virtual bool getServicePermissions(uint32_t serviceId, RsServicePermissions &permissions) = 0;
-virtual bool updateServicePermissions(uint32_t serviceId, const RsServicePermissions &permissions) = 0;
+    virtual bool getServicesAllowed(const RsPeerId &peerId, RsPeerServiceInfo &info) = 0;
+    virtual bool getServicesProvided(const RsPeerId &peerId, RsPeerServiceInfo &info) = 0;
+    virtual bool getServicePermissions(uint32_t serviceId, RsServicePermissions &permissions) = 0;
+    virtual bool updateServicePermissions(uint32_t serviceId, const RsServicePermissions &permissions) = 0;
 
-virtual void getPeersConnected(const uint32_t serviceId, std::set<RsPeerId> &peerSet) = 0;
+    virtual void getPeersConnected(const uint32_t serviceId, std::set<RsPeerId> &peerSet) = 0;
 
+
+    /*!
+     * \brief switchServiceOnOff
+     *               Completely switches the service off *and* disables the networking activity, in order to avoid incoming data. Calling this function will shutdown
+     * 				the service threads and also stop ticking the service.
+     *
+     * \param serviceId
+     * 				 Id of the ervice
+     * \param enabled
+     */
+    virtual void switchServiceOnOff(const uint32_t serviceId, bool enabled) = 0;
 };
 
 #endif

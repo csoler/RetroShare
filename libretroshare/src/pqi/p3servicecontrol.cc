@@ -30,6 +30,7 @@
 #include "serialiser/rsserial.h"
 #include "serialiser/rsbaseserial.h"
 #include "pqi/p3cfgmgr.h"
+#include "pqi/pqiservice.h"
 
 /*******************************/
 // #define SERVICECONTROL_DEBUG	1
@@ -233,6 +234,7 @@ p3ServiceControl::p3ServiceControl(p3LinkMgr *linkMgr)
 	mCtrlMtx("p3ServiceControl"), mMonitorMtx("P3ServiceControl::Monitor")
 {
     mSerialiser = new ServiceControlSerialiser ;
+    mSrv = NULL;	// set later
 }
 
 RsSerialiser *p3ServiceControl::setupSerialiser()
@@ -1196,6 +1198,35 @@ bool p3ServiceControl::loadList(std::list<RsItem *>& loadList)
 	return true;
 }
 
+void p3ServiceControl::setServiceServer(p3ServiceServer *s)
+{
+    mSrv = s ;
+}
+
+void p3ServiceControl::switchServiceOnOff(const uint32_t serviceId, bool enabled)
+{
+    if(!mSrv)
+        return ;
+
+    RsServicePermissions serv_perms ;
+
+    if(!getServicePermissions(serviceId,serv_perms))
+        return ;
+
+    if(serv_perms.mDefaultAllowed)
+    {
+        serv_perms.mPeersAllowed.clear() ;
+        serv_perms.mDefaultAllowed = false ;
+    }
+    else
+    {
+        serv_perms.mDefaultAllowed = true ;
+        serv_perms.mPeersDenied.clear() ;
+    }
+
+    updateServicePermissions(serviceId,serv_perms);
+    mSrv->switchService(serviceId,enabled) ;
+}
 
 /****************************************************************************/
 /****************************************************************************/

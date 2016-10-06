@@ -36,6 +36,8 @@
 #include "pqi/pqiservicemonitor.h"
 #include "pqi/p3linkmgr.h"
 
+class p3ServiceServer ;
+
 class ServiceNotifications
 {
 	public:
@@ -62,132 +64,136 @@ class p3ServiceControl: public RsServiceControl, public pqiMonitor, public p3Con
 {
 public:
 
-	/**
-	 */
-        p3ServiceControl(p3LinkMgr *linkMgr);
+    /**
+     */
+    p3ServiceControl(p3LinkMgr *linkMgr);
 
-        /**
+    /**
          * checks and update all added configurations
          * @see rsserver
          */
-        void	tick();
+    void	tick();
 
-        /**
-         * provided so that services don't need linkMgr, and can get all info
-	 * from ServiceControl.
-         * @see rsserver
-         */
+    /*!
+     * provided so that services don't need linkMgr, and can get all info
+     * from ServiceControl.
+     * @see rsserver
+     */
 
-virtual const 	RsPeerId& getOwnId();
+    virtual const 	RsPeerId& getOwnId();
 
-	/**
-	 * External Interface (RsServiceControl).
-	 */
+    virtual void switchServiceOnOff(const uint32_t serviceId, bool enabled) ;
 
-virtual bool getOwnServices(RsPeerServiceInfo &info);
+    /**
+     * External Interface (RsServiceControl).
+     */
 
-	// This is what is passed to peers, can be displayed by GUI too.
-virtual bool getServicesAllowed(const RsPeerId &peerId, RsPeerServiceInfo &info);
+    virtual bool getOwnServices(RsPeerServiceInfo &info);
 
-	// Information provided by peer.
-virtual bool getServicesProvided(const RsPeerId &peerId, RsPeerServiceInfo &info);
+    // This is what is passed to peers, can be displayed by GUI too.
+    virtual bool getServicesAllowed(const RsPeerId &peerId, RsPeerServiceInfo &info);
 
-	// Main Permission Interface.
-virtual bool getServicePermissions(uint32_t serviceId, RsServicePermissions &permissions);
-virtual bool updateServicePermissions(uint32_t serviceId, const RsServicePermissions &permissions);
+    // Information provided by peer.
+    virtual bool getServicesProvided(const RsPeerId &peerId, RsPeerServiceInfo &info);
 
-	// Get List of Peers using this Service.
-virtual void getPeersConnected(const uint32_t serviceId, std::set<RsPeerId> &peerSet);
-virtual bool isPeerConnected(const uint32_t serviceId, const RsPeerId &peerId);
+    // Main Permission Interface.
+    virtual bool getServicePermissions(uint32_t serviceId, RsServicePermissions &permissions);
+    virtual bool updateServicePermissions(uint32_t serviceId, const RsServicePermissions &permissions);
 
-	/**
-	 * Registration for all Services.
-	 */
+    // Get List of Peers using this Service.
+    virtual void getPeersConnected(const uint32_t serviceId, std::set<RsPeerId> &peerSet);
+    virtual bool isPeerConnected(const uint32_t serviceId, const RsPeerId &peerId);
 
-virtual	bool registerService(const RsServiceInfo &info, bool defaultOn);
-virtual	bool deregisterService(uint32_t serviceId);
+    /**
+     * Registration for all Services.
+     */
 
-virtual	bool registerServiceMonitor(pqiServiceMonitor *monitor, uint32_t serviceId);
-virtual	bool deregisterServiceMonitor(pqiServiceMonitor *monitor);
+    virtual	bool registerService(const RsServiceInfo &info, bool defaultOn);
+    virtual	bool deregisterService(uint32_t serviceId);
 
-	/**
-	 *
-	 */
+    virtual	bool registerServiceMonitor(pqiServiceMonitor *monitor, uint32_t serviceId);
+    virtual	bool deregisterServiceMonitor(pqiServiceMonitor *monitor);
+
+    /**
+     *
+     */
 
 
-	// Filter for services.
-virtual bool checkFilter(uint32_t serviceId, const RsPeerId &peerId);
+    // Filter for services.
+    virtual bool checkFilter(uint32_t serviceId, const RsPeerId &peerId);
 
-	/**
-	 * Interface for ServiceInfo service.
-	 */
+    /**
+     * Interface for ServiceInfo service.
+     */
 
-	// ServicesAllowed have changed for these peers.
-virtual void getServiceChanges(std::set<RsPeerId> &updateSet);
+    // ServicesAllowed have changed for these peers.
+    virtual void getServiceChanges(std::set<RsPeerId> &updateSet);
 
-	// Input from peers.	
-virtual bool updateServicesProvided(const RsPeerId &peerId, const RsPeerServiceInfo &info);
+    // Input from peers.
+    virtual bool updateServicesProvided(const RsPeerId &peerId, const RsPeerServiceInfo &info);
 
-	// pqiMonitor.
-virtual void    statusChange(const std::list<pqipeer> &plist);
+    // pqiMonitor.
+    virtual void    statusChange(const std::list<pqipeer> &plist);
 
+    void setServiceServer(p3ServiceServer *s) ;
 protected:
-	// configuration.
-virtual bool saveList(bool &cleanup, std::list<RsItem *>&);
-virtual bool loadList(std::list<RsItem *>& load);
-virtual RsSerialiser *setupSerialiser() ;
+    // configuration.
+    virtual bool saveList(bool &cleanup, std::list<RsItem *>&);
+    virtual bool loadList(std::list<RsItem *>& load);
+    virtual RsSerialiser *setupSerialiser() ;
 
 private:
 
-void    notifyServices();
-void    notifyAboutFriends();
+    void    notifyServices();
+    void    notifyAboutFriends();
 
-void    updatePeerConnect(const RsPeerId &peerId);
-void    updatePeerDisconnect(const RsPeerId &peerId);
-void    updatePeerNew(const RsPeerId &peerId);
-void    updatePeerRemoved(const RsPeerId &peerId);
+    void    updatePeerConnect(const RsPeerId &peerId);
+    void    updatePeerDisconnect(const RsPeerId &peerId);
+    void    updatePeerNew(const RsPeerId &peerId);
+    void    updatePeerRemoved(const RsPeerId &peerId);
 
-void 	removePeer(const RsPeerId &peerId);
-
-
-bool 	updateAllFilters();
-bool 	updateAllFilters_locked();
-bool 	updateFilterByPeer(const RsPeerId &peerId);
-bool 	updateFilterByPeer_locked(const RsPeerId &peerId);
+    void 	removePeer(const RsPeerId &peerId);
 
 
-	void    recordFilterChanges_locked(const RsPeerId &peerId,
-        	ServicePeerFilter &originalFilter, ServicePeerFilter &updatedFilter);
+    bool 	updateAllFilters();
+    bool 	updateAllFilters_locked();
+    bool 	updateFilterByPeer(const RsPeerId &peerId);
+    bool 	updateFilterByPeer_locked(const RsPeerId &peerId);
 
-	// Called from recordFilterChanges.
-	void filterChangeAdded_locked(const RsPeerId &peerId, uint32_t serviceId);
-	void filterChangeRemoved_locked(const RsPeerId &peerId, uint32_t serviceId);
 
-bool createDefaultPermissions_locked(uint32_t serviceId, std::string serviceName, bool defaultOn);
-bool peerHasPermissionForService_locked(const RsPeerId &peerId, uint32_t serviceId);
+    void    recordFilterChanges_locked(const RsPeerId &peerId,
+                                       ServicePeerFilter &originalFilter, ServicePeerFilter &updatedFilter);
 
-	p3LinkMgr *mLinkMgr;
-	const RsPeerId mOwnPeerId; // const from constructor
+    // Called from recordFilterChanges.
+    void filterChangeAdded_locked(const RsPeerId &peerId, uint32_t serviceId);
+    void filterChangeRemoved_locked(const RsPeerId &peerId, uint32_t serviceId);
 
-	RsMutex mCtrlMtx; /* below is protected */
+    bool createDefaultPermissions_locked(uint32_t serviceId, std::string serviceName, bool defaultOn);
+    bool peerHasPermissionForService_locked(const RsPeerId &peerId, uint32_t serviceId);
 
-	std::set<RsPeerId> mUpdatedSet;
+    p3LinkMgr *mLinkMgr;
+    const RsPeerId mOwnPeerId; // const from constructor
+    p3ServiceServer *mSrv ;
 
-	// From registration / deregistration.
-	std::map<uint32_t, RsServiceInfo> mOwnServices;
-	// From peers.
-        std::map<RsPeerId, RsPeerServiceInfo> mServicesProvided;
-	// derived from all the others.
-        std::map<RsPeerId, ServicePeerFilter> mPeerFilterMap;
+    RsMutex mCtrlMtx; /* below is protected */
 
-        std::map<uint32_t, ServiceNotifications> mNotifications;
-        std::list<pqiServicePeer> mFriendNotifications;
+    std::set<RsPeerId> mUpdatedSet;
 
-	// Map of Connected Peers per Service.
-	std::map<uint32_t, std::set<RsPeerId> > mServicePeerMap;
+    // From registration / deregistration.
+    std::map<uint32_t, RsServiceInfo> mOwnServices;
+    // From peers.
+    std::map<RsPeerId, RsPeerServiceInfo> mServicesProvided;
+    // derived from all the others.
+    std::map<RsPeerId, ServicePeerFilter> mPeerFilterMap;
 
-	// Separate mutex here - must not hold both at the same time!
-	RsMutex mMonitorMtx; /* below is protected */
+    std::map<uint32_t, ServiceNotifications> mNotifications;
+    std::list<pqiServicePeer> mFriendNotifications;
+
+    // Map of Connected Peers per Service.
+    std::map<uint32_t, std::set<RsPeerId> > mServicePeerMap;
+
+    // Separate mutex here - must not hold both at the same time!
+    RsMutex mMonitorMtx; /* below is protected */
     std::multimap<uint32_t, pqiServiceMonitor *> mMonitors;
 
     ServiceControlSerialiser *mSerialiser ;
