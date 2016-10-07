@@ -105,6 +105,8 @@ class p3FileDatabase: public p3Service, public p3Config, public ftSearch //, pub
 
 		// Interface for browsing dir hierarchy
 		//
+        virtual void powerOn() { startThreads() ; }
+        virtual void powerOff() { stopThreads() ; }
 
         void stopThreads() ;
         void startThreads() ;

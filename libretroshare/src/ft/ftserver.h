@@ -78,6 +78,8 @@ public:
     /***************************************************************/
 
     ftServer(p3PeerMgr *peerMgr, p3ServiceControl *serviceCtrl);
+    ~ftServer() ;
+
     virtual RsServiceInfo getServiceInfo();
 
     /* Assign important variables */

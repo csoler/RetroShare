@@ -194,21 +194,25 @@ void ftServer::StopThreads()
 	/* stop Controller thread */
 	mFtController->join();
 
-	/* self contained threads */
-	/* stop ExtraList Thread */
-	mFtExtra->join();
-
-	delete (mFtDataplex);
-	mFtDataplex = NULL;
-
-	delete (mFtController);
-	mFtController = NULL;
-
-	delete (mFtExtra);
-	mFtExtra = NULL;
-
     /* stop Monitor Thread */
     mFileDatabase->stopThreads();
+}
+
+ftServer::~ftServer()
+{
+    /* self contained threads */
+    /* stop ExtraList Thread */
+    mFtExtra->join();
+
+    delete (mFtDataplex);
+    mFtDataplex = NULL;
+
+    delete (mFtController);
+    mFtController = NULL;
+
+    delete (mFtExtra);
+    mFtExtra = NULL;
+
     delete mFileDatabase;
     mFileDatabase = NULL ;
 }
@@ -457,6 +461,9 @@ void ftServer::removeVirtualPeer(const TurtleFileHash& hash,const TurtleVirtualP
 
 bool ftServer::handleTunnelRequest(const RsFileHash& hash,const RsPeerId& peer_id)
 {
+    if(!enabled())
+        return false ;
+
     FileInfo info ;
     bool res = FileDetails(hash, RS_FILE_HINTS_NETWORK_WIDE | RS_FILE_HINTS_LOCAL | RS_FILE_HINTS_EXTRA | RS_FILE_HINTS_SPEC_ONLY, info);
 
@@ -991,6 +998,9 @@ void ftServer::receiveTurtleData(RsTurtleGenericTunnelItem *i,
 											const RsPeerId& virtual_peer_id,
 											RsTurtleGenericTunnelItem::Direction direction) 
 {
+    if(!enabled())
+        return ;
+
 	switch(i->PacketSubType())
 	{
 		case RS_TURTLE_SUBTYPE_FILE_REQUEST: 		
