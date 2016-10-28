@@ -1172,33 +1172,33 @@ bool RsGenExchange::getMsgRelatedList(const uint32_t &token, MsgRelatedIdResult 
 
 bool RsGenExchange::getGroupMeta(const uint32_t &token, std::list<RsGroupMetaData> &groupInfo)
 {
-	std::list<RsGxsGrpMetaData*> metaL;
-	bool ok = mDataAccess->getGroupSummary(token, metaL);
+    std::list<RsGxsGrpMetaData*> metaL;
+    bool ok = mDataAccess->getGroupSummary(token, metaL);
 
-	std::list<RsGxsGrpMetaData*>::iterator lit = metaL.begin();
-	RsGroupMetaData m;
-	for(; lit != metaL.end(); ++lit)
-	{
-		RsGxsGrpMetaData& gMeta = *(*lit);
+    std::list<RsGxsGrpMetaData*>::iterator lit = metaL.begin();
+    RsGroupMetaData m;
+    for(; lit != metaL.end(); ++lit)
+    {
+        RsGxsGrpMetaData& gMeta = *(*lit);
         m = gMeta;
         RsGroupNetworkStats sts ;
 
-    if(mNetService != NULL && mNetService->getGroupNetworkStats((*lit)->mGroupId,sts))
-    {
-        m.mPop = sts.mSuppliers ;
-        m.mVisibleMsgCount = sts.mMaxVisibleCount ;
-    }
-    else
-    {
-        m.mPop= 0 ;
-        m.mVisibleMsgCount = 0 ;
+        if(mNetService != NULL && mNetService->getGroupNetworkStats((*lit)->mGroupId,sts))
+        {
+            m.mPop = sts.mSuppliers ;
+            m.mVisibleMsgCount = sts.mMaxVisibleCount ;
+        }
+        else
+        {
+            m.mPop= 0 ;
+            m.mVisibleMsgCount = 0 ;
         }
 
         groupInfo.push_back(m);
-		delete (*lit);
-	}
+        delete (*lit);
+    }
 
-	return ok;
+    return ok;
 }
 
 bool RsGenExchange::getMsgMeta(const uint32_t &token,
@@ -1606,6 +1606,18 @@ void RsGenExchange::publishMsg(uint32_t& token, RsGxsMsgItem *msgItem)
     std::cerr << std::endl;
 #endif
 
+}
+
+void RsGenExchange::setGroupUpdateDelay(uint32_t& token, const RsGxsGroupId& grpId, uint32_t delay)
+{
+    /* TODO APPLY MASK TO FLAGS */
+    RS_STACK_MUTEX(mGenMtx) ;
+    token = mDataAccess->generatePublicToken();
+
+    GrpLocMetaData g;
+    g.grpId = grpId;
+    g.val.put(RsGeneralDataService::GRP_META_SUBSCRIBE_FLAG, (int32_t)delay);
+    mGrpLocMetaMap.insert(std::make_pair(token, g));
 }
 
 void RsGenExchange::setGroupSubscribeFlags(uint32_t& token, const RsGxsGroupId& grpId, const uint32_t& flag, const uint32_t& mask)

@@ -85,6 +85,7 @@ public:
 
     uint32_t    mGroupStatus;
     uint32_t    mRecvTS;
+    uint32_t	mUpdateDelay;	// delay of requesting old posts. Keeping this small (1 month) avoids syncing very old posts.
     RsPeerId    mOriginator;
     RsGxsCircleId mInternalCircle;
     RsFileHash mHash;

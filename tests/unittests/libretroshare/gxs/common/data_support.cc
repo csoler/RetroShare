@@ -111,6 +111,7 @@ void init_item(RsGxsGrpMetaData* metaGrp)
     metaGrp->mVisibleMsgCount = rand()%2421;
     metaGrp->mLastPost = rand()%2211;
     metaGrp->mReputationCutOff = rand()%5262;
+    metaGrp->mUpdateDelay = rand()%5162;
 
     metaGrp->mGroupStatus = rand()%313;
     metaGrp->mRecvTS = rand()%313;

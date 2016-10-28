@@ -38,6 +38,7 @@
         this->mPop = rGxsMeta.mPop;
         this->mPublishTs = rGxsMeta.mPublishTs;
         this->mSubscribeFlags = rGxsMeta.mSubscribeFlags;
+        this->mUpdateDelay = rGxsMeta.mUpdateDelay;
         this->mGroupName = rGxsMeta.mGroupName;
         this->mServiceString = rGxsMeta.mServiceString;
         this->mSignFlags = rGxsMeta.mSignFlags;

@@ -581,6 +581,14 @@ public:
     void setGroupSubscribeFlags(uint32_t& token, const RsGxsGroupId& grpId, const uint32_t& status, const uint32_t& mask);
 
     /*!
+     * sets the group subscribe flag
+     * @param token         This is set to token value associated to this request
+     * @param grpId         Id of group whose update delay will be changed
+     * @param update_delay  Delay below which msgs are not requested (typically 30 days)
+     */
+    void setGroupUpdateDelay(uint32_t& token, const RsGxsGroupId& grpId, uint32_t update_delay) ;
+
+    /*!
 	 * sets the group subscribe flag
 	 * @param token this is set to token value associated to this request
 	 * @param grpId Id of group whose subscribe file will be changed

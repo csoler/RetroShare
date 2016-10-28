@@ -131,6 +131,7 @@ public:
     static const std::string GRP_META_STATUS;
     static const std::string GRP_META_SERV_STRING;
     static const std::string GRP_META_CUTOFF_LEVEL;
+    static const std::string GRP_META_UPDATE_DELAY;
 
 public:
 

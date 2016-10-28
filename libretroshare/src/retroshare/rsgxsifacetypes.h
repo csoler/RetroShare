@@ -46,6 +46,7 @@ public:
 
             mPop = 0;
             mVisibleMsgCount = 0;
+            mUpdateDelay = 0;
             mLastPost = 0;
 
             mGroupStatus = 0;
@@ -80,6 +81,7 @@ public:
     uint32_t    mPop; 			// Popularity = number of friend subscribers
     uint32_t    mVisibleMsgCount; 	// Max messages reported by friends
     time_t      mLastPost; 		// Timestamp for last message. Not used yet.
+    time_t      mUpdateDelay; 		// Timestamp for last message. Not used yet.
 
     uint32_t    mGroupStatus;
     std::string mServiceString; // Service Specific Free-Form extra storage.

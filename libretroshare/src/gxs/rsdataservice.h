@@ -319,6 +319,7 @@ private:
     int mColGrpMeta_RecvTs;
     int mColGrpMeta_RepCutoff;
     int mColGrpMeta_NxsDataLen;
+    int mColGrpMeta_UpdateDelay;
 
     // Group columns
     int mColGrp_GrpId;

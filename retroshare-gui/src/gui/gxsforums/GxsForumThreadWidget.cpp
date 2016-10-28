@@ -784,7 +784,8 @@ void GxsForumThreadWidget::insertGroupData()
     tw->mForumDescription = QString("<b>%1: \t</b>%2<br/>").arg(tr("Forum name"), QString::fromUtf8( group.mMeta.mGroupName.c_str()));
     tw->mForumDescription += QString("<b>%1: \t</b>%2<br/>").arg(tr("Subscribers")).arg(group.mMeta.mPop);
     tw->mForumDescription += QString("<b>%1: \t</b>%2<br/>").arg(tr("Posts (at neighbor nodes)")).arg(group.mMeta.mVisibleMsgCount);
-    
+    tw->mForumDescription += QString("<b>%1: \t</b>%2 days<br/>").arg(tr("Update period")).arg(group.mMeta.mUpdateDelay / 86400);
+
     QString distrib_string = tr("[unknown]");
     switch(group.mMeta.mCircleType)
     {

@@ -86,6 +86,7 @@
 #define KEY_GRP_STATUS std::string("grpStatus")
 #define KEY_GRP_LAST_POST std::string("lastPost")
 #define KEY_GRP_REP_CUTOFF std::string("rep_cutoff")
+#define KEY_GRP_UPDATE_DELAY std::string("update_delay")
 
 // msg table columns
 #define KEY_MSG_ID std::string("msgId")
@@ -107,6 +108,7 @@ const std::string RsGeneralDataService::GRP_META_SERV_STRING = KEY_NXS_SERV_STRI
 const std::string RsGeneralDataService::GRP_META_STATUS = KEY_GRP_STATUS;
 const std::string RsGeneralDataService::GRP_META_SUBSCRIBE_FLAG = KEY_GRP_SUBCR_FLAG;
 const std::string RsGeneralDataService::GRP_META_CUTOFF_LEVEL = KEY_GRP_REP_CUTOFF;
+const std::string RsGeneralDataService::GRP_META_UPDATE_DELAY = KEY_GRP_UPDATE_DELAY ;
 
 const std::string RsGeneralDataService::MSG_META_SERV_STRING = KEY_NXS_SERV_STRING;
 const std::string RsGeneralDataService::MSG_META_STATUS = KEY_MSG_STATUS;
@@ -185,6 +187,7 @@ RsDataService::RsDataService(const std::string &serviceDir, const std::string &d
     mColGrpMeta_RecvTs      = addColumn(mGrpMetaColumns, KEY_RECV_TS);
     mColGrpMeta_RepCutoff   = addColumn(mGrpMetaColumns, KEY_GRP_REP_CUTOFF);
     mColGrpMeta_NxsDataLen  = addColumn(mGrpMetaColumns, KEY_NXS_DATA_LEN);
+    mColGrpMeta_UpdateDelay = addColumn(mGrpMetaColumns, KEY_GRP_UPDATE_DELAY);
 
     // for retrieving actual grp data
     mColGrp_GrpId = addColumn(mGrpColumns, KEY_GRP_ID);
@@ -549,6 +552,8 @@ RsGxsGrpMetaData* RsDataService::locked_getGrpMeta(RetroCursor &c, int colOffset
     grpMeta->mAuthenFlags = c.getInt32(mColGrpMeta_AuthenFlags + colOffset);
     grpMeta->mRecvTS = c.getInt32(mColGrpMeta_RecvTs + colOffset);
 
+    grpMeta->mUpdateDelay = c.getInt32(mColGrpMeta_UpdateDelay + colOffset);
+
 
     c.getString(mColGrpMeta_ParentGrpId, tempId);
     grpMeta->mParentGrpId = RsGxsGroupId(tempId);
@@ -886,6 +891,7 @@ int RsDataService::storeGroup(std::map<RsNxsGrp *, RsGxsGrpMetaData *> &grp)
         cv.put(KEY_MSG_COUNT, (int32_t)grpMetaPtr->mVisibleMsgCount);
         cv.put(KEY_GRP_STATUS, (int32_t)grpMetaPtr->mGroupStatus);
         cv.put(KEY_GRP_LAST_POST, (int32_t)grpMetaPtr->mLastPost);
+        cv.put(KEY_GRP_UPDATE_DELAY, (int32_t)grpMetaPtr->mUpdateDelay);
 
         locked_clearGrpMetaCache(grpMetaPtr->mGroupId);
 

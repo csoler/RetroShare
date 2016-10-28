@@ -83,9 +83,11 @@ void RsGxsGrpMetaData::clear(){
 
     mPop = 0;
     mVisibleMsgCount = 0;
+    mUpdateDelay = 0;
     mGroupStatus = 0;
     mLastPost = 0;
     mReputationCutOff = 0;
+    mUpdateDelay = 0;
     mGrpSize = 0 ;
 
     mGroupStatus = 0 ;
@@ -329,6 +331,7 @@ void RsGxsGrpMetaData::operator =(const RsGroupMetaData& rMeta)
     this->mVisibleMsgCount = rMeta.mVisibleMsgCount ;
     this->mPop = rMeta.mPop;
     this->mPublishTs = rMeta.mPublishTs;
+    this->mUpdateDelay = rMeta.mUpdateDelay;
     this->mSubscribeFlags = rMeta.mSubscribeFlags;
     this->mGroupName = rMeta.mGroupName;
     this->mServiceString = rMeta.mServiceString;
