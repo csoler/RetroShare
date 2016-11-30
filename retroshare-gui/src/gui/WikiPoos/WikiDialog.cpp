@@ -637,7 +637,7 @@ void WikiDialog::insertGroupsData(const std::list<RsGroupMetaData> &wikiList)
 			subList.push_back(groupItemInfo);
 		} else {
 			/* rate the others by popularity */
-			popMap.insert(std::make_pair(it->mPop, groupItemInfo));
+			popMap.insert(std::make_pair(it->mPopularity, groupItemInfo));
 		}
 	}
 
@@ -676,7 +676,7 @@ void WikiDialog::GroupMetaDataToGroupItemInfo(const RsGroupMetaData &groupInfo, 
 	groupItemInfo.id = QString::fromStdString(groupInfo.mGroupId.toStdString());
 	groupItemInfo.name = QString::fromUtf8(groupInfo.mGroupName.c_str());
 	//groupItemInfo.description = QString::fromUtf8(groupInfo.forumDesc);
-	groupItemInfo.popularity = groupInfo.mPop;
+	groupItemInfo.popularity = groupInfo.mPopularity;
 	groupItemInfo.lastpost = QDateTime::fromTime_t(groupInfo.mLastPost);
 	groupItemInfo.subscribeFlags = groupInfo.mSubscribeFlags;
 

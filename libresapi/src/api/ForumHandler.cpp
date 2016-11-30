@@ -116,7 +116,7 @@ void ForumHandler::handleWildcard(Request &req, Response &resp)
                         //<< pgp_id
                         << makeKeyValueReference("name", grp.mMeta.mGroupName)
                         //<< makeKeyValueReference("last_post", grp.mMeta.mLastPost)
-                        << makeKeyValueReference("pop", grp.mMeta.mPop)
+                        << makeKeyValueReference("pop", grp.mMeta.mPopularity)
                         //<< makeKeyValueReference("publish_ts", grp.mMeta.mPublishTs)
                         << vis_msg
                         << makeKeyValueReference("group_status", grp.mMeta.mGroupStatus)

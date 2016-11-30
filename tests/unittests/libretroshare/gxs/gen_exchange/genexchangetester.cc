@@ -338,7 +338,7 @@ void GenExchangeTest::init(RsGroupMetaData& grpMetaData) const
     grpMetaData.mLastPost = randNum();
     grpMetaData.mGroupStatus = randNum();
     grpMetaData.mVisibleMsgCount = randNum();
-    grpMetaData.mPop = randNum();
+    grpMetaData.mPopularity = randNum();
     grpMetaData.mSignFlags = randNum();
     grpMetaData.mPublishTs = randNum();
     grpMetaData.mSubscribeFlags = GXS_SERV::GROUP_SUBSCRIBE_ADMIN;
@@ -569,7 +569,7 @@ bool operator ==(const RsGroupMetaData& lMeta, const RsGroupMetaData& rMeta)
     if(lMeta.mGroupStatus != rMeta.mGroupStatus) return false;
     if(lMeta.mLastPost != rMeta.mLastPost) return false;
     if(lMeta.mVisibleMsgCount != rMeta.mVisibleMsgCount) return false;
-    if(lMeta.mPop != rMeta.mPop) return false;
+    if(lMeta.mPopularity != rMeta.mPopularity) return false;
    // if(lMeta.mPublishTs != rMeta.mPublishTs) return false; set in gxs
     if(lMeta.mServiceString != rMeta.mServiceString) return false;
     if(lMeta.mSignFlags != rMeta.mSignFlags) return false;

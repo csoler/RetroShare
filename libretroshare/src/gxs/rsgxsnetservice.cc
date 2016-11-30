@@ -2241,11 +2241,20 @@ bool RsGxsNetService::getGroupNetworkStats(const RsGxsGroupId& gid,RsGroupNetwor
 
     GrpConfigMap::const_iterator it ( mServerGrpConfigMap.find(gid) );
 
-    if(it == mServerGrpConfigMap.end())
-        return false ;
-
-    stats.mSuppliers = it->second.suppliers.ids.size();
-    stats.mMaxVisibleCount = it->second.max_visible_count ;
+    if(it != mServerGrpConfigMap.end())
+	{
+		stats.mSuppliers = it->second.suppliers.ids.size();
+		stats.mMaxVisibleCount = it->second.max_visible_count ;
+		stats.mMaxStorageAge = it->second.msg_keep_delay;
+		stats.mMaxRequestAge = it->second.msg_req_delay;
+	}
+    else
+    {
+		stats.mSuppliers = 0;
+		stats.mMaxVisibleCount = 0;
+		stats.mMaxStorageAge = RS_GXS_DEFAULT_MSG_STORE_PERIOD ;
+		stats.mMaxRequestAge = RS_GXS_DEFAULT_MSG_REQ_PERIOD ;
+    }
 
     return true ;
 }

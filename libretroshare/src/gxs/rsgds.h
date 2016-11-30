@@ -86,10 +86,15 @@ public:
     RsGroupNetworkStats()
     {
         mMaxVisibleCount = 0 ;
+        mSuppliers = 0 ;
+        mMaxRequestAge = 0;
+        mMaxStorageAge = 0;
     }
 
     uint32_t mSuppliers ;
     uint32_t mMaxVisibleCount ;
+    time_t mMaxRequestAge ;
+    time_t mMaxStorageAge ;
 };
 
 typedef std::map<RsGxsGroupId,      std::vector<RsNxsMsg*> > NxsMsgDataResult;

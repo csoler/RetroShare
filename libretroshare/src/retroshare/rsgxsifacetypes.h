@@ -39,22 +39,25 @@ class RsGroupMetaData
 public:
 
     RsGroupMetaData()
-    {
-            mGroupFlags = 0;
-            mSignFlags = 0;
-            mSubscribeFlags = 0;
+	{
+		mGroupFlags = 0;
+		mSignFlags = 0;
+		mSubscribeFlags = 0;
 
-            mPop = 0;
-            mVisibleMsgCount = 0;
-            mUpdateDelay = 0;
-            mLastPost = 0;
+		mPopularity = 0;
+		mVisibleMsgCount = 0;
+		mGrpDistribution_MaxRequestAge = 0;
+		mLastPost = 0;
 
-            mGroupStatus = 0;
-            mCircleType = 0;
-            mAuthenFlags = 0;
+		mGroupStatus = 0;
+		mCircleType = 0;
+		mAuthenFlags = 0;
 
-            mPublishTs = 0;
-    }
+		mPublishTs = 0;
+
+		mGrpDistribution_MaxRequestAge = 0; 		// time during which posts are requested.
+		mGrpDistribution_MaxStorageAge = 0; 		// time during which posts are stored.
+	}
 
     void operator =(const RsGxsGrpMetaData& rGxsMeta);
 
@@ -78,13 +81,15 @@ public:
 
     uint32_t    mSubscribeFlags;
 
-    uint32_t    mPop; 			// Popularity = number of friend subscribers
+    uint32_t    mPopularity;		// Popularity = number of friend subscribers
     uint32_t    mVisibleMsgCount; 	// Max messages reported by friends
-    time_t      mLastPost; 		// Timestamp for last message. Not used yet.
-    time_t      mUpdateDelay; 		// Timestamp for last message. Not used yet.
+    time_t      mLastPost; 			// Timestamp for last message. Not used yet.
+
+    time_t      mGrpDistribution_MaxRequestAge; 		// time during which posts are requested.
+    time_t      mGrpDistribution_MaxStorageAge; 		// time during which posts are stored.
 
     uint32_t    mGroupStatus;
-    std::string mServiceString; // Service Specific Free-Form extra storage.
+    std::string mServiceString; 	// Service Specific Free-Form extra storage.
     RsPeerId mOriginator;
     RsGxsCircleId mInternalCircle;
 };

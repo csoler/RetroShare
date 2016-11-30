@@ -415,7 +415,7 @@ void GxsGroupDialog::updateFromExistingMeta(const QString &description)
 
     /* Show Mode */
     ui.nameline->setText(QString::fromUtf8(mGrpMeta.mGroupName.c_str()));
-    ui.popline->setText(QString::number( mGrpMeta.mPop)) ;
+    ui.popline->setText(QString::number( mGrpMeta.mPopularity)) ;
     ui.postsline->setText(QString::number(mGrpMeta.mVisibleMsgCount));
     ui.lastpostline->setText(DateTime::formatLongDateTime(mGrpMeta.mLastPost));
     ui.authorLabel->setId(mGrpMeta.mAuthorId);

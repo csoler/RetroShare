@@ -238,7 +238,7 @@ void GxsChannelPostsWidget::insertChannelDetails(const RsGxsChannelGroup &group)
 	}
 	ui->logoLabel->setPixmap(chanImage);
 
-	ui->subscribersLabel->setText(QString::number(group.mMeta.mPop)) ;
+	ui->subscribersLabel->setText(QString::number(group.mMeta.mPopularity)) ;
 
 	if (group.mMeta.mSubscribeFlags & GXS_SERV::GROUP_SUBSCRIBE_PUBLISH)
 	{

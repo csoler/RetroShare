@@ -83,6 +83,9 @@ public:
     uint32_t    mReputationCutOff;
     uint32_t    mGrpSize;
 
+    uint32_t	mGrpDistribution_MaxRequestAge ;
+    uint32_t	mGrpDistribution_MaxStorageAge ;
+
     uint32_t    mGroupStatus;
     uint32_t    mRecvTS;
     uint32_t	mUpdateDelay;	// delay of requesting old posts. Keeping this small (1 month) avoids syncing very old posts.

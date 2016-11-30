@@ -35,10 +35,10 @@
         this->mGroupStatus = rGxsMeta.mGroupStatus;
         this->mLastPost = rGxsMeta.mLastPost;
         this->mVisibleMsgCount = rGxsMeta.mVisibleMsgCount;
-        this->mPop = rGxsMeta.mPop;
+        this->mPopularity = rGxsMeta.mPop;
         this->mPublishTs = rGxsMeta.mPublishTs;
         this->mSubscribeFlags = rGxsMeta.mSubscribeFlags;
-        this->mUpdateDelay = rGxsMeta.mUpdateDelay;
+        this->mGrpDistribution_MaxRequestAge = rGxsMeta.mUpdateDelay;
         this->mGroupName = rGxsMeta.mGroupName;
         this->mServiceString = rGxsMeta.mServiceString;
         this->mSignFlags = rGxsMeta.mSignFlags;

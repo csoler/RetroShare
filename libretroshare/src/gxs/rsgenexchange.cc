@@ -1185,13 +1185,18 @@ bool RsGenExchange::getGroupMeta(const uint32_t &token, std::list<RsGroupMetaDat
 
         if(mNetService != NULL && mNetService->getGroupNetworkStats((*lit)->mGroupId,sts))
         {
-            m.mPop = sts.mSuppliers ;
+            m.mPopularity = sts.mSuppliers ;
             m.mVisibleMsgCount = sts.mMaxVisibleCount ;
+
+			m.mGrpDistribution_MaxRequestAge = sts.mMaxRequestAge; 		// time during which posts are requested.
+			m.mGrpDistribution_MaxStorageAge = sts.mMaxStorageAge; 		// time during which posts are stored.
         }
         else
         {
-            m.mPop= 0 ;
+            m.mPopularity= 0 ;
             m.mVisibleMsgCount = 0 ;
+			m.mGrpDistribution_MaxRequestAge = 0;
+			m.mGrpDistribution_MaxStorageAge = 0;
         }
 
         groupInfo.push_back(m);
@@ -1289,20 +1294,24 @@ bool RsGenExchange::getGroupData(const uint32_t &token, std::vector<RsGxsGrpItem
 				RsGxsGrpItem* gItem = dynamic_cast<RsGxsGrpItem*>(item);
 				if (gItem)
 				{
-                    gItem->meta = *((*lit)->metaData);
+					gItem->meta = *((*lit)->metaData);
 
-            RsGroupNetworkStats sts ;
+					RsGroupNetworkStats sts ;
 
-            if(mNetService != NULL && mNetService->getGroupNetworkStats(gItem->meta.mGroupId,sts))
-        {
-                gItem->meta.mPop = sts.mSuppliers ;
-        gItem->meta.mVisibleMsgCount  = sts.mMaxVisibleCount;
-        }
-            else
-        {
-                gItem->meta.mPop = 0 ;
-        gItem->meta.mVisibleMsgCount = 0 ;
-        }
+					if(mNetService != NULL && mNetService->getGroupNetworkStats(gItem->meta.mGroupId,sts))
+					{
+						gItem->meta.mPopularity                    = sts.mSuppliers ;
+						gItem->meta.mVisibleMsgCount               = sts.mMaxVisibleCount;
+						gItem->meta.mGrpDistribution_MaxRequestAge = sts.mMaxRequestAge;
+						gItem->meta.mGrpDistribution_MaxStorageAge = sts.mMaxStorageAge;
+					}
+					else
+					{
+						gItem->meta.mPopularity                    = 0 ;
+						gItem->meta.mVisibleMsgCount               = 0 ;
+						gItem->meta.mGrpDistribution_MaxRequestAge = 0;
+						gItem->meta.mGrpDistribution_MaxStorageAge = 0;
+					}
 					grpItem.push_back(gItem);
 				}
 				else

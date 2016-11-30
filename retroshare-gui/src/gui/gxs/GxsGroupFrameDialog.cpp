@@ -670,7 +670,7 @@ void GxsGroupFrameDialog::groupInfoToGroupItemInfo(const RsGroupMetaData &groupI
 {
 	groupItemInfo.id = QString::fromStdString(groupInfo.mGroupId.toStdString());
 	groupItemInfo.name = QString::fromUtf8(groupInfo.mGroupName.c_str());
-	groupItemInfo.popularity = groupInfo.mPop;
+	groupItemInfo.popularity = groupInfo.mPopularity;
 	groupItemInfo.lastpost = QDateTime::fromTime_t(groupInfo.mLastPost);
 	groupItemInfo.subscribeFlags = groupInfo.mSubscribeFlags;
 	groupItemInfo.publishKey = IS_GROUP_PUBLISHER(groupInfo.mSubscribeFlags) ;
@@ -727,7 +727,7 @@ void GxsGroupFrameDialog::insertGroupsData(const std::list<RsGroupMetaData> &gro
 		else
 		{
 			/* rate the others by popularity */
-			popMap.insert(std::make_pair(it->mPop, groupItemInfo));
+			popMap.insert(std::make_pair(it->mPopularity, groupItemInfo));
 		}
 	}
 
