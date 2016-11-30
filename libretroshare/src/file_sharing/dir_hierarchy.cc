@@ -31,7 +31,7 @@
 
 #include "dir_hierarchy.h"
 #include "filelist_io.h"
-//#include "rsexpr.h"
+#include "file_sharing_defaults.h"
 
 //#define DEBUG_DIRECTORY_STORAGE 1
 
@@ -62,6 +62,9 @@ InternalFileHierarchyStorage::InternalFileHierarchyStorage() : mRoot(0)
 
     mNodes.push_back(de) ;
     mDirHashes[de->dir_hash] = 0 ;
+
+    mTotalSize = 0 ;
+    mTotalFiles = 0 ;
 }
 
 bool InternalFileHierarchyStorage::getDirHashFromIndex(const DirectoryStorage::EntryIndex& index,RsFileHash& hash) const
@@ -149,14 +152,14 @@ bool InternalFileHierarchyStorage::isIndexValid(DirectoryStorage::EntryIndex e) 
     return e < mNodes.size() && mNodes[e] != NULL ;
 }
 
-bool InternalFileHierarchyStorage::updateSubDirectoryList(const DirectoryStorage::EntryIndex& indx,const std::map<std::string,time_t>& subdirs,const RsFileHash& random_hash_seed)
+bool InternalFileHierarchyStorage::updateSubDirectoryList(const DirectoryStorage::EntryIndex& indx, const std::set<std::string>& subdirs, const RsFileHash& random_hash_seed)
 {
     if(!checkIndex(indx,FileStorageNode::TYPE_DIR))
         return false;
 
     DirEntry& d(*static_cast<DirEntry*>(mNodes[indx])) ;
 
-    std::map<std::string,time_t> should_create(subdirs);
+    std::set<std::string> should_create(subdirs);
 
     for(uint32_t i=0;i<d.subdirs.size();)
         if(subdirs.find(static_cast<DirEntry*>(mNodes[d.subdirs[i]])->dir_name) == subdirs.end())
@@ -178,13 +181,13 @@ bool InternalFileHierarchyStorage::updateSubDirectoryList(const DirectoryStorage
             ++i;
         }
 
-    for(std::map<std::string,time_t>::const_iterator it(should_create.begin());it!=should_create.end();++it)
+    for(std::set<std::string>::const_iterator it(should_create.begin());it!=should_create.end();++it)
     {
 #ifdef DEBUG_DIRECTORY_STORAGE
         std::cerr << "[directory storage] adding new subdirectory " << it->first << " at index " << mNodes.size() << std::endl;
 #endif
 
-        DirEntry *de = new DirEntry(it->first) ;
+        DirEntry *de = new DirEntry(*it) ;
 
         de->row = mNodes.size();
         de->parent_index = indx;
@@ -299,8 +302,7 @@ bool InternalFileHierarchyStorage::updateSubFilesList(const DirectoryStorage::En
             std::cerr << "[directory storage] removing non existing file " << f.file_name << " at index " << d.subfiles[i] << std::endl;
 #endif
 
-            delete mNodes[d.subfiles[i]] ;
-            mNodes[d.subfiles[i]] = NULL ;
+            deleteFileNode(d.subfiles[i]) ;
 
             d.subfiles[i] = d.subfiles[d.subfiles.size()-1] ;
             d.subfiles.pop_back();
@@ -312,6 +314,9 @@ bool InternalFileHierarchyStorage::updateSubFilesList(const DirectoryStorage::En
             f.file_hash.clear();																// hash needs recomputing
             f.file_modtime = it->second.modtime;
             f.file_size = it->second.size;
+
+            mTotalSize -= f.file_size ;
+            mTotalSize += it->second.size ;
         }
         new_files.erase(f.file_name) ;
 
@@ -328,6 +333,9 @@ bool InternalFileHierarchyStorage::updateSubFilesList(const DirectoryStorage::En
         mNodes.push_back(new FileEntry(it->first,it->second.size,it->second.modtime));
         mNodes.back()->row = mNodes.size()-1;
         mNodes.back()->parent_index = indx;
+
+        mTotalSize  += it->second.size;
+        mTotalFiles += 1;
     }
     return true;
 }
@@ -362,6 +370,10 @@ bool InternalFileHierarchyStorage::updateFile(const DirectoryStorage::EntryIndex
 #ifdef DEBUG_DIRECTORY_STORAGE
     std::cerr << "[directory storage] updating file entry at index " << file_index << ", name=" << fe.file_name << " size=" << fe.file_size << ", hash=" << fe.file_hash << std::endl;
 #endif
+    if(mTotalSize >= fe.file_size)
+		mTotalSize -= fe.file_size;
+
+	mTotalSize += size ;
 
     fe.file_hash = hash;
     fe.file_size = size;
@@ -374,23 +386,46 @@ bool InternalFileHierarchyStorage::updateFile(const DirectoryStorage::EntryIndex
     return true;
 }
 
+void InternalFileHierarchyStorage::deleteFileNode(uint32_t index)
+{
+	if(mNodes[index] != NULL)
+	{
+		FileEntry& fe(*static_cast<FileEntry*>(mNodes[index])) ;
+
+        if(mTotalSize >= fe.file_size)
+			mTotalSize -= fe.file_size ;
+
+        if(mTotalFiles > 0)
+			mTotalFiles -= 1;
+
+		delete mNodes[index] ;
+		mFreeNodes.push_back(index) ;
+		mNodes[index] = NULL ;
+	}
+}
+void InternalFileHierarchyStorage::deleteNode(uint32_t index)
+{
+    if(mNodes[index] != NULL)
+    {
+        delete mNodes[index] ;
+        mFreeNodes.push_back(index) ;
+        mNodes[index] = NULL ;
+    }
+}
+
 DirectoryStorage::EntryIndex InternalFileHierarchyStorage::allocateNewIndex()
 {
-    int found = -1;
-    for(uint32_t j=0;j<mNodes.size();++j)
-        if(mNodes[j] == NULL)
-        {
-            found = j;
-            break;
-        }
-
-    if(found < 0)
+    while(!mFreeNodes.empty())
     {
-        mNodes.push_back(NULL) ;
-        return mNodes.size()-1 ;
+        uint32_t index = mFreeNodes.front();
+        mFreeNodes.pop_front();
+
+        if(mNodes[index] == NULL)
+            return DirectoryStorage::EntryIndex(index) ;
     }
-    else
-        return found ;
+
+	mNodes.push_back(NULL) ;
+	return mNodes.size()-1 ;
 }
 
 bool InternalFileHierarchyStorage::updateDirEntry(const DirectoryStorage::EntryIndex& indx,const std::string& dir_name,time_t most_recent_time,time_t dir_modtime,const std::vector<RsFileHash>& subdirs_hash,const std::vector<FileEntry>& subfiles_array)
@@ -513,6 +548,8 @@ bool InternalFileHierarchyStorage::updateDirEntry(const DirectoryStorage::EntryI
 
             mNodes[file_index] = new FileEntry(f.file_name,f.file_size,f.file_modtime,f.file_hash) ;
             mFileHashes[f.file_hash] = file_index ;
+            mTotalSize += f.file_size ;
+            mTotalFiles++;
 
 #ifdef DEBUG_DIRECTORY_STORAGE
             std::cerr << " created, at new index " << file_index << std::endl;
@@ -534,8 +571,7 @@ bool InternalFileHierarchyStorage::updateDirEntry(const DirectoryStorage::EntryI
             std::cerr << "(EE) Cannot delete node of index " << it->second << " because it is not a file. Inconsistency error!" << std::endl;
             continue ;
         }
-        delete mNodes[it->second] ;
-        mNodes[it->second] = NULL ;
+        deleteFileNode(it->second) ;
     }
 
     // now update row and parent index for all subnodes
@@ -556,6 +592,12 @@ bool InternalFileHierarchyStorage::updateDirEntry(const DirectoryStorage::EntryI
 
 
     return true;
+}
+
+void InternalFileHierarchyStorage::getStatistics(SharedDirStats& stats) const
+{
+    stats.total_number_of_files = mTotalFiles ;
+    stats.total_shared_size = mTotalSize ;
 }
 
 bool InternalFileHierarchyStorage::getTS(const DirectoryStorage::EntryIndex& index,time_t& TS,time_t DirEntry::* m) const
@@ -590,12 +632,12 @@ bool InternalFileHierarchyStorage::setTS(const DirectoryStorage::EntryIndex& ind
 
 // Do a complete recursive sweep over sub-directories and files, and update the lst modf TS. This could be also performed by a cleanup method.
 
-time_t InternalFileHierarchyStorage::recursUpdateLastModfTime(const DirectoryStorage::EntryIndex& dir_index)
+time_t InternalFileHierarchyStorage::recursUpdateLastModfTime(const DirectoryStorage::EntryIndex& dir_index,bool& unfinished_files_present)
 {
     DirEntry& d(*static_cast<DirEntry*>(mNodes[dir_index])) ;
 
     time_t largest_modf_time = d.dir_modtime ;
-    bool unfinished_files_present = false ;
+    unfinished_files_present = false ;
 
     for(uint32_t i=0;i<d.subfiles.size();++i)
     {
@@ -608,7 +650,12 @@ time_t InternalFileHierarchyStorage::recursUpdateLastModfTime(const DirectorySto
     }
 
     for(uint32_t i=0;i<d.subdirs.size();++i)
-        largest_modf_time = std::max(largest_modf_time,recursUpdateLastModfTime(d.subdirs[i])) ;
+    {
+        bool unfinished_files_below = false ;
+        largest_modf_time = std::max(largest_modf_time,recursUpdateLastModfTime(d.subdirs[i],unfinished_files_below)) ;
+
+        unfinished_files_present = unfinished_files_present || unfinished_files_below ;
+    }
 
     // now if some files are not hashed in this directory, reduce the recurs time by 1, so that the TS wil be updated when all hashes are ready.
 
@@ -673,18 +720,9 @@ DirectoryStorage::EntryIndex InternalFileHierarchyStorage::getSubDirIndex(Direct
     return static_cast<DirEntry*>(mNodes[parent_index])->subdirs[dir_tab_index];
 }
 
-bool InternalFileHierarchyStorage::searchHash(const RsFileHash& hash,std::list<DirectoryStorage::EntryIndex>& results)
+bool InternalFileHierarchyStorage::searchHash(const RsFileHash& hash,DirectoryStorage::EntryIndex& result)
 {
-    DirectoryStorage::EntryIndex indx ;
-
-    if(getIndexFromFileHash(hash,indx))
-    {
-        results.clear();
-        results.push_back(indx) ;
-        return true ;
-    }
-    else
-        return false;
+    return getIndexFromFileHash(hash,result);
 }
 
 class DirectoryStorageExprFileEntry: public RsRegularExpression::ExpFileEntry
@@ -746,8 +784,16 @@ bool InternalFileHierarchyStorage::check(std::string& error_string) // checks co
     // recurs go through all entries, check that all
 
     error_string = "";
+    bool bDirOut = false;
+    bool bDirDouble = false;
+    bool bFileOut = false;
+    bool bFileDouble = false;
+    bool bOrphean = false;
+
     std::vector<uint32_t> hits(mNodes.size(),0) ;	// count hits of children. Should be 1 for all in the end. Otherwise there's an error.
     hits[0] = 1 ;	// because 0 is never the child of anyone
+
+    mFreeNodes.clear();
 
     for(uint32_t i=0;i<mNodes.size();++i)
         if(mNodes[i] != NULL && mNodes[i]->type() == FileStorageNode::TYPE_DIR)
@@ -759,13 +805,13 @@ bool InternalFileHierarchyStorage::check(std::string& error_string) // checks co
             {
                 if(de.subdirs[j] >= mNodes.size())
                 {
-                    error_string += " - Node child dir out of tab!" ;
+                    if(!bDirOut){ error_string += " - Node child dir out of tab!"; bDirOut = true;}
                     de.subdirs[j] = de.subdirs.back() ;
                     de.subdirs.pop_back();
                 }
                 else if(hits[de.subdirs[j]] != 0)
                 {
-                    error_string += " - Double hit on a single node dir." ;
+                    if(!bDirDouble){ error_string += " - Double hit on a single node dir."; bDirDouble = true;}
                     de.subdirs[j] = de.subdirs.back() ;
                     de.subdirs.pop_back();
                 }
@@ -779,13 +825,13 @@ bool InternalFileHierarchyStorage::check(std::string& error_string) // checks co
             {
                 if(de.subfiles[j] >= mNodes.size())
                 {
-                    error_string += " - Node child file out of tab!" ;
+                    if(!bFileOut){ error_string += " - Node child file out of tab!"; bFileOut = true;}
                     de.subfiles[j] = de.subfiles.back() ;
                     de.subfiles.pop_back();
                 }
                 else if(hits[de.subfiles[j]] != 0)
                 {
-                    error_string += " - Double hit on a single node file." ;
+                    if(!bFileDouble){ error_string += " - Double hit on a single node file."; bFileDouble = true;}
                     de.subfiles[j] = de.subfiles.back() ;
                     de.subfiles.pop_back();
                 }
@@ -796,13 +842,15 @@ bool InternalFileHierarchyStorage::check(std::string& error_string) // checks co
                 }
             }
         }
+        else if( mNodes[i] == NULL )
+            mFreeNodes.push_back(i) ;
 
     for(uint32_t i=0;i<hits.size();++i)
         if(hits[i] == 0 && mNodes[i] != NULL)
         {
-            error_string += " - Orphean node!" ;
-            delete mNodes[i] ;
-            mNodes[i] = NULL ;
+            if(!bOrphean){ error_string += " - Orphean node!"; bOrphean = true;}
+
+            deleteNode(i) ;	// we don't care if it's a file or a dir.
         }
 
     return error_string.empty();;
@@ -883,8 +931,7 @@ bool InternalFileHierarchyStorage::nodeAccessError(const std::string& s)
     return false ;
 }
 
-// Removes the given subdirectory from the parent node and all its pendign subdirs. Files are kept, and will go during the cleaning
-// phase. That allows to keep file information when moving them around.
+// Removes the given subdirectory from the parent node and all its pendign subdirs and files.
 
 bool InternalFileHierarchyStorage::recursRemoveDirectory(DirectoryStorage::EntryIndex dir)
 {
@@ -896,12 +943,9 @@ bool InternalFileHierarchyStorage::recursRemoveDirectory(DirectoryStorage::Entry
         recursRemoveDirectory(d.subdirs[i]);
 
     for(uint32_t i=0;i<d.subfiles.size();++i)
-    {
-        delete mNodes[d.subfiles[i]] ;
-        mNodes[d.subfiles[i]] = NULL ;
-    }
-    delete mNodes[dir] ;
-    mNodes[dir] = NULL ;
+        deleteFileNode(d.subfiles[i]);
+
+    deleteNode(dir) ;
 
     mDirHashes.erase(hash) ;
 
@@ -913,6 +957,13 @@ bool InternalFileHierarchyStorage::save(const std::string& fname)
     unsigned char *buffer = NULL ;
     uint32_t buffer_size = 0 ;
     uint32_t buffer_offset = 0 ;
+
+    unsigned char *tmp_section_data = (unsigned char*)rs_malloc(FL_BASE_TMP_SECTION_SIZE) ;
+
+    if(!tmp_section_data)
+        return false;
+
+    uint32_t tmp_section_size = FL_BASE_TMP_SECTION_SIZE ;
 
     try
     {
@@ -928,58 +979,52 @@ bool InternalFileHierarchyStorage::save(const std::string& fname)
             {
                 const FileEntry& fe(*static_cast<const FileEntry*>(mNodes[i])) ;
 
-                unsigned char *file_section_data = NULL ;
                 uint32_t file_section_offset = 0 ;
-                uint32_t file_section_size = 0;
 
-                if(!FileListIO::writeField(file_section_data,file_section_size,file_section_offset,FILE_LIST_IO_TAG_PARENT_INDEX  ,(uint32_t)fe.parent_index)) throw std::runtime_error("Write error") ;
-                if(!FileListIO::writeField(file_section_data,file_section_size,file_section_offset,FILE_LIST_IO_TAG_ROW           ,(uint32_t)fe.row         )) throw std::runtime_error("Write error") ;
-                if(!FileListIO::writeField(file_section_data,file_section_size,file_section_offset,FILE_LIST_IO_TAG_ENTRY_INDEX   ,(uint32_t)i              )) throw std::runtime_error("Write error") ;
-                if(!FileListIO::writeField(file_section_data,file_section_size,file_section_offset,FILE_LIST_IO_TAG_FILE_NAME     ,fe.file_name             )) throw std::runtime_error("Write error") ;
-                if(!FileListIO::writeField(file_section_data,file_section_size,file_section_offset,FILE_LIST_IO_TAG_FILE_SIZE     ,fe.file_size             )) throw std::runtime_error("Write error") ;
-                if(!FileListIO::writeField(file_section_data,file_section_size,file_section_offset,FILE_LIST_IO_TAG_FILE_SHA1_HASH,fe.file_hash             )) throw std::runtime_error("Write error") ;
-                if(!FileListIO::writeField(file_section_data,file_section_size,file_section_offset,FILE_LIST_IO_TAG_MODIF_TS      ,(uint32_t)fe.file_modtime)) throw std::runtime_error("Write error") ;
+                if(!FileListIO::writeField(tmp_section_data,tmp_section_size,file_section_offset,FILE_LIST_IO_TAG_PARENT_INDEX  ,(uint32_t)fe.parent_index)) throw std::runtime_error("Write error") ;
+                if(!FileListIO::writeField(tmp_section_data,tmp_section_size,file_section_offset,FILE_LIST_IO_TAG_ROW           ,(uint32_t)fe.row         )) throw std::runtime_error("Write error") ;
+                if(!FileListIO::writeField(tmp_section_data,tmp_section_size,file_section_offset,FILE_LIST_IO_TAG_ENTRY_INDEX   ,(uint32_t)i              )) throw std::runtime_error("Write error") ;
+                if(!FileListIO::writeField(tmp_section_data,tmp_section_size,file_section_offset,FILE_LIST_IO_TAG_FILE_NAME     ,fe.file_name             )) throw std::runtime_error("Write error") ;
+                if(!FileListIO::writeField(tmp_section_data,tmp_section_size,file_section_offset,FILE_LIST_IO_TAG_FILE_SIZE     ,fe.file_size             )) throw std::runtime_error("Write error") ;
+                if(!FileListIO::writeField(tmp_section_data,tmp_section_size,file_section_offset,FILE_LIST_IO_TAG_FILE_SHA1_HASH,fe.file_hash             )) throw std::runtime_error("Write error") ;
+                if(!FileListIO::writeField(tmp_section_data,tmp_section_size,file_section_offset,FILE_LIST_IO_TAG_MODIF_TS      ,(uint32_t)fe.file_modtime)) throw std::runtime_error("Write error") ;
 
-                if(!FileListIO::writeField(buffer,buffer_size,buffer_offset,FILE_LIST_IO_TAG_LOCAL_FILE_ENTRY,file_section_data,file_section_offset)) throw std::runtime_error("Write error") ;
-
-                free(file_section_data) ;
+                if(!FileListIO::writeField(buffer,buffer_size,buffer_offset,FILE_LIST_IO_TAG_LOCAL_FILE_ENTRY,tmp_section_data,file_section_offset)) throw std::runtime_error("Write error") ;
             }
             else if(mNodes[i] != NULL && mNodes[i]->type() == FileStorageNode::TYPE_DIR)
             {
                 const DirEntry& de(*static_cast<const DirEntry*>(mNodes[i])) ;
 
-                unsigned char *dir_section_data = NULL ;
                 uint32_t dir_section_offset = 0 ;
-                uint32_t dir_section_size = 0;
 
-                if(!FileListIO::writeField(dir_section_data,dir_section_size,dir_section_offset,FILE_LIST_IO_TAG_PARENT_INDEX   ,(uint32_t)de.parent_index      )) throw std::runtime_error("Write error") ;
-                if(!FileListIO::writeField(dir_section_data,dir_section_size,dir_section_offset,FILE_LIST_IO_TAG_ROW            ,(uint32_t)de.row               )) throw std::runtime_error("Write error") ;
-                if(!FileListIO::writeField(dir_section_data,dir_section_size,dir_section_offset,FILE_LIST_IO_TAG_ENTRY_INDEX    ,(uint32_t)i                    )) throw std::runtime_error("Write error") ;
-                if(!FileListIO::writeField(dir_section_data,dir_section_size,dir_section_offset,FILE_LIST_IO_TAG_FILE_NAME      ,de.dir_name                    )) throw std::runtime_error("Write error") ;
-                if(!FileListIO::writeField(dir_section_data,dir_section_size,dir_section_offset,FILE_LIST_IO_TAG_DIR_HASH       ,de.dir_hash                    )) throw std::runtime_error("Write error") ;
-                if(!FileListIO::writeField(dir_section_data,dir_section_size,dir_section_offset,FILE_LIST_IO_TAG_FILE_SIZE      ,de.dir_parent_path             )) throw std::runtime_error("Write error") ;
-                if(!FileListIO::writeField(dir_section_data,dir_section_size,dir_section_offset,FILE_LIST_IO_TAG_MODIF_TS       ,(uint32_t)de.dir_modtime       )) throw std::runtime_error("Write error") ;
-                if(!FileListIO::writeField(dir_section_data,dir_section_size,dir_section_offset,FILE_LIST_IO_TAG_UPDATE_TS      ,(uint32_t)de.dir_update_time   )) throw std::runtime_error("Write error") ;
-                if(!FileListIO::writeField(dir_section_data,dir_section_size,dir_section_offset,FILE_LIST_IO_TAG_RECURS_MODIF_TS,(uint32_t)de.dir_most_recent_time  )) throw std::runtime_error("Write error") ;
+                if(!FileListIO::writeField(tmp_section_data,tmp_section_size,dir_section_offset,FILE_LIST_IO_TAG_PARENT_INDEX   ,(uint32_t)de.parent_index      )) throw std::runtime_error("Write error") ;
+                if(!FileListIO::writeField(tmp_section_data,tmp_section_size,dir_section_offset,FILE_LIST_IO_TAG_ROW            ,(uint32_t)de.row               )) throw std::runtime_error("Write error") ;
+                if(!FileListIO::writeField(tmp_section_data,tmp_section_size,dir_section_offset,FILE_LIST_IO_TAG_ENTRY_INDEX    ,(uint32_t)i                    )) throw std::runtime_error("Write error") ;
+                if(!FileListIO::writeField(tmp_section_data,tmp_section_size,dir_section_offset,FILE_LIST_IO_TAG_FILE_NAME      ,de.dir_name                    )) throw std::runtime_error("Write error") ;
+                if(!FileListIO::writeField(tmp_section_data,tmp_section_size,dir_section_offset,FILE_LIST_IO_TAG_DIR_HASH       ,de.dir_hash                    )) throw std::runtime_error("Write error") ;
+                if(!FileListIO::writeField(tmp_section_data,tmp_section_size,dir_section_offset,FILE_LIST_IO_TAG_FILE_SIZE      ,de.dir_parent_path             )) throw std::runtime_error("Write error") ;
+                if(!FileListIO::writeField(tmp_section_data,tmp_section_size,dir_section_offset,FILE_LIST_IO_TAG_MODIF_TS       ,(uint32_t)de.dir_modtime       )) throw std::runtime_error("Write error") ;
+                if(!FileListIO::writeField(tmp_section_data,tmp_section_size,dir_section_offset,FILE_LIST_IO_TAG_UPDATE_TS      ,(uint32_t)de.dir_update_time   )) throw std::runtime_error("Write error") ;
+                if(!FileListIO::writeField(tmp_section_data,tmp_section_size,dir_section_offset,FILE_LIST_IO_TAG_RECURS_MODIF_TS,(uint32_t)de.dir_most_recent_time  )) throw std::runtime_error("Write error") ;
 
-                if(!FileListIO::writeField(dir_section_data,dir_section_size,dir_section_offset,FILE_LIST_IO_TAG_RAW_NUMBER,(uint32_t)de.subdirs.size())) throw std::runtime_error("Write error") ;
+                if(!FileListIO::writeField(tmp_section_data,tmp_section_size,dir_section_offset,FILE_LIST_IO_TAG_RAW_NUMBER,(uint32_t)de.subdirs.size())) throw std::runtime_error("Write error") ;
 
                 for(uint32_t j=0;j<de.subdirs.size();++j)
-                    if(!FileListIO::writeField(dir_section_data,dir_section_size,dir_section_offset,FILE_LIST_IO_TAG_RAW_NUMBER,(uint32_t)de.subdirs[j])) throw std::runtime_error("Write error") ;
+                    if(!FileListIO::writeField(tmp_section_data,tmp_section_size,dir_section_offset,FILE_LIST_IO_TAG_RAW_NUMBER,(uint32_t)de.subdirs[j])) throw std::runtime_error("Write error") ;
 
-                if(!FileListIO::writeField(dir_section_data,dir_section_size,dir_section_offset,FILE_LIST_IO_TAG_RAW_NUMBER,(uint32_t)de.subfiles.size())) throw std::runtime_error("Write error") ;
+                if(!FileListIO::writeField(tmp_section_data,tmp_section_size,dir_section_offset,FILE_LIST_IO_TAG_RAW_NUMBER,(uint32_t)de.subfiles.size())) throw std::runtime_error("Write error") ;
 
                 for(uint32_t j=0;j<de.subfiles.size();++j)
-                    if(!FileListIO::writeField(dir_section_data,dir_section_size,dir_section_offset,FILE_LIST_IO_TAG_RAW_NUMBER,(uint32_t)de.subfiles[j])) throw std::runtime_error("Write error") ;
+                    if(!FileListIO::writeField(tmp_section_data,tmp_section_size,dir_section_offset,FILE_LIST_IO_TAG_RAW_NUMBER,(uint32_t)de.subfiles[j])) throw std::runtime_error("Write error") ;
 
-                if(!FileListIO::writeField(buffer,buffer_size,buffer_offset,FILE_LIST_IO_TAG_LOCAL_DIR_ENTRY,dir_section_data,dir_section_offset)) throw std::runtime_error("Write error") ;
-
-                free(dir_section_data) ;
+                if(!FileListIO::writeField(buffer,buffer_size,buffer_offset,FILE_LIST_IO_TAG_LOCAL_DIR_ENTRY,tmp_section_data,dir_section_offset)) throw std::runtime_error("Write error") ;
             }
 
         bool res = FileListIO::saveEncryptedDataToFile(fname,buffer,buffer_offset) ;
 
         free(buffer) ;
+        free(tmp_section_data) ;
+
         return res ;
     }
     catch(std::exception& e)
@@ -988,6 +1033,10 @@ bool InternalFileHierarchyStorage::save(const std::string& fname)
 
         if(buffer != NULL)
             free(buffer) ;
+
+        if(tmp_section_data != NULL)
+			free(tmp_section_data) ;
+
         return false;
     }
 }
@@ -1013,6 +1062,10 @@ bool InternalFileHierarchyStorage::load(const std::string& fname)
     unsigned char *buffer = NULL ;
     uint32_t buffer_size = 0 ;
     uint32_t buffer_offset = 0 ;
+
+    mFreeNodes.clear();
+    mTotalFiles = 0;
+    mTotalSize = 0;
 
     try
     {
@@ -1074,6 +1127,9 @@ bool InternalFileHierarchyStorage::load(const std::string& fname)
 
                 mNodes[node_index] = fe ;
                 mFileHashes[fe->file_hash] = node_index ;
+
+                mTotalFiles++ ;
+                mTotalSize += file_size ;
             }
             else if(FileListIO::readField(buffer,buffer_size,buffer_offset,FILE_LIST_IO_TAG_LOCAL_DIR_ENTRY,node_section_data,node_section_size))
             {
@@ -1140,6 +1196,7 @@ bool InternalFileHierarchyStorage::load(const std::string& fname)
             free(node_section_data) ;
         }
         free(buffer) ;
+
         return true ;
     }
     catch(read_error& e)

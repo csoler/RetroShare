@@ -82,7 +82,7 @@ public:
         std::vector<DirectoryStorage::EntryIndex> subfiles ;
 
         time_t dir_modtime;
-        time_t dir_most_recent_time;	// recursive most recent modification time, including files and subdirs in the entire hierarchy below.
+        time_t dir_most_recent_time;// recursive most recent modification time, including files and subdirs in the entire hierarchy below.
         time_t dir_update_time;		// last time the information was updated for that directory. Includes subdirs indexes and subfile info.
     };
 
@@ -95,7 +95,7 @@ public:
     int parentRow(DirectoryStorage::EntryIndex e);
     bool isIndexValid(DirectoryStorage::EntryIndex e) const;
     bool getChildIndex(DirectoryStorage::EntryIndex e,int row,DirectoryStorage::EntryIndex& c) const;
-    bool updateSubDirectoryList(const DirectoryStorage::EntryIndex& indx, const std::map<std::string,time_t>& subdirs, const RsFileHash &random_hash_seed);
+    bool updateSubDirectoryList(const DirectoryStorage::EntryIndex& indx, const std::set<std::string>& subdirs, const RsFileHash &random_hash_seed);
     bool removeDirectory(DirectoryStorage::EntryIndex indx)	;
     bool checkIndex(DirectoryStorage::EntryIndex indx,uint8_t type) const;
     bool updateSubFilesList(const DirectoryStorage::EntryIndex& indx,const std::map<std::string,DirectoryStorage::FileTS>& subfiles,std::map<std::string,DirectoryStorage::FileTS>& new_files);
@@ -109,8 +109,9 @@ public:
     bool setTS(const DirectoryStorage::EntryIndex& index,time_t& TS,time_t DirEntry::* ) ;
 
     // Do a complete recursive sweep over sub-directories and files, and update the lst modf TS. This could be also performed by a cleanup method.
+    // Also keeps the high level statistics up to date.
 
-    time_t recursUpdateLastModfTime(const DirectoryStorage::EntryIndex& dir_index);
+    time_t recursUpdateLastModfTime(const DirectoryStorage::EntryIndex& dir_index, bool &unfinished_files_present);
 
     // hash stuff
 
@@ -122,6 +123,7 @@ public:
     bool findSubDirectory(DirectoryStorage::EntryIndex e,const std::string& s) const ;	// returns true when s is the name of a sub-directory in the given entry e
 
     uint32_t mRoot ;
+    std::list<uint32_t > mFreeNodes ;	// keeps a list of free nodes in order to make insert effcieint
     std::vector<FileStorageNode*> mNodes;// uses pointers to keep information about valid/invalid objects.
 
     void compress() ;					// use empty space in the vector, mostly due to deleted entries. This is a complicated operation, mostly due to
@@ -142,13 +144,17 @@ public:
 
     // search. SearchHash is logarithmic. The other two are linear.
 
-    bool searchHash(const RsFileHash& hash,std::list<DirectoryStorage::EntryIndex>& results);
+    bool searchHash(const RsFileHash& hash, DirectoryStorage::EntryIndex &result);
     int searchBoolExp(RsRegularExpression::Expression * exp, std::list<DirectoryStorage::EntryIndex> &results) const ;
     int searchTerms(const std::list<std::string>& terms, std::list<DirectoryStorage::EntryIndex> &results) const ;		// does a logical OR between items of the list of terms
 
     bool check(std::string& error_string)	;// checks consistency of storage.
 
     void print() const;
+
+    // gets statistics about share files
+
+    void getStatistics(SharedDirStats& stats) const ;
 
 private:
     void recursPrint(int depth,DirectoryStorage::EntryIndex node) const;
@@ -158,6 +164,11 @@ private:
     // Allocates a new entry in mNodes, possible re-using an empty slot and returns its index.
 
     DirectoryStorage::EntryIndex allocateNewIndex();
+
+    // Deletes an existing entry in mNodes, and keeps record of the indices that get freed.
+
+    void deleteNode(DirectoryStorage::EntryIndex);
+    void deleteFileNode(DirectoryStorage::EntryIndex);
 
     // Removes the given subdirectory from the parent node and all its pendign subdirs. Files are kept, and will go during the cleaning
     // phase. That allows to keep file information when moving them around.
@@ -179,5 +190,10 @@ private:
     // in very different ways.
     //
     std::map<RsFileHash,DirectoryStorage::EntryIndex> mDirHashes ;
+
+    // high level statistics on the full hierarchy. Should be kept up to date.
+
+    uint32_t mTotalFiles ;
+    uint64_t mTotalSize ;
 };
 

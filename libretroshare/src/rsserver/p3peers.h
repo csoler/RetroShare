@@ -26,11 +26,20 @@
  *
  */
 
+/* get OS-specific definitions for:
+ * 	struct sockaddr_storage
+ */
+#ifndef WINDOWS_SYS
+	#include <sys/socket.h>
+#else
+	#include <winsock2.h>
+#endif
+
 #include "retroshare/rspeers.h"
+
 class p3LinkMgr;
 class p3PeerMgr;
 class p3NetMgr;
-struct sockaddr_storage;
 
 
 class p3Peers: public RsPeers 

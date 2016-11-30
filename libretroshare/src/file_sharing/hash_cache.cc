@@ -145,7 +145,9 @@ void HashStorage::data_tick()
 
         if(job.client->hash_confirm(job.client_param))
         {
+#ifdef HASHSTORAGE_DEBUG
             std::cerr << "Hashing file " << job.full_path << "..." ; std::cerr.flush();
+#endif
 
             std::string tmpout;
             rs_sprintf(tmpout, "%lu/%lu (%s - %d%%) : %s", (unsigned long int)mHashCounter+1, (unsigned long int)mTotalFilesToHash, friendlyUnit(mTotalHashedSize).c_str(), int(mTotalHashedSize/double(mTotalSizeToHash)*100.0), job.full_path.c_str()) ;
@@ -156,7 +158,9 @@ void HashStorage::data_tick()
             {
                 // store the result
 
+#ifdef HASHSTORAGE_DEBUG
                 std::cerr << "done."<< std::endl;
+#endif
 
                 RS_STACK_MUTEX(mHashMtx) ;
                 HashStorageInfo& info(mFiles[job.full_path]);
@@ -349,8 +353,12 @@ void HashStorage::locked_save()
 
 bool HashStorage::readHashStorageInfo(const unsigned char *data,uint32_t total_size,uint32_t& offset,HashStorageInfo& info) const
 {
-    unsigned char *section_data = NULL ;
-    uint32_t section_size = 0;
+    unsigned char *section_data = (unsigned char *)rs_malloc(FL_BASE_TMP_SECTION_SIZE) ;
+
+    if(!section_data)
+        return false ;
+
+    uint32_t section_size = FL_BASE_TMP_SECTION_SIZE;
     uint32_t section_offset = 0;
 
     // This way, the entire section is either read or skipped. That avoids the risk of being stuck somewhere in the middle
@@ -371,9 +379,13 @@ bool HashStorage::readHashStorageInfo(const unsigned char *data,uint32_t total_s
 
 bool HashStorage::writeHashStorageInfo(unsigned char *& data,uint32_t&  total_size,uint32_t& offset,const HashStorageInfo& info) const
 {
-    unsigned char *section_data = NULL ;
+    unsigned char *section_data = (unsigned char *)rs_malloc(FL_BASE_TMP_SECTION_SIZE) ;
+
+    if(!section_data)
+        return false ;
+
     uint32_t section_offset = 0 ;
-    uint32_t section_size = 0;
+    uint32_t section_size = FL_BASE_TMP_SECTION_SIZE;
 
     if(!FileListIO::writeField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_FILE_NAME     ,info.filename  )) return false ;
     if(!FileListIO::writeField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_FILE_SIZE     ,info.size      )) return false ;

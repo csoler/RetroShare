@@ -25,8 +25,10 @@
 #include <QTreeView>
 #include <QClipboard>
 #include <QMenu>
+#include <QPainter>
 #include <QProcess>
 #include <QSortFilterProxyModel>
+#include <QStyledItemDelegate>
 
 #include "SharedFilesDialog.h"
 #include "settings/AddFileAssociationDialog.h"
@@ -114,6 +116,36 @@ private:
     RetroshareDirModel *m_dirModel;
 };
 
+// This class allows to draw the item in the share flags column using an appropriate size
+
+class ShareFlagsItemDelegate: public QStyledItemDelegate
+{
+public:
+    ShareFlagsItemDelegate() {}
+
+    virtual void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
+    {
+        Q_ASSERT(index.isValid());
+
+        QStyleOptionViewItemV4 opt = option;
+        initStyleOption(&opt, index);
+        // disable default icon
+        opt.icon = QIcon();
+        // draw default item
+        QApplication::style()->drawControl(QStyle::CE_ItemViewItem, &opt, painter, 0);
+
+        const QRect r = option.rect;
+
+        // get pixmap
+        QIcon icon = qvariant_cast<QIcon>(index.data(Qt::DecorationRole));
+        QPixmap pix = icon.pixmap(r.size());
+
+        // draw pixmap at center of item
+        const QPoint p = QPoint((r.width() - pix.width())/2, (r.height() - pix.height())/2);
+        painter->drawPixmap(r.topLeft() + p, pix);
+    }
+};
+
 /** Constructor */
 SharedFilesDialog::SharedFilesDialog(RetroshareDirModel *_tree_model,RetroshareDirModel *_flat_model,QWidget *parent)
 : RsAutoUpdatePage(1000,parent),model(NULL)
@@ -151,8 +183,9 @@ SharedFilesDialog::SharedFilesDialog(RetroshareDirModel *_tree_model,RetroshareD
 
     // Mr.Alice: I removed this because it causes a crash for some obscur reason. Apparently when the model is changed, the proxy model cannot
     // deal with the change by itself. Should I call something specific? I've no idea. Removing this does not seem to cause any harm either.
-    //tree_proxyModel->setDynamicSortFilter(true);
-    //flat_proxyModel->setDynamicSortFilter(true);
+    //Ghibli: set false because by default in qt5 is true and makes rs crash when sorting, all this decided by Cyril not me :D it works
+    tree_proxyModel->setDynamicSortFilter(false);
+    flat_proxyModel->setDynamicSortFilter(false);
 
     connect(ui.filterClearButton, SIGNAL(clicked()), this, SLOT(clearFilter()));
 	connect(ui.filterStartButton, SIGNAL(clicked()), this, SLOT(startFilter()));
@@ -220,7 +253,9 @@ LocalSharedFilesDialog::LocalSharedFilesDialog(QWidget *parent)
 	editshareAct = new QAction(QIcon(IMAGE_EDITSHARE), tr("Edit Share Permissions"), this) ;
 	connect(editshareAct, SIGNAL(triggered()), this, SLOT(editSharePermissions())) ;
 
-	ui.titleBarPixmap->setPixmap(QPixmap(IMAGE_MYFILES)) ;
+    ui.titleBarPixmap->setPixmap(QPixmap(IMAGE_MYFILES)) ;
+
+    ui.dirTreeView->setItemDelegateForColumn(COLUMN_FRIEND,new ShareFlagsItemDelegate()) ;
 }
 
 RemoteSharedFilesDialog::RemoteSharedFilesDialog(QWidget *parent)
@@ -232,6 +267,7 @@ RemoteSharedFilesDialog::RemoteSharedFilesDialog(QWidget *parent)
 
 	connect(ui.downloadButton, SIGNAL(clicked()), this, SLOT(downloadRemoteSelected()));
     connect(ui.dirTreeView, SIGNAL(  expanded(const QModelIndex & ) ), this, SLOT(   expanded(const QModelIndex & ) ) );
+    connect(ui.dirTreeView, SIGNAL(  doubleClicked(const QModelIndex & ) ), this, SLOT(   expanded(const QModelIndex & ) ) );
 
 	// load settings
 	processSettings(true);
@@ -844,13 +880,23 @@ void LocalSharedFilesDialog::openfolder()
 
 void  SharedFilesDialog::preModDirectories(bool local)
 {
-	if (isRemote() == local) {
+	if (isRemote() == local)
 		return;
-	}
+
+#ifdef DEBUG_SHARED_FILES_DIALOG
+    std::cerr << "About to modify directories. Local=" << local << ". Temporarily disabling sorting" << std::endl;
+#endif
+
+    ui.dirTreeView->setSortingEnabled(false);
+
+    std::set<std::string> expanded_indexes,selected_indexes;
+    saveExpandedPathsAndSelection(expanded_indexes,selected_indexes) ;
 
 	/* Notify both models, only one is visible */
 	tree_model->preMods();
 	flat_model->preMods();
+
+    restoreExpandedPathsAndSelection(expanded_indexes,selected_indexes) ;
 }
 
 void SharedFilesDialog::saveExpandedPathsAndSelection(std::set<std::string>& expanded_indexes, std::set<std::string>& selected_indexes)
@@ -942,9 +988,9 @@ void SharedFilesDialog::recursRestoreExpandedItems(const QModelIndex& index, con
 
 void  SharedFilesDialog::postModDirectories(bool local)
 {
-    if (isRemote() == local) {
-        return;
-    }
+	if (isRemote() == local)
+		return;
+
     std::set<std::string> expanded_indexes,selected_indexes;
 
     saveExpandedPathsAndSelection(expanded_indexes,selected_indexes) ;
@@ -957,13 +1003,15 @@ void  SharedFilesDialog::postModDirectories(bool local)
 	flat_model->postMods();
 	ui.dirTreeView->update() ;
 
-    restoreExpandedPathsAndSelection(expanded_indexes,selected_indexes) ;
-
     if (ui.filterPatternLineEdit->text().isEmpty() == false)
 		FilterItems();
 
+    ui.dirTreeView->setSortingEnabled(true);
+
+    restoreExpandedPathsAndSelection(expanded_indexes,selected_indexes) ;
+
 #ifdef DEBUG_SHARED_FILES_DIALOG
-    std::cerr << "****** updated directories! ******" << std::endl;
+    std::cerr << "****** updated directories! Re-enabling sorting ******" << std::endl;
 #endif
 	QCoreApplication::flush();
 }

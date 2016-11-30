@@ -26,11 +26,18 @@
 #include "ui_ServerPage.h"
 #include "RsAutoUpdatePage.h"
 #include <inttypes.h>
+/* get OS-specific definitions for:
+ * 	struct sockaddr_storage
+ */
+#ifndef WINDOWS_SYS
+    #include <sys/socket.h>
+#else
+    #include <winsock2.h>
+#endif
 
 class QNetworkReply;
 class QNetworkAccessManager;
 class BanListPeer;
-struct sockaddr_storage;
 
 class ServerPage: public ConfigPage
 {

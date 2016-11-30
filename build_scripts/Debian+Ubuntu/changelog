@@ -1,5 +1,185 @@
 retroshare06 (0.6.1-1.XXXXXX~YYYYYY) YYYYYY; urgency=low
 
+  2a758dd csoler   Sat, 26 Nov 2016 19:19:15 +0100 changed shared files tree header when updating
+  aa4ecd7 csoler   Sat, 26 Nov 2016 18:58:02 +0100 added limit to calls of PreMods() in SharedFilesDialog so as to keep CPU load minimal when updating dirs from friends. Disabled sorting when new data comes.
+  d01644c csoler   Sat, 26 Nov 2016 11:26:02 +0100 added back the test for local/remote in SharedFilesDialog as it reduces the load anyway
+  4ef1b08 csoler   Sat, 26 Nov 2016 11:22:35 +0100 attempt to fix emoticons sizes on high DPI screens
+  3386238 csoler   Sat, 26 Nov 2016 11:03:31 +0100 improved preservation of directories when updating, and allow to temporarily disable sorting while an update is received
+  7aaf330 defnax   Sat, 26 Nov 2016 00:02:58 +0100 Added category icons for Smiley Groups Updated emotes file, sorted Emoticons.
+  c92c270 csoler   Fri, 25 Nov 2016 22:30:47 +0100 Merge pull request #584 from mr-alice/v0.6-FileLists
+  729c05a mr-alice Fri, 25 Nov 2016 21:09:34 +0100 merged with upstream code
+  d975a18 csoler   Fri, 25 Nov 2016 21:06:40 +0100 added doubling of buffer size in checkSectionSize when missing space. Used 1024 instead of 1000 as start size
+  2953957 mr-alice Fri, 25 Nov 2016 20:50:10 +0100 added full re-scan when symbolic links are (des)activated, since the directory time stamps will not trigger an update
+  3f3efca mr-alice Fri, 25 Nov 2016 20:33:27 +0100 removed canonicalize_file_name from MacOS compilation
+  5fbc263 csoler   Fri, 25 Nov 2016 20:05:23 +0100 applied removal of realloc to other files in file_sharing/ directory
+  0cb7778 csoler   Fri, 25 Nov 2016 18:52:04 +0100 removed all calls to realloc causing major slow down on windows where its implementation is extremely inefficient
+  5f69c9e mr-alice Thu, 24 Nov 2016 23:42:56 +0100 added an option to follow symbolic links or not, and anti-loop system during directories traversal
+  cf270d7 defnax   Thu, 24 Nov 2016 08:04:00 +0100 Merge pull request #583 from PhenomRetroShare/Add_GroupedEmoticons
+  1e1c19e csoler   Wed, 23 Nov 2016 20:30:06 +0100 Merge pull request #582 from mr-alice/v0.6-DLQueue
+  66c3259 mr-alice Wed, 23 Nov 2016 19:12:38 +0100 removed debug output
+  ae83651 Phenom   Wed, 23 Nov 2016 17:48:35 +0100 Add grouped emoticons.
+  fb70cb2 mr-alice Tue, 22 Nov 2016 23:39:09 +0100 removed duplicate copy/rename file methods from ftController
+  47b8258 mr-alice Tue, 22 Nov 2016 23:19:34 +0100 fixed the download queue, and allow queued files to start when sources get online and empty slots are present
+  69f503e defnax   Tue, 22 Nov 2016 13:26:29 +0100 Merge pull request #580 from sehraf/pr-improve-smiley
+  2faefe8 csoler   Mon, 21 Nov 2016 20:38:45 +0100 Merge pull request #581 from csoler/v0.6-FileListsOptim
+  172b513 csoler   Mon, 21 Nov 2016 16:14:11 +0100 added change in TS for shared directories when virtual name changes
+  2ffe3e3 sehraf   Mon, 21 Nov 2016 15:00:33 +0100 fix emoticons: make ':)' actually look like ':)' instead of ':D'
+  5d1f479 csoler   Mon, 21 Nov 2016 10:13:26 +0100 fixed bug preventing plugins loaded as symbolic links to be considered by folderIterator
+  5af5425 csoler   Mon, 21 Nov 2016 00:17:10 +0100 Merge pull request #579 from csoler/v0.6-FileListsOptim
+  da84b88 csoler   Sun, 20 Nov 2016 20:42:14 +0100 fixed constant updating of flat dir model. Had to limit to at most 10000 files to keep it interactive.
+  7b78a68 csoler   Sat, 19 Nov 2016 23:42:07 +0100 Merge pull request #577 from PhenomRetroShare/Fix_AnchorOnChannelMessage
+  9718385 csoler   Sat, 19 Nov 2016 20:15:53 +0100 added missing mutex probably causing crashes when saving directory storage
+  007825b Phenom   Sat, 19 Nov 2016 16:44:12 +0100 Fix Anchor on Channel Message
+  7a2f02e csoler   Sat, 19 Nov 2016 15:16:03 +0100 added missing control file for xenial
+  3c32bb6 csoler   Sat, 19 Nov 2016 15:03:47 +0100 updated ubuntu changelog
+
+ -- Retroshare Dev Team <contact@retroshare.net>  Sat, 26 Nov 2016 15:00:00 +0100
+
+retroshare06 (0.6.1-1.20161119~87183853) xenial; urgency=low
+
+  5b9b63e csoler      Sat, 19 Nov 2016 14:42:43 +0100 Merge pull request #575 from PhenomRetroShare/FixCrashOnCheckBigBigFileStorage
+  a8782f0 Phenom      Fri, 18 Nov 2016 23:04:32 +0100 Fix Crash when checking a big-big file storage.
+  4bdfc6e csoler      Fri, 18 Nov 2016 17:56:42 +0100 removed unused old file
+  6d0293c csoler      Thu, 17 Nov 2016 22:10:57 +0100 Merge pull request #573 from csoler/v0.6-FileListsOptim
+  bdc8086 csoler      Thu, 17 Nov 2016 21:27:37 +0100 added missing mChanged=true when removign a directory
+  deadb1f csoler      Thu, 17 Nov 2016 21:01:01 +0100 small optimization of RemoteDirModel::data()
+  5339e99 csoler      Thu, 17 Nov 2016 21:00:34 +0100 force re-sweep of remote directory that has been updated with new dir content to 10 sec
+  36755c4 csoler      Thu, 17 Nov 2016 19:03:53 +0100 added load/save of own file hierarchy
+  ff4e6f3 csoler      Thu, 17 Nov 2016 14:23:25 +0100 added missing time.h for windows compilation
+  1b9fe3b csoler      Thu, 17 Nov 2016 09:31:05 +0100 removed symbolic links handling from windows compilation
+  fe965d2 csoler      Wed, 16 Nov 2016 22:12:55 +0100 Merge pull request #572 from csoler/v0.6-FileListsOptim
+  ba78007 csoler      Wed, 16 Nov 2016 21:49:27 +0100 added parameter to disallow hashing files which time is in the future (as they severely perturbate the synchronisation process)
+  6272856 csoler      Wed, 16 Nov 2016 21:41:32 +0100 added param to folderIterator to skip/follow symbolic links
+  188f345 csoler      Wed, 16 Nov 2016 12:10:37 +0100 Merge pull request #571 from felisucoibi/master
+  999ab0b felisucoibi Wed, 16 Nov 2016 12:07:38 +0100 fix sorting crashing with qt5 in shared files of friends rev3
+  ee23c42 felisucoibi Wed, 16 Nov 2016 12:05:05 +0100 fix sorting crashing with qt5 in shared files of friends rev2
+  1757a7b felisucoibi Wed, 16 Nov 2016 12:02:54 +0100 fix sorting crashing with qt5 in shared files of friends
+  176999d csoler      Wed, 16 Nov 2016 11:47:02 +0100 Merge pull request #570 from felisucoibi/master
+  628177c felisucoibi Wed, 16 Nov 2016 11:22:23 +0100 fix for windows compile
+  ddff9f5 felisucoibi Wed, 16 Nov 2016 11:03:02 +0100 Improved total file size and a small bug with a comma in TB string of file size 2 CLEANED CODE
+  e3d832c thunder2    Wed, 16 Nov 2016 10:47:34 +0100 Added missing include time.h for Windows compile
+  cc452ae csoler      Tue, 15 Nov 2016 22:58:37 +0100 Merge pull request #569 from csoler/v0.6-FileListsOptim
+  608d0d0 csoler      Tue, 15 Nov 2016 21:33:39 +0100 auto-remove remote directories for friends offline for too long (depending on whether the dir is empty or not) and also remove unused dir files
+  99860c1 csoler      Tue, 15 Nov 2016 20:10:18 +0100 only allocate a remote directory entry if the peer is online, or the file already exists
+  de6f753 csoler      Tue, 15 Nov 2016 09:18:51 +0100 fixed compilation due to previous commit
+  aeb6834 csoler      Mon, 14 Nov 2016 22:03:47 +0100 Merge pull request #568 from csoler/v0.6-FileListsOptim
+  8c8cc88 csoler      Mon, 14 Nov 2016 21:58:58 +0100 fixed problems with negative time shifts in DirDetails causing multiple GUI bugs in File Lists and Search
+  d433713 csoler      Mon, 14 Nov 2016 14:10:49 +0100 fixed possible uninitialised memory read in folderiterator for windows, and changed file folderiterator.cc to unix format
+  fb30200 csoler      Mon, 14 Nov 2016 09:56:46 +0100 Merge pull request #567 from Reedych/patch-1
+  5fd11eb csoler      Mon, 14 Nov 2016 09:56:05 +0100 Merge pull request #565 from G10h4ck/master
+  baaa82a Reedych     Sun, 13 Nov 2016 01:39:54 +0700 Updated link for Qt
+  1773803 csoler      Sat, 12 Nov 2016 16:12:55 +0100 Merge pull request #562 from csoler/v0.6-FileListsOptim
+  c07dd83 csoler      Sat, 12 Nov 2016 15:53:17 +0100 merged upstream/master
+  5ef4e75 csoler      Fri, 11 Nov 2016 20:25:11 +0100 added count of total number of files and total file isze on top of shared directories
+  98183e1 Gio         Thu, 10 Nov 2016 11:45:41 +0100 Add some documentation for QML app and link android readme in main README
+  ae8fc61 Thunder     Wed,  9 Nov 2016 06:37:52 +0100 Merge pull request #564 from PhenomRetroShare/Fix_WindowsCompil
+  2827233 Phenom      Tue,  8 Nov 2016 19:47:17 +0100 Fix windows Compil with sys/socket.h
+  61131e4 csoler      Tue,  8 Nov 2016 19:56:07 +0100 simplified the remoteDirModel cache system a little bie
+  644c41e csoler      Mon,  7 Nov 2016 22:24:02 +0100 added a small trick to cache last request of RemoteDirModel::requestDirDetails
+  befeb44 csoler      Mon,  7 Nov 2016 20:55:02 +0100 Merge pull request #550 from G10h4ck/android
+  8ab3c7d Gio         Mon,  7 Nov 2016 14:37:23 +0100 Merge branch 'master' into android
+  beaf479 Gio         Mon,  7 Nov 2016 14:14:28 +0100 Remove rotten code in rsloginhandler autologin
+  461975f csoler      Mon,  7 Nov 2016 10:09:28 +0100 generally prevent threads to start twice, and fixed bug causing DirWatcher to be run twice
+  eb95c68 thunder2    Thu,  3 Nov 2016 08:32:15 +0100 Windows build environment: - Renamed folder build_libs to build-libs - Removed old file stripSVN.sh - Fixed some batch files - Switch from curl to wget - Added Qt environment - Added build.bat to build everything
+  0008572 csoler      Sun,  6 Nov 2016 19:15:05 +0100 Merge pull request #514 from PhenomRetroShare/Add_MacOSInTravisCI
+  7a58a87 Phenom      Sun,  4 Sep 2016 13:08:09 +0200 Add MacOS compilation test on Travis CI
+  c1b1e25 csoler      Sun,  6 Nov 2016 12:32:36 +0100 updated ubuntu changelog and added control file for ubuntu 16.10
+  17fb682 csoler      Sat,  5 Nov 2016 21:09:49 +0100 Merge pull request #559 from jolavillette/PacketSlicingGroupingFlags
+
+ -- Cyril Soler <csoler@users.sourceforge.net>  Sat, 19 Nov 2016 15:00:00 +0100
+
+retroshare06 (0.6.1-1.20161105.8cebb33d~xenial) xenial; urgency=low
+
+  e4e3667 csoler   Sat,  5 Nov 2016 17:32:40 +0100 fixed bug that caused hierarchies that contain files being hashed to not send updates when the hash is finished
+  390bdfe csoler   Sat,  5 Nov 2016 17:03:31 +0100 added request for sync on double click item for shared file lists
+  a97fa1e csoler   Sat,  5 Nov 2016 16:07:30 +0100 fixed generation of pseudo-random request ids in p3filelists
+  1e919a1 csoler   Sat,  5 Nov 2016 15:30:07 +0100 set delay between directory sweep to 60 secs and a-synced sweeps for different friends. Set drop time to 600 for un-answered dir sync requests
+  ffcf44b csoler   Fri,  4 Nov 2016 21:54:28 +0100 removing call to drand48(). RSRandom is safer
+  2ef51ed csoler   Fri,  4 Nov 2016 21:51:18 +0100 fixed wrong comment about RS_FILE_HINT_SEARCHABLE flag
+  79632ed csoler   Fri,  4 Nov 2016 21:48:58 +0100 fixed compilation on windows
+  f39272a csoler   Thu,  3 Nov 2016 21:44:40 +0100 fixed compilation in debug mode for p3filelists.cc
+  8c1a653 csoler   Fri,  4 Nov 2016 20:02:14 +0100 Merge pull request #557 from mr-alice/v0.6-FTEncryption
+  2bb9a87 mr-alice Fri,  4 Nov 2016 13:52:11 +0100 merged and fixed conflict with upstream/master
+  30860b8 mr-alice Fri,  4 Nov 2016 13:46:20 +0100 removed ^M that polluted unittests.pro
+  45cb442 csoler   Fri,  4 Nov 2016 09:47:49 +0100 Merge pull request #558 from csoler/v0.6-FileListsOptim
+  2bf2465 csoler   Fri,  4 Nov 2016 09:18:34 +0100 Merge pull request #498 from PhenomRetroShare/Fix_ElCapitanCompil
+  8dacb22 csoler   Thu,  3 Nov 2016 22:32:27 +0100 reducing linear cost of allocateNewIndex to constant. Should improve huge lags when receiving big file lists for the first time
+  e324d7d mr-alice Thu,  3 Nov 2016 20:31:47 +0100 removed warning in ftserver for rejected non encrypted tunnels
+  8653649 mr-alice Thu,  3 Nov 2016 20:26:35 +0100 fixed two bugs in ShareManager popup menu
+  29b5bfe mr-alice Thu,  3 Nov 2016 08:50:13 +0100 attempt to fixed leading tabs
+  2db8dbd Phenom   Sat, 16 Jul 2016 23:10:00 +0200 Fix El Capitan OSX 10.11 Compil
+  1c2cfb2 mr-alice Wed,  2 Nov 2016 21:32:14 +0100 removed debug info in ftServer
+  5aef67d mr-alice Wed,  2 Nov 2016 21:31:14 +0100 fixed tooltips in ShareManager, and fixed anonymous search mechanism
+  d2118c5 mr-alice Wed,  2 Nov 2016 20:51:42 +0100 supressed deadlock in ftController due to calling ftServer from ftcontroller itself
+  46dd5be csoler   Tue,  1 Nov 2016 16:30:46 +0100 Merge pull request #554 from hunbernd/feature/paste-RS-link
+  02f442a mr-alice Tue,  1 Nov 2016 14:28:00 +0100 changed naming for files visibility
+  8c7c764 mr-alice Tue,  1 Nov 2016 14:23:13 +0100 fixed conflicts in merging upstream/master to v0.6-FTEncryption
+  6a3610e mr-alice Tue,  1 Nov 2016 14:13:43 +0100 disallow double tunnels (encrypted+clear) in Accepted mode, since it is not needed
+  ffdac64 mr-alice Tue,  1 Nov 2016 11:57:25 +0100 fixed swarming with encrypted end-to-end tunnels
+  c6df59a mr-alice Tue,  1 Nov 2016 11:11:28 +0100 fixed bug in duplication of virtual dir names
+  761d595 mr-alice Tue,  1 Nov 2016 10:46:29 +0100 fixed layout and names in ShareManager and SharedFilesDialog
+  3430eec mr-alice Tue,  1 Nov 2016 10:30:36 +0100 fixed display of share flags as a proper nice icon set
+  8fe85b9 mr-alice Mon, 31 Oct 2016 23:24:35 +0100 improved ShareManager a little bit more
+  9d586bc mr-alice Mon, 31 Oct 2016 16:28:26 +0100 made a drastic simplification pass on the ShareManager, which now only needs a single window except for selecting files using a QFileDialog
+  e8e054e mr-alice Mon, 31 Oct 2016 14:26:01 +0100 addednew flag for anonymous search. Merged the two browsable flags in one single flag.
+  f934e88 csoler   Mon, 31 Oct 2016 12:12:40 +0100 Merge pull request #555 from hunbernd/fix/random-emoji-order
+  36dc532 hunbernd Mon, 31 Oct 2016 00:23:39 +0100 Automatically detect retroshare links when pasting text
+  05b5c08 hunbernd Sat, 10 Sep 2016 21:59:45 +0200 Fixed emoticon order
+  5b9ef04 mr-alice Sun, 30 Oct 2016 15:33:05 +0100 improved debug output in ftserver
+  def20a3 mr-alice Sun, 30 Oct 2016 15:11:22 +0100 encrypted FT works. Fixed last bugs in ftServer
+  34dcb41 mr-alice Sun, 30 Oct 2016 11:36:00 +0100 fixed a few bugs in ftServer for encrypted tunnel management
+  9a88161 mr-alice Sat, 29 Oct 2016 18:35:48 +0200 added record for H(H(F)) in LocalDirectoryStorage
+  d843c1c mr-alice Sat, 29 Oct 2016 18:18:02 +0200 put consts behind serial_size() and serialise() in turtle items and ft items
+  babc126 mr-alice Sat, 29 Oct 2016 17:59:03 +0200 added default encryption policy variable and GUI to change it
+  8486346 mr-alice Wed, 26 Oct 2016 22:05:56 +0200 added new encryption/authentication format AEAD_chacha20_sha256
+  c87ca67 mr-alice Wed, 26 Oct 2016 18:15:47 +0200 improved efficiency of AEAD
+  88298b9 mr-alice Wed, 26 Oct 2016 14:45:21 +0200 added check for cleartext in AEAD test vector #1
+  42f6f26 mr-alice Wed, 26 Oct 2016 14:36:35 +0200 fixed bug in AEAD
+  7e536ef csoler   Wed, 26 Oct 2016 11:35:30 +0200 Merge pull request #549 from PhenomRetroShare/Fix_PR#536
+  177752e mr-alice Tue, 25 Oct 2016 23:16:36 +0200 fixed a few bugs in AEAD construction based on test results
+  32e54e5 Phenom   Tue, 25 Oct 2016 14:58:06 +0200 Fix PR#536 revealing of bad factor management in StyledElidedLabel.
+  0570427 mr-alice Tue, 25 Oct 2016 14:09:39 +0200 added google test for chacha20 code
+  0387a28 mr-alice Tue, 25 Oct 2016 00:08:27 +0200 added methods to get files from hash(hash) in directory_storage and ftServer
+  5f5b0d4 csoler   Mon, 24 Oct 2016 20:16:21 +0200 Merge pull request #548 from PhenomRetroShare/Fix_PR#540
+  fd5a5cc Phenom   Mon, 24 Oct 2016 20:11:47 +0200 Fix PR#540
+  2d72b88 mr-alice Mon, 24 Oct 2016 15:59:34 +0200 added code for AEAD construction
+  bd4c252 csoler   Sun, 23 Oct 2016 23:30:56 +0200 Merge pull request #539 from RetroShare/md-fix
+  f3bebc0 csoler   Sun, 23 Oct 2016 23:29:06 +0200 Merge pull request #540 from PhenomRetroShare/Fix_EmbedInHtmlAhref
+  c77d052 csoler   Sun, 23 Oct 2016 23:25:53 +0200 Merge pull request #536 from PhenomRetroShare/Add_ElidedLabelToGroupTreeWidget
+  04992c9 csoler   Sun, 23 Oct 2016 23:15:32 +0200 Merge pull request #543 from PhenomRetroShare/Add_TooltipOnComments
+  e525461 csoler   Sun, 23 Oct 2016 23:14:29 +0200 Merge pull request #542 from PhenomRetroShare/Add_PasteRsLinkInTextFields
+  07564c7 csoler   Sun, 23 Oct 2016 23:12:22 +0200 Merge pull request #541 from PhenomRetroShare/Fix_RsLinkCopyToClipBoard
+  5ccdc28 csoler   Sun, 23 Oct 2016 22:51:32 +0200 Merge pull request #547 from hunbernd/fix/upload
+  54ba617 hunbernd Sun, 23 Oct 2016 20:42:59 +0200 Fix: unable to upload files on Windows Caused by multiple unneeded / character in file path.
+  46cf25d Phenom   Sat, 22 Oct 2016 15:17:49 +0200 Fix Copy RsLink in Clipboard.
+  a67cf92 Phenom   Sat, 22 Oct 2016 16:15:29 +0200 Add Tooltip on comments column to see too long text.
+  9eafdd3 Phenom   Sat, 22 Oct 2016 16:02:38 +0200 Add ability to past RsLink in some more text fields.
+  58a4d39 Phenom   Sat, 22 Oct 2016 14:48:23 +0200 Fix handle of url in EmbedInHtmlAhref.
+  f20ee21 cave     Fri, 21 Oct 2016 19:56:02 +0200 Update README.md
+  9d32406 mr-alice Wed, 19 Oct 2016 22:49:51 +0200 added ft decryption routine
+  3ad0a81 mr-alice Wed, 19 Oct 2016 21:30:37 +0200 added encryption routine for FT
+  b8b78dd csoler   Wed, 19 Oct 2016 15:50:22 +0200 Merge pull request #538 from Hopetech/master
+  ecaea05 hopetech Wed, 19 Oct 2016 15:41:25 +0200 Fix some compilation warnings
+  8483c0d Phenom   Sun, 16 Oct 2016 15:48:50 +0200 Add ElidedLabel to GroupTreeWidget
+  997154f mr-alice Thu, 13 Oct 2016 15:13:56 +0200 added preliminary implementation of chacha20/poly1305
+  0e1fad0 csoler   Thu, 13 Oct 2016 13:48:32 +0200 Merge pull request #533 from PhenomRetroShare/Fix_MissingDesktopFileShow
+  4db6d6b Phenom   Thu, 13 Oct 2016 13:26:44 +0200 Fix the "Desktop file is missing" shown in option page.
+  64129a7 csoler   Thu, 13 Oct 2016 10:05:14 +0200 Merge pull request #532 from G10h4ck/less_warning
+  8de0548          Gio Thu, 13 Oct 2016 00:09:53 +0200 Merge branch 'master' into less_warning
+  633a6cf          Gio Wed, 12 Oct 2016 20:43:38 +0200 Fixed a bunch of warnings in safe ways
+  10c269e csoler   Wed, 12 Oct 2016 23:31:32 +0200 removed warning when friend directory list cannot be found
+  bd9a464 csoler   Wed, 12 Oct 2016 23:20:38 +0200 added deterministic but unredictable hash generation for dir hashes, which should be preserved accross reboots. Should fix the  msg from friends sending requests for the "wrong" dir hashes.
+  3c5e12a csoler   Mon, 10 Oct 2016 11:29:03 +0200 fixed compilation on windows
+  4e48005 csoler   Sun,  9 Oct 2016 21:43:00 +0200 replaced explicit old code in cleanupDirectory() by new code based on FolderIterator
+  957d48b csoler   Sun,  9 Oct 2016 21:03:01 +0200 removed folderIterator::d_name() because it duplicates file_name()
+  32816ed csoler   Sun,  9 Oct 2016 18:23:25 +0200 Merge pull request #531 from PhenomRetroShare/Fix_AvatarOnEditCircle
+  6e8e5d0 csoler   Sun,  9 Oct 2016 18:20:00 +0200 Merge pull request #529 from cavebeat/rus_patch
+  3d9fb60 Phenom   Sun,  9 Oct 2016 12:37:09 +0200 Fix Missing ID-Avatars in Create Circle Menu
+
+ -- Cyril Soler <csoler@users.sourceforge.net>  Sat, 5 Nov 2016 21:00:00 +0100
+
+retroshare06 (0.6.1-1.20161008.9e1f21b9~xenial) xenial; urgency=low
+
   9a3eb1c csoler       Sat,  8 Oct 2016 14:30:58 +0200 Merge pull request #528 from sehraf/pr-drop-ssh-protobuf
   c55fb0d csoler       Sat,  8 Oct 2016 14:11:43 +0200 Merge pull request #524 from cavebeat/compile
   97f2589 csoler       Sat,  8 Oct 2016 14:09:34 +0200 Merge pull request #513 from grennvyper/patch-1

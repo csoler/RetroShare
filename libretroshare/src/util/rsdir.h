@@ -84,10 +84,16 @@ const char *scanf_string_for_uint(int bytes) ;
 int     	breakupDirList(const std::string& path, std::list<std::string> &subdirs);
 
 bool 		copyFile(const std::string& source,const std::string& dest);
+bool 		moveFile(const std::string& source,const std::string& dest);
+bool 		removeFile(const std::string& file);
 bool 		fileExists(const std::string& file);
 bool    	checkFile(const std::string& filename,uint64_t& file_size,bool disallow_empty_file = false);
 bool    	checkDirectory(const std::string& dir);
 bool    	checkCreateDirectory(const std::string& dir);
+
+// Removes all symbolic links along the path and computes the actual location of the file/dir passed as argument.
+
+std::string removeSymLinks(const std::string& path) ;
 
 bool    	cleanupDirectory(const std::string& dir, const std::set<std::string> &keepFiles);
 bool    	cleanupDirectoryFaster(const std::string& dir, const std::set<std::string> &keepFiles);

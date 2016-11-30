@@ -1,3 +1,5 @@
+#include <time.h>
+
 #include "FileSearchHandler.h"
 
 #include <retroshare/rsexpr.h>
@@ -139,7 +141,7 @@ static bool dirDetailToFileDetail(const DirDetails& dir, FileDetail& fd)
         fd.hash = dir.hash;
         fd.path = dir.path;
         fd.size = dir.count;
-        fd.age 	= dir.age;
+        fd.age 	= time(NULL) - dir.mtime;
         fd.rank = 0;
         return true;
     }

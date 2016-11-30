@@ -30,6 +30,7 @@
 #include <gui/common/RsUrlHandler.h>
 #include <gui/common/FilesDefs.h>
 #include <gui/common/GroupDefs.h>
+#include <gui/gxs/GxsIdDetails.h>
 #include "RemoteDirModel.h"
 #include <retroshare/rsfiles.h>
 #include <retroshare/rstypes.h>
@@ -44,6 +45,10 @@
  * #define RDM_DEBUG
  ****/
 
+static const uint32_t FLAT_VIEW_MAX_REFS_PER_SECOND       = 2000 ;
+static const uint32_t FLAT_VIEW_MAX_REFS_TABLE_SIZE       = 10000 ; //
+static const uint32_t FLAT_VIEW_MIN_DELAY_BETWEEN_UPDATES = 120 ;	// dont rebuild ref list more than every 2 mins.
+
 RetroshareDirModel::RetroshareDirModel(bool mode, QObject *parent)
         : QAbstractItemModel(parent),
          ageIndicator(IND_ALWAYS),
@@ -54,6 +59,10 @@ RetroshareDirModel::RetroshareDirModel(bool mode, QObject *parent)
 	setSupportedDragActions(Qt::CopyAction);
 #endif
 	treeStyle();
+
+    mDirDetails.ref = (void*)intptr_t(0xffffffff) ;
+    mLastRemote = false ;
+    mUpdating = false;
 }
 
 // QAbstractItemModel::setSupportedDragActions() was replaced by virtual QAbstractItemModel::supportedDragActions()
@@ -64,19 +73,12 @@ Qt::DropActions RetroshareDirModel::supportedDragActions() const
 }
 #endif
 
-static bool isNewerThanEpoque(uint32_t age)
+static bool isNewerThanEpoque(uint32_t ts)
 {
-    return age < time(NULL) - 1000 ;	// this should be conservative enough
+    return ts > 0 ;	// this should be conservative enough
 }
 
-void FlatStyle_RDM::update()
-{
-	if(_needs_update)
-	{
-		preMods() ;
-		postMods() ;
-	}
-}
+
 void RetroshareDirModel::treeStyle()
 {
 	categoryIcon.addPixmap(QPixmap(":/images/folder16.png"),
@@ -216,16 +218,21 @@ QString RetroshareDirModel::getFlagsString(FileStorageFlags flags)
 {
 	char str[11] = "-  -  -" ;
 
-	if(flags & DIR_FLAGS_BROWSABLE_GROUPS) 	str[0] = 'B' ;
-	//if(flags & DIR_FLAGS_NETWORK_WIDE_GROUPS) str[3] = 'N' ;
-	if(flags & DIR_FLAGS_BROWSABLE_OTHERS) 	str[3] = 'B' ;
-	if(flags & DIR_FLAGS_NETWORK_WIDE_OTHERS) str[6] = 'N' ;
+    if(flags & DIR_FLAGS_BROWSABLE) 	     str[0] = 'B' ;
+    if(flags & DIR_FLAGS_ANONYMOUS_SEARCH) 	 str[3] = 'S' ;
+	if(flags & DIR_FLAGS_ANONYMOUS_DOWNLOAD) str[6] = 'N' ;
 
 	return QString(str) ;
 }
-QString RetroshareDirModel::getGroupsString(const std::list<RsNodeGroupId>& group_ids)
+QString RetroshareDirModel::getGroupsString(FileStorageFlags flags,const std::list<RsNodeGroupId>& group_ids)
 {
-	QString groups_str ;
+    if(!(flags & DIR_FLAGS_BROWSABLE))
+        return QString();
+
+    if(group_ids.empty())
+        return tr("[All friend nodes]") ;
+
+    QString groups_str = tr("Only ");
 	RsGroupInfo group_info ;
 
     for(std::list<RsNodeGroupId>::const_iterator it(group_ids.begin());it!=group_ids.end();)
@@ -242,12 +249,13 @@ QString RetroshareDirModel::getGroupsString(const std::list<RsNodeGroupId>& grou
 	return groups_str ;
 }
 
+
 QString RetroshareDirModel::getAgeIndicatorString(const DirDetails &details) const
 {
 	QString ret("");
 	QString nind = tr("NEW");
 //	QString oind = tr("OLD");
-    uint32_t age = details.min_age;
+    int32_t age = time(NULL) - details.max_mtime;
 
 	switch (ageIndicator) {
 		case IND_LAST_DAY:
@@ -271,14 +279,63 @@ QString RetroshareDirModel::getAgeIndicatorString(const DirDetails &details) con
 	return ret;
 }
 
+const QIcon& RetroshareDirModel::getFlagsIcon(FileStorageFlags flags)
+{
+    static QIcon *static_icons[8] = {NULL};
+
+    int n=0;
+    if(flags & DIR_FLAGS_ANONYMOUS_DOWNLOAD) n += 1 ;
+    if(flags & DIR_FLAGS_ANONYMOUS_SEARCH  ) n += 2 ;
+    if(flags & DIR_FLAGS_BROWSABLE         ) n += 4 ;
+    n-= 1;
+
+    if(static_icons[n] == NULL)
+    {
+        QList<QIcon> icons ;
+
+        if(flags & DIR_FLAGS_ANONYMOUS_SEARCH)
+            icons.push_back(QIcon(":icons/search_red_128.png")) ;
+        else
+            icons.push_back(QIcon(":icons/void_128.png")) ;
+
+        if(flags & DIR_FLAGS_ANONYMOUS_DOWNLOAD)
+            icons.push_back(QIcon(":icons/anonymous_blue_128.png")) ;
+        else
+            icons.push_back(QIcon(":icons/void_128.png")) ;
+
+        if(flags & DIR_FLAGS_BROWSABLE)
+            icons.push_back(QIcon(":icons/browsable_green_128.png")) ;
+        else
+            icons.push_back(QIcon(":icons/void_128.png")) ;
+
+        QPixmap pix ;
+        GxsIdDetails::GenerateCombinedPixmap(pix, icons, 128);
+
+        static_icons[n] = new QIcon(pix);
+
+        std::cerr << "Generated icon for flags " << std::hex << flags << std::endl;
+    }
+    return *static_icons[n] ;
+}
+
 QVariant RetroshareDirModel::decorationRole(const DirDetails& details,int coln) const
 {
+    if(coln == 3)
+    {
+        if(details.type == DIR_TYPE_PERSON) return QVariant() ;
+
+        return getFlagsIcon(details.flags) ;
+    }
+
+
 	if(coln > 0)
 		return QVariant() ;
 
 	if (details.type == DIR_TYPE_PERSON)
     {
-		if(details.min_age > ageIndicator)
+        time_t now = time(NULL) ;
+
+		if(ageIndicator != IND_ALWAYS && now > details.max_mtime + ageIndicator)
 			return QIcon(":/images/folder_grey.png");
 		else if (ageIndicator == IND_LAST_DAY )
 			return QIcon(":/images/folder_green.png");
@@ -291,7 +348,9 @@ QVariant RetroshareDirModel::decorationRole(const DirDetails& details,int coln) 
 	}
 	else if (details.type == DIR_TYPE_DIR)
 	{
-		if(details.min_age > ageIndicator)
+        time_t now = time(NULL) ;
+
+		if(ageIndicator != IND_ALWAYS && now > details.max_mtime + ageIndicator)
 			return QIcon(":/images/folder_grey.png");
 		else if (ageIndicator == IND_LAST_DAY )
 			return QIcon(":/images/folder_green.png");
@@ -329,15 +388,47 @@ QVariant TreeStyle_RDM::displayRole(const DirDetails& details,int coln) const
 	{
         switch(coln)
 		{
-			case 0:
-				return (RemoteMode)?(QString::fromUtf8(rsPeers->getPeerName(details.id).c_str())):tr("My files");
-			case 1:
-				return QString() ;
-            case 2: if(!isNewerThanEpoque(details.min_age))
-                        return QString();
-                    else
-                        return misc::userFriendlyDuration(details.min_age);
-			default:
+		case 0: {
+				SharedDirStats stats ;
+				QString res ;
+
+				if(RemoteMode)
+				{
+					res = QString::fromUtf8(rsPeers->getPeerName(details.id).c_str());
+				}
+				else
+				{
+								res = tr("My files");
+				}
+				return res ;
+			}
+		case 1: {
+				SharedDirStats stats ;
+				QString res ;
+
+				if(RemoteMode)
+				{
+					//res = QString::fromUtf8(rsPeers->getPeerName(details.id).c_str());
+					rsFiles->getSharedDirStatistics(details.id,stats) ;
+				}
+				else
+				{
+								//res = tr("My files");
+								rsFiles->getSharedDirStatistics(rsPeers->getOwnId(),stats) ;
+				}
+
+				if(stats.total_number_of_files > 0)
+					res += QString::number(stats.total_number_of_files) + " files, " + misc::friendlyUnit(stats.total_shared_size) ;
+
+				return res ;
+			}
+		case 2: 	if(!isNewerThanEpoque(details.max_mtime))
+					return QString();
+
+				else
+		        		return misc::timeRelativeToNow(details.max_mtime);
+
+		default:
 				return QString() ;
 		}
 	}
@@ -350,18 +441,11 @@ QVariant TreeStyle_RDM::displayRole(const DirDetails& details,int coln) const
 			case 1:
 				return  misc::friendlyUnit(details.count);
 			case 2:
-                return  misc::userFriendlyDuration(details.min_age);
+                return  misc::timeRelativeToNow(details.max_mtime);
 			case 3:
-				return getFlagsString(details.flags);
-//			case 4:
-//				{
-//					QString ind("");
-//					if (ageIndicator != IND_ALWAYS)
-//						ind = getAgeIndicatorString(details);
-//					return ind;
-//				}
+                return QVariant();
 			case 4:
-				return getGroupsString(details.parent_groups) ;
+                return getGroupsString(details.flags,details.parent_groups) ;
 
 			default:
 				return tr("FILE");
@@ -381,11 +465,11 @@ QVariant TreeStyle_RDM::displayRole(const DirDetails& details,int coln) const
 				}
 				return QString::number(details.count) + " " + tr("File");
 			case 2:
-				return misc::userFriendlyDuration(details.min_age);
+				return misc::timeRelativeToNow(details.max_mtime);
 			case 3:
-				return getFlagsString(details.flags);
+                return QVariant();
 			case 4: 
-				return getGroupsString(details.parent_groups) ;
+                return getGroupsString(details.flags,details.parent_groups) ;
 
 			default:
 				return tr("DIR");
@@ -394,6 +478,25 @@ QVariant TreeStyle_RDM::displayRole(const DirDetails& details,int coln) const
 	return QVariant();
 } /* end of DisplayRole */
 
+FlatStyle_RDM::FlatStyle_RDM(bool mode)
+    : RetroshareDirModel(mode), _ref_mutex("Flat file list")
+{
+	_needs_update = true ;
+
+	{
+		RS_STACK_MUTEX(_ref_mutex) ;
+        _last_update = 0 ;
+	}
+}
+
+void FlatStyle_RDM::update()
+{
+	if(_needs_update)
+	{
+		preMods() ;
+		postMods() ;
+	}
+}
 QString FlatStyle_RDM::computeDirectoryPath(const DirDetails& details) const
 {
 	QString dir ;
@@ -425,7 +528,7 @@ QVariant FlatStyle_RDM::displayRole(const DirDetails& details,int coln) const
 		{
 			case 0: return QString::fromUtf8(details.name.c_str());
 			case 1: return misc::friendlyUnit(details.count);
-            case 2: return misc::userFriendlyDuration(details.min_age);
+            case 2: return misc::timeRelativeToNow(details.max_mtime);
 			case 3: return QString::fromUtf8(rsPeers->getPeerName(details.id).c_str());
 			case 4: return computeDirectoryPath(details);
 			default:
@@ -451,7 +554,7 @@ QVariant TreeStyle_RDM::sortRole(const QModelIndex& /*index*/,const DirDetails& 
 			case 1:
 				return QString();
 			case 2:
-				return details.min_age;
+				return details.max_mtime;
 			default:
 				return QString();
 		}
@@ -465,7 +568,7 @@ QVariant TreeStyle_RDM::sortRole(const QModelIndex& /*index*/,const DirDetails& 
 			case 1:
 				return (qulonglong) details.count;
 			case 2:
-                return  details.min_age;
+                return  details.max_mtime;
 			case 3:
 				return getFlagsString(details.flags);
 			case 4:
@@ -488,7 +591,7 @@ QVariant TreeStyle_RDM::sortRole(const QModelIndex& /*index*/,const DirDetails& 
 			case 1:
 				return (qulonglong) details.count;
 			case 2:
-				return details.min_age;
+				return details.max_mtime;
 			case 3:
 				return getFlagsString(details.flags);
 			default:
@@ -511,7 +614,7 @@ QVariant FlatStyle_RDM::sortRole(const QModelIndex& /*index*/,const DirDetails& 
 		{
 			case 0: return QString::fromUtf8(details.name.c_str());
 			case 1: return (qulonglong) details.count;
-            case 2: return  details.min_age;
+            case 2: return  details.max_mtime;
 			case 3: return QString::fromUtf8(rsPeers->getPeerName(details.id).c_str());
 
         case 4: {
@@ -530,17 +633,35 @@ QVariant FlatStyle_RDM::sortRole(const QModelIndex& /*index*/,const DirDetails& 
 QVariant RetroshareDirModel::data(const QModelIndex &index, int role) const
 {
 #ifdef RDM_DEBUG
-	std::cerr << "RetroshareDirModel::data(): " << index.internalPointer();
-	std::cerr << ": ";
-	std::cerr << std::endl;
+	std::cerr << "RetroshareDirModel::data(): " << index.internalPointer() << std::endl;
 #endif
 
 	if (!index.isValid())
 		return QVariant();
 
+    // First we take care of the cases that do not require requestDirDetails()
+
+	int coln = index.column();
+
+	if (role == Qt::SizeHintRole)
+		return QVariant();
+
+	if (role == Qt::TextAlignmentRole)
+	{
+		if(coln == 1)
+			return int( Qt::AlignRight | Qt::AlignVCenter);
+        else
+			return QVariant();
+	}
+
+	// This makes sorting a bit arbitrary, but prevents calling requestDirDetails(). The number of calls to sortRole is
+    // indeed sometimes very high and somewhat kills the GUI responsivness.
+    //
+	//if (role == SortRole)
+	//   return QVariant(index.row()) ;
+
 	/* get the data from the index */
 	void *ref = index.internalPointer();
-	int coln = index.column();
 
     DirDetails details ;
 
@@ -554,7 +675,7 @@ QVariant RetroshareDirModel::data(const QModelIndex &index, int role) const
 	{
         if(details.type == DIR_TYPE_FILE && details.hash.isNull())
             return QVariant(QColor(Qt::green)) ;
-        else if(details.min_age > ageIndicator)
+        else if(ageIndicator != IND_ALWAYS && details.max_mtime + ageIndicator < time(NULL))
 			return QVariant(QColor(Qt::gray)) ;
         else if(RemoteMode)
         {
@@ -579,7 +700,7 @@ QVariant RetroshareDirModel::data(const QModelIndex &index, int role) const
         return decorationRole(details,coln) ;
 
     if(role == Qt::ToolTipRole)
-        if(!isNewerThanEpoque(details.min_age))
+        if(!isNewerThanEpoque(details.max_mtime))
             return tr("This node hasn't sent any directory information yet.") ;
 
     /*****************
@@ -589,20 +710,6 @@ QVariant RetroshareDirModel::data(const QModelIndex &index, int role) const
 	  Qt::WhatsThisRole
 	  Qt::SizeHintRole
 	 ****************/
-
-	if (role == Qt::SizeHintRole)
-	{       
-		return QVariant(); // Use standard
-	} /* end of SizeHintRole */ 
-
-	if (role == Qt::TextAlignmentRole)
-	{
-		if(coln == 1)
-		{
-			return int( Qt::AlignRight | Qt::AlignVCenter);
-		}
-		return QVariant();
-	} /* end of TextAlignmentRole */
 
 	if (role == Qt::DisplayRole)
         return displayRole(details,coln) ;
@@ -652,9 +759,15 @@ QVariant TreeStyle_RDM::headerData(int section, Qt::Orientation orientation, int
 		{
 			case 0:
 				if (RemoteMode)
-					return tr("Friends Directories");
+                    if(mUpdating)
+						return tr("Friends Directories [updating...]");
+					else
+						return tr("Friends Directories");
 				else
-					return tr("My Directories");
+                    if(mUpdating)
+						return tr("My Directories [updating...]");
+					else
+						return tr("My Directories");
 			case 1:
 				return tr("Size");
 			case 2:
@@ -663,12 +776,12 @@ QVariant TreeStyle_RDM::headerData(int section, Qt::Orientation orientation, int
 				if (RemoteMode)
 					return tr("Friend");
 				else
-					return tr("Share Flags");
+                    return tr("Access");
 			case 4:
 				if (RemoteMode)
 					return tr("What's new");
 				else
-					return tr("Groups");
+                    return tr("Visibility");
 		}
 		return QString("Column %1").arg(section);
 	}
@@ -855,7 +968,7 @@ Qt::ItemFlags RetroshareDirModel::flags( const QModelIndex & index ) const
     switch(details.type)
 	{
     // we grey out a person that has never been updated. It's easy to spot these, since the min age of the directory is approx equal to time(NULL), which exceeds 40 years.
-    case DIR_TYPE_PERSON:return isNewerThanEpoque(details.min_age)? (Qt::ItemIsEnabled):(Qt::NoItemFlags) ;
+    case DIR_TYPE_PERSON:return isNewerThanEpoque(details.max_mtime)? (Qt::ItemIsEnabled):(Qt::NoItemFlags) ;
 	case DIR_TYPE_DIR:	 return Qt::ItemIsSelectable | Qt::ItemIsEnabled;
 	case DIR_TYPE_FILE:	 return Qt::ItemIsSelectable | Qt::ItemIsDragEnabled | Qt::ItemIsEnabled;
 	}
@@ -875,6 +988,7 @@ Qt::ItemFlags RetroshareDirModel::flags( const QModelIndex & index ) const
 void RetroshareDirModel::preMods()
 {
     emit layoutAboutToBeChanged();
+    mUpdating = true ;
 #if QT_VERSION < 0x050000
 	reset();
 #else
@@ -891,6 +1005,7 @@ void RetroshareDirModel::preMods()
 void RetroshareDirModel::postMods()
 {
 //	emit layoutAboutToBeChanged();
+    mUpdating = false ;
 #if QT_VERSION >= 0x040600
 	beginResetModel();
 #endif
@@ -917,9 +1032,32 @@ void RetroshareDirModel::postMods()
 
 bool RetroshareDirModel::requestDirDetails(void *ref, bool remote,DirDetails& d) const
 {
+#ifdef RDM_DEBUG
+	std::cerr << "RequestDirDetails:: ref = " << ref << ", remote=" << remote << std::endl;
+#endif
+
+    // We look in cache and re-use the last result if the reference and remote are the same.
+
+    time_t now = time(NULL);
+
+    if(mDirDetails.ref == ref && mLastRemote==remote && now < 2+mLastReq)
+    {
+        d = mDirDetails ;
+        return true ;
+    }
+
     FileSearchFlags flags = (remote) ? RS_FILE_HINTS_REMOTE : RS_FILE_HINTS_LOCAL;
 
-    return rsFiles->RequestDirDetails(ref, d, flags) ;
+    if(rsFiles->RequestDirDetails(ref, d, flags))
+	{
+		mLastReq = now ;
+		mLastRemote = remote ;
+		mDirDetails = d;
+
+		return true;
+	}
+
+    return false ;
 }
 //	const QMap<void*, DirDetailsVector>::const_iterator it = mCache.constFind(ref);
 //	if (it != mCache.constEnd()) {
@@ -1316,6 +1454,11 @@ TreeStyle_RDM::~TreeStyle_RDM()
 }
 void FlatStyle_RDM::postMods()
 {
+    time_t now = time(NULL);
+
+    if(_last_update + FLAT_VIEW_MIN_DELAY_BETWEEN_UPDATES > now)
+        return ;
+
     if(visible())
 	{
         emit layoutAboutToBeChanged();
@@ -1324,7 +1467,8 @@ void FlatStyle_RDM::postMods()
             RS_STACK_MUTEX(_ref_mutex) ;
             _ref_stack.clear() ;
             _ref_stack.push_back(NULL) ; // init the stack with the topmost parent directory
-            _needs_update = false ;
+            _ref_entries.clear();
+            _last_update = now;
         }
         QTimer::singleShot(100,this,SLOT(updateRefs())) ;
     }
@@ -1336,22 +1480,17 @@ void FlatStyle_RDM::updateRefs()
 {
 	if(RsAutoUpdatePage::eventsLocked())
 	{
-		_needs_update = true ;
+		QTimer::singleShot(5000,this,SLOT(updateRefs())) ;
 		return ;
 	}
 
     RetroshareDirModel::preMods() ;
 
 
-    static const uint32_t MAX_REFS_PER_SECOND = 2000 ;
 	uint32_t nb_treated_refs = 0 ;
 
     {
         RS_STACK_MUTEX(_ref_mutex) ;
-
-        _ref_entries.clear() ;
-
-        std::cerr << "FlatStyle_RDM::postMods(): cleared ref entries" << std::endl;
 
         while(!_ref_stack.empty())
         {
@@ -1373,10 +1512,14 @@ void FlatStyle_RDM::updateRefs()
                 for(uint32_t i=0;i<details.children.size();++i)
                     _ref_stack.push_back(details.children[i].ref) ;
             }
-            if(++nb_treated_refs > MAX_REFS_PER_SECOND) 	// we've done enough, let's give back hand to
-            {															// the user and setup a timer to finish the job later.
-                _needs_update = true ;
 
+            // Limit the size of the table to display, otherwise it becomes impossible to Qt.
+
+            if(_ref_entries.size() > FLAT_VIEW_MAX_REFS_TABLE_SIZE)
+                return ;
+
+            if(++nb_treated_refs > FLAT_VIEW_MAX_REFS_PER_SECOND) 	// we've done enough, let's give back hand to
+            {															// the user and setup a timer to finish the job later.
                 if(visible())
                     QTimer::singleShot(2000,this,SLOT(updateRefs())) ;
                 else
@@ -1384,10 +1527,7 @@ void FlatStyle_RDM::updateRefs()
                 break ;
             }
         }
-        std::cerr << "reference tab contains " << _ref_entries.size() << " files" << std::endl;
-
-        if(_ref_stack.empty())
-            _needs_update = false ;
+        std::cerr << "reference tab contains " << std::dec << _ref_entries.size() << " files" << std::endl;
     }
 
     RetroshareDirModel::postMods() ;

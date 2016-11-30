@@ -25,6 +25,7 @@
 #include <QFileDialog>
 #include <QByteArray>
 #include <QBuffer>
+#include <time.h>
 
 #include "misc.h"
 
@@ -37,7 +38,7 @@ QString misc::friendlyUnit(float val)
     if(val < 0) {
         return tr("Unknown", "Unknown (size)");
     }
-    const QString units[5] = {tr(" B", "bytes"), tr(" KB", "kilobytes (1024 bytes)"), tr(" MB", "megabytes (1024 kilobytes)"), tr(" GB", "gigabytes (1024 megabytes)"), tr(" TB,", "terabytes (1024 gigabytes)") };
+    const QString units[5] = {tr(" B", "bytes"), tr(" KB", "kilobytes (1024 bytes)"), tr(" MB", "megabytes (1024 kilobytes)"), tr(" GB", "gigabytes (1024 megabytes)"), tr(" TB", "terabytes (1024 gigabytes)") };
     for(unsigned int i=0; i<5; ++i) {
         if (val < 1024.) {
             return QString(QByteArray::number(val, 'f', 1)) + units[i];
@@ -204,6 +205,15 @@ QString misc::userFriendlyDuration(qlonglong seconds)
     int years = days / 365;
     days = days - years * 365;
     return tr("%1y %2d", "e.g: 2 years 2days ").arg(years).arg(days);
+}
+
+QString misc::timeRelativeToNow(uint32_t mtime)
+{
+	time_t now = time(NULL) ;
+	if(mtime > now)
+		return misc::userFriendlyDuration(mtime - (int)now) + " (ahead of now)";
+	else
+		return misc::userFriendlyDuration(now - (int)mtime) ;
 }
 
 QString misc::userFriendlyUnit(double count, unsigned int decimal, double factor)

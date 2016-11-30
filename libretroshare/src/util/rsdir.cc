@@ -36,6 +36,7 @@
 #include "util/rsmemory.h"
 #include "util/folderiterator.h"
 #include "retroshare/rstypes.h"
+#include "retroshare/rsnotify.h"
 #include "rsthreads.h"
 #include <iostream>
 #include <algorithm>
@@ -238,6 +239,49 @@ bool RsDirUtil::fileExists(const std::string& filename)
 	return ( access( filename.c_str(), F_OK ) != -1 );
 }
 
+bool RsDirUtil::moveFile(const std::string& source,const std::string& dest)
+{
+    // First try a rename
+	//
+
+    if(renameFile(source,dest))
+        return true ;
+
+    // If not, try to copy. The src and dest probably belong to different file systems
+
+    if(!copyFile(source,dest))
+        return false ;
+
+	// copy was successful, let's delete the original
+
+    if(!removeFile(source))
+        return false ;
+
+    return true ;
+}
+
+bool RsDirUtil::removeFile(const std::string& filename)
+{
+#ifdef CONTROL_DEBUG
+	std::cerr << "deleting original file " << source << std::endl ;
+#endif
+
+#ifdef WINDOWS_SYS
+	std::wstring filenameW;
+	librs::util::ConvertUtf8ToUtf16(filename,filenameW);
+
+	if(0 != DeleteFileW(filenameW.c_str()))
+#else
+	if(0 == remove(filename.c_str()))
+#endif
+		return true ;
+	else
+	{
+		std::cerr << "(EE) File erase error while removing file " << filename << ". Read-only file system ?" << std::endl;
+		return false ;
+	}
+}
+
 /**** Copied and Tweaked from ftcontroller ***/
 bool RsDirUtil::copyFile(const std::string& source,const std::string& dest)
 {
@@ -436,9 +480,24 @@ bool	RsDirUtil::checkCreateDirectory(const std::string& dir)
 }
 
 
+std::string RsDirUtil::removeSymLinks(const std::string& path)
+{
+#if defined(WINDOWS_SYS) || defined(__APPLE__)
+#warning (Mr.Alice): I don't know how to do this on windows/MacOS. See https://msdn.microsoft.com/en-us/library/windows/desktop/hh707084(v=vs.85).aspx
+    //if(!S_OK == PathCchCanonicalizeEx(tmp,...) ;
+    return path ;
+#else
+    char *tmp = canonicalize_file_name(path.c_str()) ;
+    std::string result(tmp) ;
+
+    free(tmp);
+    return result ;
+#endif
+}
+
 bool 	RsDirUtil::cleanupDirectory(const std::string& cleandir, const std::set<std::string> &keepFiles)
 {
-    for(librs::util::FolderIterator it(cleandir);it.isValid();it.next())
+    for(librs::util::FolderIterator it(cleandir,false);it.isValid();it.next())
         if(it.file_type() == librs::util::FolderIterator::TYPE_FILE && (keepFiles.end() == std::find(keepFiles.begin(), keepFiles.end(), it.file_name())))
             remove( (cleandir + "/" + it.file_name()).c_str() ) ;
 

@@ -234,6 +234,9 @@ macx {
 	mac_icon.files = $$files($$PWD/rsMacIcon.icns)
 	mac_icon.path = Contents/Resources
 	QMAKE_BUNDLE_DATA += mac_icon
+	mac_webui.files = $$files($$PWD/../../libresapi/src/webui)
+	mac_webui.path = Contents/Resources
+	QMAKE_BUNDLE_DATA += mac_webui
 
 	CONFIG += version_detail_bash_script
         LIBS += -lssl -lcrypto -lz 
@@ -489,6 +492,7 @@ HEADERS +=  rshare.h \
             gui/common/RSTreeWidgetItem.h \
             gui/common/RSFeedWidget.h \
             gui/common/RSTabWidget.h \
+            gui/common/RSElidedItemDelegate.h \
             gui/common/RSItemDelegate.h \
             gui/common/PeerDefs.h \
             gui/common/FilesDefs.h \
@@ -798,6 +802,7 @@ SOURCES +=  main.cpp \
             gui/common/RSTreeWidgetItem.cpp \
             gui/common/RSFeedWidget.cpp \
             gui/common/RSTabWidget.cpp \
+            gui/common/RSElidedItemDelegate.cpp \
             gui/common/RSItemDelegate.cpp \
             gui/common/PeerDefs.cpp \
             gui/common/FilesDefs.cpp \

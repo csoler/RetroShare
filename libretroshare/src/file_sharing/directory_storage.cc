@@ -82,11 +82,14 @@ std::string DirectoryStorage::DirIterator::name()      const { const InternalFil
 /*                                                 Directory Storage                                              */
 /******************************************************************************************************************/
 
-DirectoryStorage::DirectoryStorage(const RsPeerId &pid)
-    : mPeerId(pid), mDirStorageMtx("Directory storage "+pid.toStdString())
+DirectoryStorage::DirectoryStorage(const RsPeerId &pid,const std::string& fname)
+    : mPeerId(pid), mDirStorageMtx("Directory storage "+pid.toStdString()),mLastSavedTime(0),mChanged(false),mFileName(fname)
 {
-    RS_STACK_MUTEX(mDirStorageMtx) ;
-    mFileHierarchy = new InternalFileHierarchyStorage();
+	{
+		RS_STACK_MUTEX(mDirStorageMtx) ;
+		mFileHierarchy = new InternalFileHierarchyStorage();
+	}
+    load(fname) ;
 }
 
 DirectoryStorage::EntryIndex DirectoryStorage::root() const
@@ -127,26 +130,26 @@ bool DirectoryStorage::setDirectoryUpdateTime   (EntryIndex index,time_t  update
 bool DirectoryStorage::setDirectoryRecursModTime(EntryIndex index,time_t  rec_md_TS) { RS_STACK_MUTEX(mDirStorageMtx) ; return mFileHierarchy->setTS(index,rec_md_TS,&InternalFileHierarchyStorage::DirEntry::dir_most_recent_time); }
 bool DirectoryStorage::setDirectoryLocalModTime (EntryIndex index,time_t  loc_md_TS) { RS_STACK_MUTEX(mDirStorageMtx) ; return mFileHierarchy->setTS(index,loc_md_TS,&InternalFileHierarchyStorage::DirEntry::dir_modtime         ); }
 
-bool DirectoryStorage::updateSubDirectoryList(const EntryIndex& indx,const std::map<std::string,time_t>& subdirs,const RsFileHash& hash_salt)
+bool DirectoryStorage::updateSubDirectoryList(const EntryIndex& indx, const std::set<std::string> &subdirs, const RsFileHash& hash_salt)
 {
     RS_STACK_MUTEX(mDirStorageMtx) ;
     bool res = mFileHierarchy->updateSubDirectoryList(indx,subdirs,hash_salt) ;
-    locked_check() ;
+    mChanged = true ;
     return res ;
 }
 bool DirectoryStorage::updateSubFilesList(const EntryIndex& indx,const std::map<std::string,FileTS>& subfiles,std::map<std::string,FileTS>& new_files)
 {
     RS_STACK_MUTEX(mDirStorageMtx) ;
     bool res = mFileHierarchy->updateSubFilesList(indx,subfiles,new_files) ;
-    locked_check() ;
+    mChanged = true ;
     return res ;
 }
 bool DirectoryStorage::removeDirectory(const EntryIndex& indx)
 {
     RS_STACK_MUTEX(mDirStorageMtx) ;
     bool res = mFileHierarchy->removeDirectory(indx);
+    mChanged = true ;
 
-    locked_check();
     return res ;
 }
 
@@ -160,23 +163,26 @@ void DirectoryStorage::locked_check()
 bool DirectoryStorage::updateFile(const EntryIndex& index,const RsFileHash& hash,const std::string& fname, uint64_t size,time_t modf_time)
 {
     RS_STACK_MUTEX(mDirStorageMtx) ;
+    mChanged = true ;
     return mFileHierarchy->updateFile(index,hash,fname,size,modf_time);
 }
 bool DirectoryStorage::updateHash(const EntryIndex& index,const RsFileHash& hash)
 {
     RS_STACK_MUTEX(mDirStorageMtx) ;
+    mChanged = true ;
     return mFileHierarchy->updateHash(index,hash);
 }
 
-int DirectoryStorage::searchHash(const RsFileHash& hash, std::list<EntryIndex> &results) const
+void DirectoryStorage::getStatistics(SharedDirStats& stats)
 {
     RS_STACK_MUTEX(mDirStorageMtx) ;
-    return mFileHierarchy->searchHash(hash,results);
+    mFileHierarchy->getStatistics(stats);
 }
 
 bool DirectoryStorage::load(const std::string& local_file_name)
 {
     RS_STACK_MUTEX(mDirStorageMtx) ;
+    mChanged = false ;
     return mFileHierarchy->load(local_file_name);
 }
 void DirectoryStorage::save(const std::string& local_file_name)
@@ -206,8 +212,6 @@ bool DirectoryStorage::extractData(const EntryIndex& indx,DirDetails& d)
     RS_STACK_MUTEX(mDirStorageMtx) ;
 
     d.children.clear() ;
-    time_t now = time(NULL) ;
-
     uint32_t type = mFileHierarchy->getType(indx) ;
 
     d.ref = (void*)(intptr_t)indx ;
@@ -241,8 +245,8 @@ bool DirectoryStorage::extractData(const EntryIndex& indx,DirDetails& d)
         d.type = DIR_TYPE_DIR;
         d.hash.clear() ;
         d.count   = dir_entry->subdirs.size() + dir_entry->subfiles.size();
-        d.min_age = now - dir_entry->dir_most_recent_time ;
-        d.age     = now - dir_entry->dir_modtime ;
+        d.max_mtime = dir_entry->dir_most_recent_time ;
+        d.mtime     = dir_entry->dir_modtime ;
         d.name    = dir_entry->dir_name;
 		d.path    = RsDirUtil::makePath(dir_entry->dir_parent_path, dir_entry->dir_name) ;
         d.parent  = (void*)(intptr_t)dir_entry->parent_index ;
@@ -259,10 +263,10 @@ bool DirectoryStorage::extractData(const EntryIndex& indx,DirDetails& d)
 
         d.type    = DIR_TYPE_FILE;
         d.count   = file_entry->file_size;
-        d.min_age = now - file_entry->file_modtime ;
+        d.max_mtime = file_entry->file_modtime ;
         d.name    = file_entry->file_name;
         d.hash    = file_entry->file_hash;
-        d.age     = now - file_entry->file_modtime;
+        d.mtime     = file_entry->file_modtime;
         d.parent  = (void*)(intptr_t)file_entry->parent_index ;
 
         const InternalFileHierarchyStorage::DirEntry *parent_dir_entry = mFileHierarchy->getDirEntry(file_entry->parent_index);
@@ -291,44 +295,119 @@ bool DirectoryStorage::getIndexFromDirHash(const RsFileHash& hash,EntryIndex& in
     return mFileHierarchy->getIndexFromDirHash(hash,index) ;
 }
 
+void DirectoryStorage::checkSave()
+{
+    time_t now = time(NULL);
+
+    if(mChanged && mLastSavedTime + MIN_INTERVAL_BETWEEN_REMOTE_DIRECTORY_SAVE < now)
+	{
+	   {
+		  RS_STACK_MUTEX(mDirStorageMtx) ;
+		  locked_check();
+	   }
+
+	   save(mFileName);
+
+	   {
+		  RS_STACK_MUTEX(mDirStorageMtx) ;
+		  mLastSavedTime = now ;
+		  mChanged = false ;
+	   }
+	}
+}
 /******************************************************************************************************************/
 /*                                           Local Directory Storage                                              */
 /******************************************************************************************************************/
 
-void LocalDirectoryStorage::setSharedDirectoryList(const std::list<SharedDirInfo>& lst)
+RsFileHash LocalDirectoryStorage::makeEncryptedHash(const RsFileHash& hash)
+{
+    return RsDirUtil::sha1sum(hash.toByteArray(),hash.SIZE_IN_BYTES);
+}
+bool LocalDirectoryStorage::locked_findRealHash(const RsFileHash& hash, RsFileHash& real_hash) const
+{
+    std::map<RsFileHash,RsFileHash>::const_iterator it = mEncryptedHashes.find(hash) ;
+
+    if(it == mEncryptedHashes.end())
+        return false ;
+
+    real_hash = it->second ;
+    return true ;
+}
+
+int LocalDirectoryStorage::searchHash(const RsFileHash& hash, RsFileHash& real_hash, EntryIndex& result) const
 {
     RS_STACK_MUTEX(mDirStorageMtx) ;
 
-    // Chose virtual name if not supplied, and remove duplicates.
+    if(locked_findRealHash(hash,real_hash) && mFileHierarchy->searchHash(real_hash,result))
+        return true ;
 
-    std::set<std::string> virtual_names ;	// maps virtual to real name
-    std::list<SharedDirInfo> processed_list ;
-
-    for(std::list<SharedDirInfo>::const_iterator it(lst.begin());it!= lst.end();++it)
+    if(mFileHierarchy->searchHash(hash,result))
     {
-        int i=0;
-        std::string candidate_virtual_name = it->virtualname ;
-
-        if(candidate_virtual_name.empty())
-            candidate_virtual_name = RsDirUtil::getTopDir(it->filename);
-
-        while(virtual_names.find(candidate_virtual_name) != virtual_names.end())
-            rs_sprintf_append(candidate_virtual_name, "-%d", ++i);
-
-        SharedDirInfo d(*it);
-        d.virtualname = candidate_virtual_name ;
-        processed_list.push_back(d) ;
-
-        virtual_names.insert(candidate_virtual_name) ;
+        real_hash.clear();
+        return true ;
     }
-
-    mLocalDirs.clear();
-
-    for(std::list<SharedDirInfo>::const_iterator it(processed_list.begin());it!=processed_list.end();++it)
-        mLocalDirs[it->filename] = *it;
-
-    mTSChanged = true ;
+    return false ;
 }
+
+void LocalDirectoryStorage::setSharedDirectoryList(const std::list<SharedDirInfo>& lst)
+{
+	std::set<std::string> dirs_with_new_virtualname ;
+
+	{
+		RS_STACK_MUTEX(mDirStorageMtx) ;
+
+		// Chose virtual name if not supplied, and remove duplicates.
+
+		std::set<std::string> virtual_names ;	// maps virtual to real name
+		std::list<SharedDirInfo> processed_list ;
+
+		for(std::list<SharedDirInfo>::const_iterator it(lst.begin());it!= lst.end();++it)
+		{
+			int i=0;
+			std::string candidate_virtual_name = it->virtualname ;
+
+			if(candidate_virtual_name.empty())
+				candidate_virtual_name = RsDirUtil::getTopDir(it->filename);
+
+			while(virtual_names.find(candidate_virtual_name) != virtual_names.end())
+				rs_sprintf_append(candidate_virtual_name, "-%d", ++i);
+
+			SharedDirInfo d(*it);
+			d.virtualname = candidate_virtual_name ;
+			processed_list.push_back(d) ;
+
+			virtual_names.insert(candidate_virtual_name) ;
+		}
+
+		// now for each member of the processed list, check if it is an existing shared directory that has been changed. If so, we need to update the dir TS of that directory
+
+		std::map<std::string,SharedDirInfo> new_dirs ;
+
+		for(std::list<SharedDirInfo>::const_iterator it(processed_list.begin());it!=processed_list.end();++it)
+		{
+			std::map<std::string,SharedDirInfo>::iterator it2 = mLocalDirs.find(it->filename) ;
+
+			if(it2 != mLocalDirs.end() && it2->second.virtualname != it->virtualname)
+				dirs_with_new_virtualname.insert(it->filename) ;
+
+			new_dirs[it->filename] = *it;
+		}
+
+		mLocalDirs = new_dirs ;
+	}
+
+	mTSChanged = true ;
+
+    // now update the TS off-mutex.
+
+	for(DirIterator dirit(this,root());dirit;++dirit)
+		if(dirs_with_new_virtualname.find(dirit.name()) != dirs_with_new_virtualname.end())
+		{
+			std::cerr << "Updating TS of local dir \"" << dirit.name() << "\" with changed virtual name" << std::endl;
+			setDirectoryLocalModTime(*dirit,time(NULL));
+		}
+}
+
 void LocalDirectoryStorage::getSharedDirectoryList(std::list<SharedDirInfo>& lst)
 {
     RS_STACK_MUTEX(mDirStorageMtx) ;
@@ -338,19 +417,6 @@ void LocalDirectoryStorage::getSharedDirectoryList(std::list<SharedDirInfo>& lst
     for(std::map<std::string,SharedDirInfo>::iterator it(mLocalDirs.begin());it!=mLocalDirs.end();++it)
         lst.push_back(it->second) ;
 }
-
-static bool sameLists(const std::list<RsNodeGroupId>& l1,const std::list<RsNodeGroupId>& l2)
-{
-    std::list<RsNodeGroupId>::const_iterator it1(l1.begin()) ;
-    std::list<RsNodeGroupId>::const_iterator it2(l2.begin()) ;
-
-    for(; (it1!=l1.end() && it2!=l2.end());++it1,++it2)
-        if(*it1 != *it2)
-            return false ;
-
-    return it1 == l1.end() && it2 == l2.end() ;
-}
-
 void LocalDirectoryStorage::updateShareFlags(const SharedDirInfo& info)
 {
     bool changed = false ;
@@ -369,7 +435,7 @@ void LocalDirectoryStorage::updateShareFlags(const SharedDirInfo& info)
         // we compare the new info with the old one. If the two group lists have a different order, they will be seen as different. Not a big deal. We just
         // want to make sure that if they are different, flags get updated.
 
-        if(!sameLists(it->second.parent_groups,info.parent_groups) || it->second.filename != info.filename || it->second.shareflags != info.shareflags || it->second.virtualname != info.virtualname)
+        if(!SharedDirInfo::sameLists(it->second.parent_groups,info.parent_groups) || it->second.filename != info.filename || it->second.shareflags != info.shareflags || it->second.virtualname != info.virtualname)
         {
             it->second = info;
 
@@ -422,11 +488,13 @@ void LocalDirectoryStorage::updateTimeStamps()
         std::cerr << "Updating recursive TS for local shared dirs..." << std::endl;
 #endif
 
-        time_t last_modf_time = mFileHierarchy->recursUpdateLastModfTime(EntryIndex(0)) ;
+        bool unfinished_files_below ;
+
+        time_t last_modf_time = mFileHierarchy->recursUpdateLastModfTime(EntryIndex(0),unfinished_files_below) ;
         mTSChanged = false ;
 
 #ifdef DEBUG_LOCAL_DIRECTORY_STORAGE
-        std::cerr << "LocalDirectoryStorage: global last modf time is " << last_modf_time << " (which is " << time(NULL) - last_modf_time << " secs ago)" << std::endl;
+        std::cerr << "LocalDirectoryStorage: global last modf time is " << last_modf_time << " (which is " << time(NULL) - last_modf_time << " secs ago), unfinished files below=" << unfinished_files_below << std::endl;
 #else
 		// remove unused variable warning
 		// variable is only used for debugging
@@ -434,7 +502,15 @@ void LocalDirectoryStorage::updateTimeStamps()
 #endif
     }
 }
+bool LocalDirectoryStorage::updateHash(const EntryIndex& index,const RsFileHash& hash)
+{
+    {
+        RS_STACK_MUTEX(mDirStorageMtx) ;
 
+        mEncryptedHashes[makeEncryptedHash(hash)] = hash ;
+    }
+    return mFileHierarchy->updateHash(index,hash);
+}
 std::string LocalDirectoryStorage::locked_findRealRootFromVirtualFilename(const std::string& virtual_rootdir) const
 {
     /**** MUST ALREADY BE LOCKED ****/
@@ -648,8 +724,12 @@ bool LocalDirectoryStorage::serialiseDirEntry(const EntryIndex& indx,RsTlvBinary
             allowed_subfiles++ ;
     }
 
-    unsigned char *section_data = NULL;
-    uint32_t section_size = 0;
+    unsigned char *section_data = (unsigned char *)rs_malloc(FL_BASE_TMP_SECTION_SIZE) ;
+
+    if(!section_data)
+        return false ;
+
+    uint32_t section_size = FL_BASE_TMP_SECTION_SIZE;
     uint32_t section_offset = 0;
 
     // we need to send:
@@ -675,11 +755,16 @@ bool LocalDirectoryStorage::serialiseDirEntry(const EntryIndex& indx,RsTlvBinary
 
     // serialise directory subfiles, with info for each of them
 
+	unsigned char *file_section_data = (unsigned char *)rs_malloc(FL_BASE_TMP_SECTION_SIZE);
+
+    if(!file_section_data)
+        return false ;
+
+	uint32_t file_section_size = FL_BASE_TMP_SECTION_SIZE;
+
     for(uint32_t i=0;i<dir->subfiles.size();++i)
     {
-        unsigned char *file_section_data = NULL ;
         uint32_t file_section_offset = 0 ;
-        uint32_t file_section_size = 0;
 
         const InternalFileHierarchyStorage::FileEntry *file = mFileHierarchy->getFileEntry(dir->subfiles[i]) ;
 
@@ -698,12 +783,11 @@ bool LocalDirectoryStorage::serialiseDirEntry(const EntryIndex& indx,RsTlvBinary
 
         if(!FileListIO::writeField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_REMOTE_FILE_ENTRY,file_section_data,file_section_offset)) return false ;
 
-        free(file_section_data) ;
-
 #ifdef DEBUG_LOCAL_DIRECTORY_STORAGE
         std::cerr << "  pushing subfile " << file->hash << ", array position=" << i << " indx=" << dir->subfiles[i] << std::endl;
 #endif
     }
+	free(file_section_data) ;
 
 #ifdef DEBUG_LOCAL_DIRECTORY_STORAGE
     std::cerr << "Serialised dir entry to send for entry index " << (void*)(intptr_t)indx << ". Data size is " << section_size << " bytes" << std::endl;
@@ -715,31 +799,20 @@ bool LocalDirectoryStorage::serialiseDirEntry(const EntryIndex& indx,RsTlvBinary
     return true ;
 }
 
+
 /******************************************************************************************************************/
 /*                                           Remote Directory Storage                                              */
 /******************************************************************************************************************/
 
 RemoteDirectoryStorage::RemoteDirectoryStorage(const RsPeerId& pid,const std::string& fname)
-    : DirectoryStorage(pid),mLastSavedTime(0),mChanged(false),mFileName(fname)
+    : DirectoryStorage(pid,fname)
 {
-    load(fname) ;
+    mLastSweepTime = time(NULL) - (RSRandom::random_u32() % DELAY_BETWEEN_REMOTE_DIRECTORIES_SWEEP) ;
 
-    std::cerr << "Loaded remote directory for peer " << pid << std::endl;
+    std::cerr << "Loaded remote directory for peer " << pid << ", inited last sweep time to " << time(NULL) - mLastSweepTime << " secs ago." << std::endl;
 #ifdef DEBUG_REMOTE_DIRECTORY_STORAGE
     mFileHierarchy->print();
 #endif
-}
-
-void RemoteDirectoryStorage::checkSave()
-{
-    time_t now = time(NULL);
-
-    if(mChanged && mLastSavedTime + MIN_INTERVAL_BETWEEN_REMOTE_DIRECTORY_SAVE < now)
-    {
-        save(mFileName);
-        mLastSavedTime = now ;
-        mChanged = false ;
-    }
 }
 
 bool RemoteDirectoryStorage::deserialiseUpdateDirEntry(const EntryIndex& indx,const RsTlvBinaryData& bindata)
@@ -792,13 +865,16 @@ bool RemoteDirectoryStorage::deserialiseUpdateDirEntry(const EntryIndex& indx,co
     // deserialise directory subfiles, with info for each of them
 
     std::vector<InternalFileHierarchyStorage::FileEntry> subfiles_array ;
+	unsigned char *file_section_data = (unsigned char *)rs_malloc(FL_BASE_TMP_SECTION_SIZE);
+
+    if(!file_section_data)
+        return false ;
+
+	uint32_t file_section_size = FL_BASE_TMP_SECTION_SIZE;
 
     for(uint32_t i=0;i<n_subfiles;++i)
     {
         // Read the full data section for the file
-
-        unsigned char *file_section_data = NULL ;
-        uint32_t file_section_size = 0;
 
         if(!FileListIO::readField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_REMOTE_FILE_ENTRY,file_section_data,file_section_size)) return false ;
 
@@ -814,10 +890,9 @@ bool RemoteDirectoryStorage::deserialiseUpdateDirEntry(const EntryIndex& indx,co
 
         f.file_modtime = modtime ;
 
-        free(file_section_data) ;
-
         subfiles_array.push_back(f) ;
     }
+	free(file_section_data) ;
 
     RS_STACK_MUTEX(mDirStorageMtx) ;
 #ifdef DEBUG_REMOTE_DIRECTORY_STORAGE
