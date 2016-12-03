@@ -32,7 +32,6 @@
 #include <retroshare/rspeers.h>
 
 #include "ShareManager.h"
-#include "ShareDialog.h"
 #include "settings/rsharesettings.h"
 #include "gui/common/GroupFlagsWidget.h"
 #include "gui/common/GroupSelectionBox.h"
@@ -109,9 +108,16 @@ void ShareManager::handleCellChange(int row,int column)
 void ShareManager::editShareDirectory()
 {
     QTableWidget *listWidget = ui.shareddirList;
-    int row = listWidget -> currentRow();
+    int row = listWidget->currentRow();
+    int col = listWidget->currentColumn();
 
-    doubleClickedCell(row,COLUMN_PATH) ;
+    if(col == COLUMN_VIRTUALNAME)
+    {
+        QModelIndex index = ui.shareddirList->model()->index(row,col,QModelIndex());
+        ui.shareddirList->edit(index);
+    }
+	else
+		doubleClickedCell(row,col) ;
 }
 
 void ShareManager::doubleClickedCell(int row,int column)
@@ -170,7 +176,18 @@ void ShareManager::shareddirListCustomPopupMenu( QPoint /*point*/ )
 {
     QMenu contextMnu( this );
 
-    QAction *editAct = new QAction(QIcon(IMAGE_EDIT), tr( "Edit" ), &contextMnu );
+    int col = ui.shareddirList->currentColumn();
+    QString edit_text ;
+
+    switch(col)
+    {
+    	case COLUMN_GROUPS: edit_text = tr("Change group visibility...") ; break ;
+		case COLUMN_PATH:   edit_text = tr("Choose directory to share...") ; break;
+		case COLUMN_VIRTUALNAME:   edit_text = tr("Choose visible name...") ; break;
+    default:
+		case COLUMN_SHARE_FLAGS:   return ;
+    }
+    QAction *editAct = new QAction(QIcon(IMAGE_EDIT), edit_text, &contextMnu );
     connect( editAct , SIGNAL( triggered() ), this, SLOT( editShareDirectory() ) );
 
     QAction *removeAct = new QAction(QIcon(IMAGE_CANCEL), tr( "Remove" ), &contextMnu );
@@ -212,7 +229,11 @@ void ShareManager::load()
     for(uint32_t row=0;row<mDirInfos.size();++row)
     {
         listWidget->setItem(row, COLUMN_PATH, new QTableWidgetItem(QString::fromUtf8(mDirInfos[row].filename.c_str())));
-        listWidget->setItem(row, COLUMN_VIRTUALNAME, new QTableWidgetItem(QString::fromUtf8(mDirInfos[row].virtualname.c_str())));
+
+		if(mDirInfos[row].virtualname.empty())
+			listWidget->setItem(row, COLUMN_VIRTUALNAME, new QTableWidgetItem(tr("[Unset] (Double click to change)"))) ;
+		else
+			listWidget->setItem(row, COLUMN_VIRTUALNAME, new QTableWidgetItem(QString::fromUtf8(mDirInfos[row].virtualname.c_str())));
 
         GroupFlagsWidget *widget = new GroupFlagsWidget(NULL,mDirInfos[row].shareflags);
 
@@ -224,9 +245,8 @@ void ShareManager::load()
 
         connect(widget,SIGNAL(flagsChanged(FileStorageFlags)),this,SLOT(updateFlags())) ;
 
-        listWidget->item(row,COLUMN_PATH)->setToolTip(tr("Double click to change shared directory path")) ;
         listWidget->item(row,COLUMN_GROUPS)->setToolTip(tr("Double click to select which groups of friends can see the files")) ;
-        listWidget->item(row,COLUMN_VIRTUALNAME)->setToolTip(tr("Double click to change the name that friends will see")) ;
+		listWidget->item(row,COLUMN_VIRTUALNAME)->setToolTip(tr("Double click to change the name that friends will see.")) ;
 
         listWidget->item(row,COLUMN_GROUPS)->setText(getGroupString(mDirInfos[row].parent_groups));
 
@@ -234,6 +254,17 @@ void ShareManager::load()
         font.setBold(mDirInfos[row].shareflags & DIR_FLAGS_BROWSABLE) ;
         listWidget->item(row,COLUMN_GROUPS)->setTextColor( (mDirInfos[row].shareflags & DIR_FLAGS_BROWSABLE)? (Qt::black):(Qt::lightGray)) ;
         listWidget->item(row,COLUMN_GROUPS)->setFont(font);
+
+        if(QDir(QString::fromStdString(mDirInfos[row].filename)).exists())
+        {
+        	listWidget->item(row,COLUMN_PATH)->setTextColor(Qt::black);
+			listWidget->item(row,COLUMN_PATH)->setToolTip(tr("Double click to change shared directory path")) ;
+        }
+        else
+        {
+        	listWidget->item(row,COLUMN_PATH)->setTextColor(Qt::lightGray);
+			listWidget->item(row,COLUMN_PATH)->setToolTip(tr("Directory does not exist! Double click to change shared directory path")) ;
+        }
     }
 
     listWidget->setColumnWidth(COLUMN_SHARE_FLAGS,132 * QFontMetricsF(font()).height()/14.0) ;
@@ -308,10 +339,10 @@ void ShareManager::removeShareDirectory()
     {
         if ((QMessageBox::question(this, tr("Warning!"),tr("Do you really want to stop sharing this directory ?"),QMessageBox::Yes|QMessageBox::No, QMessageBox::Yes))== QMessageBox::Yes)
         {
-			for(uint32_t i=row;i+1<mDirInfos.size();++i)
-				mDirInfos[i] = mDirInfos[i+1] ;
+            for(uint32_t i=row;i+1<mDirInfos.size();++i)
+                mDirInfos[i] = mDirInfos[i+1] ;
 
-			mDirInfos.pop_back() ;
+            mDirInfos.pop_back() ;
             load();
         }
     }
@@ -349,18 +380,8 @@ void ShareManager::addShare()
     load();
 }
 
-void ShareManager::showShareDialog()
+void ShareManager::shareddirListCurrentCellChanged(int /*currentRow*/, int /*currentColumn*/, int /*previousRow*/, int /*previousColumn*/)
 {
-    ShareDialog sharedlg ("", this);
-    sharedlg.exec();
-    load();
-}
-
-void ShareManager::shareddirListCurrentCellChanged(int currentRow, int currentColumn, int previousRow, int previousColumn)
-{
-    Q_UNUSED(currentColumn);
-    Q_UNUSED(previousRow);
-    Q_UNUSED(previousColumn);
 }
 
 void ShareManager::dragEnterEvent(QDragEnterEvent *event)
