@@ -422,6 +422,9 @@ void GxsGroupDialog::updateFromExistingMeta(const QString &description)
     ui.IDline->setText(QString::fromStdString(mGrpMeta.mGroupId.toStdString()));
     ui.descriptiontextEdit->setPlainText(description);
 
+    ui.keepLimit_SB->setValue(mGrpMeta.mGrpDistribution_MaxStorageAge) ;
+    ui.syncLimit_SB->setValue(mGrpMeta.mGrpDistribution_MaxRequestAge) ;
+
     switch (mode())
     {
     case MODE_CREATE:{
