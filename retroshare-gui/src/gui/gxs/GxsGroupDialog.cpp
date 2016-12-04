@@ -338,6 +338,8 @@ void GxsGroupDialog::setupVisibility()
 	ui.antiSpamLabel->setVisible(mEnabledFlags & GXS_GROUP_FLAGS_ANTI_SPAM);
 	ui.antiSpamValueLabel->setVisible(mEnabledFlags & GXS_GROUP_FLAGS_ANTI_SPAM);
 
+	ui.distributionTimings_GB->setVisible(mEnabledFlags & GXS_GROUP_FLAGS_TIMINGS);
+
 	ui.publishGroupBox->setVisible(mEnabledFlags & GXS_GROUP_FLAGS_PUBLISHSIGN);
 
 	ui.pubKeyShare_cb->setVisible(mEnabledFlags & GXS_GROUP_FLAGS_SHAREKEYS);
@@ -422,8 +424,8 @@ void GxsGroupDialog::updateFromExistingMeta(const QString &description)
     ui.IDline->setText(QString::fromStdString(mGrpMeta.mGroupId.toStdString()));
     ui.descriptiontextEdit->setPlainText(description);
 
-    ui.keepLimit_SB->setValue(mGrpMeta.mGrpDistribution_MaxStorageAge) ;
-    ui.syncLimit_SB->setValue(mGrpMeta.mGrpDistribution_MaxRequestAge) ;
+    ui.keepLimit_SB->setValue(mGrpMeta.mGrpDistribution_MaxStorageAge / 86400) ;
+    ui.syncLimit_SB->setValue(mGrpMeta.mGrpDistribution_MaxRequestAge / 86400) ;
 
     switch (mode())
     {

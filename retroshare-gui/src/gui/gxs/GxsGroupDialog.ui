@@ -840,9 +840,9 @@
         </widget>
        </item>
        <item row="1" column="0">
-        <widget class="QGroupBox" name="groupBox_4">
+        <widget class="QGroupBox" name="distributionTimings_GB">
          <property name="title">
-          <string>Distribution</string>
+          <string>Local distribution parameters</string>
          </property>
          <layout class="QGridLayout" name="gridLayout_9">
           <item row="0" column="1">
