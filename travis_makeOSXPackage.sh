@@ -4,16 +4,23 @@
 brew install p7zip
 
 # Package your app
-echo "Packaging YourApp..."
-cd ${project_dir}/build/macOS/clang/x86_64/release/
+echo "Packaging retroshare..."
+#cd ${project_dir}/build/macOS/clang/x86_64/release/
+cd retroshare-gui/src/
 
 # Remove build directories that you don't want to deploy
 rm -rf moc
 rm -rf obj
 rm -rf qrc
 
+# if test "${TAG_NAME}" = "" ; then 
+# 	TAG_NAME = "no_tag" ;
+# 	echo No specific tag used.
+# fi
+
 echo "Creating dmg archive..."
-macdeployqt retroshare.app -qmldir=../../../../../src -dmg
+#macdeployqt retroshare.app -qmldir=../../../../../src -dmg
+macdeployqt retroshare.app -dmg
 mv retroshare.dmg "retroshare_${TAG_NAME}.dmg"
 
 # You can use the appdmg command line app to create your dmg file if
