@@ -1,97 +1,55 @@
 language: cpp
-
 matrix:
   include:
-    - os: linux
-      dist: trusty
-      sudo: required
-      compiler: gcc
-    - os: osx
-      osx_image: xcode6.2
-      compiler: clang
-      sudo: required
-
+  - os: linux
+    dist: trusty
+    sudo: required
+    compiler: gcc
+  - os: osx
+    osx_image: xcode6.2
+    compiler: clang
+    sudo: required
 before_install:
-  - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get update; fi
-  - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get install -y build-essential checkinstall cmake libavutil-dev libavcodec-dev libavformat-dev libbz2-dev libcurl4-openssl-dev libcv-dev libopencv-highgui-dev libhighgui-dev libgnome-keyring-dev libgstreamer-plugins-base0.10-dev libgstreamer0.10-dev libjasper-dev libjpeg-dev libmicrohttpd-dev libopencv-dev libprotobuf-dev libqt4-dev libspeex-dev libspeexdsp-dev libsqlite3-dev libssl-dev libswscale-dev libtbb-dev libtiff4-dev libupnp-dev libv4l-dev libxine-dev libxslt1-dev libxss-dev pkg-config protobuf-compiler python-dev qtmobility-dev gdb ; fi
-
-
-  - if [ $TRAVIS_OS_NAME == osx ]; then brew update ; fi
-  - if [ $TRAVIS_OS_NAME == osx ]; then brew install qt55 openssl miniupnpc libmicrohttpd speex speexdsp ffmpeg sqlcipher ; fi
-  - if [ $TRAVIS_OS_NAME == osx ]; then brew link --force qt55 ; fi
-#Fix for opencv and numpy already installed by system
-  - if [ $TRAVIS_OS_NAME == osx ]; then rm '/usr/local/bin/f2py'; fi
-  - if [ $TRAVIS_OS_NAME == osx ]; then rm -r '/usr/local/lib/python2.7/site-packages/numpy'; fi
-  - if [ $TRAVIS_OS_NAME == osx ]; then brew install homebrew/science/opencv; fi
-
-# FIX: Now openssl is not linked in /usr/local/include and lib
-  - if [ $TRAVIS_OS_NAME == osx ]; then ln -s /usr/local/opt/openssl/include/* /usr/local/include/; fi
-  - if [ $TRAVIS_OS_NAME == osx ]; then ln -s /usr/local/opt/openssl/lib/*.a /usr/local/lib/; fi
-  - if [ $TRAVIS_OS_NAME == osx ]; then ln -s /usr/local/opt/openssl/lib/*.dylib /usr/local/lib/; fi
-
-#  - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get update && sudo apt-get install -y llvm-3.4 llvm-3.4-dev; fi
-#  - rvm use $RVM --install --binary --fuzzy
-#  - gem update --system
-#  - gem --version
-
-# env:
-#   global:
-#    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
-#    #   via the "travis encrypt" command using the project repo's public key
-#    - secure: "auwuhxelaMriNaXzT8I03xrh1s+STicNyNToOWFCAYKxkWWQ4WeaCO6kRDmQrejhizMUILGU+s4FrWTEhDsviftGAF86EgzxxbSBfsHHAP4t2C0pcXX8/WxEoh1IrUs7iGCIpl7O2cvWqGidc20ROeptSEd1uQgkHnn14D9A2YmXf8g52PzqivKkb6HKfkVTPdmNJkMBT5eDtEw6DIk+DvnvRo6b6uanvVAKS9CBwXOdA3rLzaD9bz0LrdL9X1CNoTkGROyez0Lsc4zTr70id2Xfp1MMmJAV6hgQy+iwE37wRyrxJf3dkh5SUAAMUC9Xnvh/iBKNQKdQGhj2WGcV7GZV9k6u9DA1w2H0kcrwt9KHUXdhEQ67yr6Boa9ZFwdDb5VIOtC6iHAoDZXharHhiuxi0K/bCtwNAajrMjBCm9mWhEKvtoxUUYxAJajhJkkO3ERaOU3zHE+06esDzGozd2YOEH8a74HhYy4xvhR05Yj00hAWLS2kIaUITiqmBf6Yuh5XwH7KCDcapxF59ROWqyicdwtbfWpvN8IvFuGKyxYuEfoT8WxZ4lZpo4Q9CrTB7gedJYJxYNfZE/okWoFBb4cpPI94PHo3DZPR7lVyQ60RNyeR0nOeqf8NW8cBT1G4jw3u1LEyAdyvup+54aALw0DCVyoDojSXB8s+AlQG2JE="
-
-# addons:
-#   coverity_scan:
-#     project:
-#       name: "RetroShare/RetroShare"
-#       description: "RetroShare Build submitted via Travis CI"
-#     build_command_prepend: "qmake CONFIG+=no_sqlcipher; make clean"
-#     build_command:   "make -j 4"
-#     branch_pattern: coverity_scan
-
+- if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get update; fi
+- if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get install -y build-essential checkinstall
+  cmake libavutil-dev libavcodec-dev libavformat-dev libbz2-dev libcurl4-openssl-dev
+  libcv-dev libopencv-highgui-dev libhighgui-dev libgnome-keyring-dev libgstreamer-plugins-base0.10-dev
+  libgstreamer0.10-dev libjasper-dev libjpeg-dev libmicrohttpd-dev libopencv-dev libprotobuf-dev
+  libqt4-dev libspeex-dev libspeexdsp-dev libsqlite3-dev libssl-dev libswscale-dev
+  libtbb-dev libtiff4-dev libupnp-dev libv4l-dev libxine-dev libxslt1-dev libxss-dev
+  pkg-config protobuf-compiler python-dev qtmobility-dev gdb ; fi
+- if [ $TRAVIS_OS_NAME == osx ]; then brew update ; fi
+- if [ $TRAVIS_OS_NAME == osx ]; then brew install qt55 openssl miniupnpc libmicrohttpd
+  speex speexdsp ffmpeg sqlcipher ; fi
+- if [ $TRAVIS_OS_NAME == osx ]; then brew link --force qt55 ; fi
+- if [ $TRAVIS_OS_NAME == osx ]; then rm '/usr/local/bin/f2py'; fi
+- if [ $TRAVIS_OS_NAME == osx ]; then rm -r '/usr/local/lib/python2.7/site-packages/numpy';
+  fi
+- if [ $TRAVIS_OS_NAME == osx ]; then brew install homebrew/science/opencv; fi
+- if [ $TRAVIS_OS_NAME == osx ]; then ln -s /usr/local/opt/openssl/include/* /usr/local/include/;
+  fi
+- if [ $TRAVIS_OS_NAME == osx ]; then ln -s /usr/local/opt/openssl/lib/*.a /usr/local/lib/;
+  fi
+- if [ $TRAVIS_OS_NAME == osx ]; then ln -s /usr/local/opt/openssl/lib/*.dylib /usr/local/lib/;
+  fi
 before_script:
-  - qmake QMAKE_CC=$CC QMAKE_CXX=$CXX CONFIG+=no_sqlcipher CONFIG+=tests
-
+- qmake QMAKE_CC=$CC QMAKE_CXX=$CXX CONFIG+=no_sqlcipher CONFIG+=tests
 script:
-  - if [ $TRAVIS_OS_NAME == linux ] ; then make && tests/unittests/unittests >/dev/null 2>&1 ; fi
-  - if [ $TRAVIS_OS_NAME == osx ] ; then make -j 4 ; fi
-
+- if [ $TRAVIS_OS_NAME == linux ] ; then make && tests/unittests/unittests >/dev/null
+  2>&1 ; fi
+- if [ $TRAVIS_OS_NAME == osx ] ; then make -j 4 ; fi
 after_success:
-  - if [ $TRAVIS_OS_NAME == osx ]; then chmod +x ./travis_makeOSXPackage.sh && ./travis_makeOSXPackage.sh ; fi
-
+- if [ $TRAVIS_OS_NAME == osx ]; then chmod +x ./travis_makeOSXPackage.sh && ./travis_makeOSXPackage.sh
+  ; fi
 branches:
   only:
-    - v0.6.3-TravisDeploy
-
-# notifications:
-#   email: false
-#   irc:
-#     channels:
-#       - "chat.freenode.net#retroshare"
-#     template:
-#       - "%{repository}/%{branch} (%{commit} - %{author}): %{build_url}: %{message}"
-#       - "Message: %{commit_message}"
-#       - "Commit details: %{compare_url}"
-
-#  webhooks:
-#    urls:
-#      - https://webhooks.gitter.im/e/9502afd22ca6c8e85fb3
-#    on_success: change
-#    on_failure: always
-#    on_start: always
-
-#env:
-#  - RVM=2.0.0 LANG="en_US.UTF-8"
-
+  - v0.6.3-TravisDeploy
 deploy:
-  - provider: releases
-    api_key:
-      secure: hAFher5SZmpbsysPgDrLdEbwmu5vqSqcWNZUVqhn8+Ki+Rksb/cAI55RDpJu+Em9aIlXleRaNqhTAl9rFXxSrlMwhnESrg09bwE2bcf+BAOFh85DsYn7Vpy8XL6g+ES20k8otelDz2/zW78uMl4TPaY02WK1OAKJpNgnAlldyNkW1VNr2KG0zleS4dBcBn8yAbWqyTE22yesPl7VW4ycZ/F3wBm6FkeYwDwH+XkOOknqDuP0NKWL5fpqke1vZkWWuPJCwE7WfZ3zO9zXrI3J2vF5Jn5tG6TE4PpCHjh142tF2aE2XMcnnNvIR3L+mhBLdJ209Nyzt3L9yrTOh6u0mS0OJKcGgBYzUC2zRaBxEkWePPyVR90wbJabxn/jbAvI9B2jMY3VlZ6GQ85BKeSJg8n4uQCWas0hsP/GaAgEWvuauObnYF0VW/4rA6PMwkIZm1NjOmqsCqS6Qqqh7eMp6ia51MFe14GBalDHbE0q9iZVtuOBOqKfuc8VFZIdlgekXEvfjKLM82laLF0Bs3ZiIaccy9K8QH2folhu5d8tB7J4L8UbojnSSq3Z2ul9wEnSWdEmcQgd+Td/ycKQqdZPbc5Kz9+c+WzkkGGMnrLQL6p1FHh1sJUZ8maJxXHwqBWfHoNJMhwLJtcl6cynS08Q3yjsh+Lqvab2Gwfgqai8GZM=
-    file:
-      - build/macOS/clang/x86_64/release/retroshare_${TRAVIS_TAG}.dmg
-    overwrite: true
-    skip_cleanup: true
-    on:
-#      tags: true
-      condition: $TRAVIS_OS_NAME = osx
-      branch: v0.6.3-TravisDeploy
+  provider: releases
+  api_key:
+    secure: GvA+CSM1ksvsmnkFkyWmQYcvFIJqd/fJVFGUcv/wBlrAqAWka1YRph8ox7L3+tJyISrf0MW7v+W7Rm7FOOMleeP+n4aWtFBr41R22RzlgMt6coRqho7qrNud6JkPk/Iuw2dtyMyfrTb+H+alPHs+SUnQxQ/i9Px8W7V94LTG6cim5zksNFkD7RPI94dFT/84teOEet+2NqHHuAZsf7Xfs7rk3triWPkcr7x9fzgGw/QvvKOmJwrprjmi1iKX/+cnu8adGwrmR7Q5bEvFkyChOVfiXymQQVOL4nD17PfT3fOA6u/w1pWD9jw0EsDpXP5dL8HZ6EDUoMKsUtTe2vlH40Ls+E8CA011y1VuXgRVzOzYk/TPecrW4aAmPPJJKiWnvg+URTf+A9YyphUVxwaaYXWcHWYO+zFF9N4YrOsgQAdQ+M6dg19nSPn/53VhoD4PFxS65ajBEgZi6WTwyk/AChmRXklqNHD0GOSKYW3M15BoAGh7tCrUkIhhEGmaoUsmJzA5od9H5+QxkSSS4suZFu9j8KJIthfukyF+Y1n3zDsqBS4XVYMIMno4+Jd65Qy4MQC7yPanHcpV6FOyfs7s3aXE4yUa+66iIRAr9LJDu41iLpMKUxADrAbhZwxm9vzBbQxqpJHwH6Rv9C+T5zqNuldmaRBtei05sOtD3AlJWaE=
+  file: build/macOS/clang/x86_64/release/retroshare_${TRAVIS_TAG}.dmg
+  skip_cleanup: true
+  on:
+    repo: csoler/RetroShare
+    branch: v0.6.3-TravisDeploy
