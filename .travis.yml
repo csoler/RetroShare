@@ -48,7 +48,7 @@ deploy:
   provider: releases
   api_key:
     secure: GvA+CSM1ksvsmnkFkyWmQYcvFIJqd/fJVFGUcv/wBlrAqAWka1YRph8ox7L3+tJyISrf0MW7v+W7Rm7FOOMleeP+n4aWtFBr41R22RzlgMt6coRqho7qrNud6JkPk/Iuw2dtyMyfrTb+H+alPHs+SUnQxQ/i9Px8W7V94LTG6cim5zksNFkD7RPI94dFT/84teOEet+2NqHHuAZsf7Xfs7rk3triWPkcr7x9fzgGw/QvvKOmJwrprjmi1iKX/+cnu8adGwrmR7Q5bEvFkyChOVfiXymQQVOL4nD17PfT3fOA6u/w1pWD9jw0EsDpXP5dL8HZ6EDUoMKsUtTe2vlH40Ls+E8CA011y1VuXgRVzOzYk/TPecrW4aAmPPJJKiWnvg+URTf+A9YyphUVxwaaYXWcHWYO+zFF9N4YrOsgQAdQ+M6dg19nSPn/53VhoD4PFxS65ajBEgZi6WTwyk/AChmRXklqNHD0GOSKYW3M15BoAGh7tCrUkIhhEGmaoUsmJzA5od9H5+QxkSSS4suZFu9j8KJIthfukyF+Y1n3zDsqBS4XVYMIMno4+Jd65Qy4MQC7yPanHcpV6FOyfs7s3aXE4yUa+66iIRAr9LJDu41iLpMKUxADrAbhZwxm9vzBbQxqpJHwH6Rv9C+T5zqNuldmaRBtei05sOtD3AlJWaE=
-  file: build/macOS/clang/x86_64/release/retroshare_${TRAVIS_TAG}.dmg
+  file: retroshare-gui/src/retroshare_${TRAVIS_TAG}.dmg
   skip_cleanup: true
   on:
     repo: csoler/RetroShare

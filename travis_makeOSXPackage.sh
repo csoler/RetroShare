@@ -30,6 +30,6 @@ mv retroshare.dmg "retroshare_${TAG_NAME}.dmg"
 # appdmg json-path YourApp_${TRAVIS_TAG}.dmg
 
 # Copy other project files
-cp "${project_dir}/README.md" "README.md"
-cp "${project_dir}/LICENSE" "LICENSE"
-cp "${project_dir}/Qt License" "Qt License"
+# cp "${project_dir}/README.md" "README.md"
+# cp "${project_dir}/LICENSE" "LICENSE"
+# cp "${project_dir}/Qt License" "Qt License"
