@@ -25,7 +25,7 @@ before_install:
 - if [ $TRAVIS_OS_NAME == osx ]; then rm '/usr/local/bin/f2py'; fi
 - if [ $TRAVIS_OS_NAME == osx ]; then rm -r '/usr/local/lib/python2.7/site-packages/numpy';
   fi
-- if [ $TRAVIS_OS_NAME == osx ]; then brew install homebrew/science/opencv; fi
+#- if [ $TRAVIS_OS_NAME == osx ]; then brew install homebrew/science/opencv; fi
 - if [ $TRAVIS_OS_NAME == osx ]; then ln -s /usr/local/opt/openssl/include/* /usr/local/include/;
   fi
 - if [ $TRAVIS_OS_NAME == osx ]; then ln -s /usr/local/opt/openssl/lib/*.a /usr/local/lib/;
@@ -33,7 +33,7 @@ before_install:
 - if [ $TRAVIS_OS_NAME == osx ]; then ln -s /usr/local/opt/openssl/lib/*.dylib /usr/local/lib/;
   fi
 before_script:
-- qmake QMAKE_CC=$CC QMAKE_CXX=$CXX CONFIG+=no_sqlcipher CONFIG+=tests
+- qmake QMAKE_CC=$CC QMAKE_CXX=$CXX CONFIG+="no_sqlcipher no_retroshare_plugins" CONFIG+=tests
 script:
 - if [ $TRAVIS_OS_NAME == linux ] ; then make && tests/unittests/unittests >/dev/null
   2>&1 ; fi
