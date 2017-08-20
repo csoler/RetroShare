@@ -18,10 +18,12 @@ rm -rf qrc
 # 	echo No specific tag used.
 # fi
 
+# This automatically creates retroshare.dmg
+
 echo "Creating dmg archive..."
-#macdeployqt retroshare.app -qmldir=../../../../../src -dmg
 macdeployqt retroshare.app -dmg
-mv retroshare.dmg "retroshare_${TAG_NAME}.dmg"
+
+#mv retroshare.dmg "retroshare_${TAG_NAME}.dmg"
 
 # You can use the appdmg command line app to create your dmg file if
 # you want to use a custom background and icon arrangement. I'm still
