@@ -34,7 +34,7 @@ before_install:
   fi
 before_script:
 # no_sqlcipher removed from build command. Apparently MacOS can handle it. To be tested.
-- hhsh=`git log --pretty=format:"%H" | head -1 | cut -c1-8`; sed -e "s%RS_REVISION_NUMBER.*%RS_REVISION_NUMBER   0x${hhsh}%" src/libretroshare/src/retroshare/rsversion.in > src/libretroshare/src/retroshare/rsversion.h
+- chmod +x ./travis_setupVersionNumber.sh && ./travis_setupVersionNumber.sh
 - qmake QMAKE_CC=$CC QMAKE_CXX=$CXX CONFIG+="no_retroshare_plugins" CONFIG+=tests
 script:
 - if [ $TRAVIS_OS_NAME == linux ] ; then make && tests/unittests/unittests >/dev/null
