@@ -30,9 +30,10 @@
 #include <string>
 #include <list>
 
-//#include "gxs/rsgxs.h"
 #include "retroshare/rsgxsifacetypes.h"
+#include "util/rsdeprecate.h"
 
+// TODO CLEANUP: GXS_REQUEST_TYPE_* should be an inner enum of RsTokReqOptions
 #define GXS_REQUEST_TYPE_GROUP_DATA			0x00010000
 #define GXS_REQUEST_TYPE_GROUP_META			0x00020000
 #define GXS_REQUEST_TYPE_GROUP_IDS			0x00040000
@@ -46,61 +47,65 @@
 
 #define GXS_REQUEST_TYPE_GROUP_STATS            0x01600000
 #define GXS_REQUEST_TYPE_SERVICE_STATS          0x03200000
+#define GXS_REQUEST_TYPE_GROUP_SERIALIZED_DATA	0x04000000
 
 
-// This bit will be filled out over time.
+// TODO CLEANUP: RS_TOKREQOPT_MSG_* should be an inner enum of RsTokReqOptions
 #define RS_TOKREQOPT_MSG_VERSIONS	0x0001		// MSGRELATED: Returns All MsgIds with OrigMsgId = MsgId.
 #define RS_TOKREQOPT_MSG_ORIGMSG	0x0002		// MSGLIST: All Unique OrigMsgIds in a Group.
 #define RS_TOKREQOPT_MSG_LATEST		0x0004		// MSGLIST: All Latest MsgIds in Group. MSGRELATED: Latest MsgIds for Input Msgs.
-
 #define RS_TOKREQOPT_MSG_THREAD		0x0010		// MSGRELATED: All Msgs in Thread. MSGLIST: All Unique Thread Ids in Group.
 #define RS_TOKREQOPT_MSG_PARENT		0x0020		// MSGRELATED: All Children Msgs.
-
 #define RS_TOKREQOPT_MSG_AUTHOR		0x0040		// MSGLIST: Messages from this AuthorId
 
-// Read Status.
-#define RS_TOKREQOPT_READ		0x0001
-#define RS_TOKREQOPT_UNREAD		0x0002
 
-#define RS_TOKREQ_ANSTYPE_LIST		0x0001
-#define RS_TOKREQ_ANSTYPE_SUMMARY	0x0002
-#define RS_TOKREQ_ANSTYPE_DATA		0x0003
-#define RS_TOKREQ_ANSTYPE_ACK           0x0004
+/* TODO CLEANUP: RS_TOKREQ_ANSTYPE_* values are meaningless and not used by
+ * RsTokenService or its implementation, and may be arbitrarly defined by each
+ * GXS client as they are of no usage, their use is deprecated */
+#ifndef RS_NO_WARN_DEPRECATED
+#	warning RS_TOKREQ_ANSTYPE_* macros are deprecated!
+#endif
+#define RS_TOKREQ_ANSTYPE_LIST      0x0001
+#define RS_TOKREQ_ANSTYPE_SUMMARY   0x0002
+#define RS_TOKREQ_ANSTYPE_DATA      0x0003
+#define RS_TOKREQ_ANSTYPE_ACK       0x0004
 
 
 /*!
  * This class provides useful generic support for GXS style services.
  * I expect much of this will be incorporated into the base GXS.
  */
-class RsTokReqOptions
+struct RsTokReqOptions
 {
-public:
-RsTokReqOptions()
-{
-	mOptions = 0;
-        mStatusFilter = 0; mStatusMask = 0; mSubscribeFilter = 0;
-        mSubscribeMask = 0;
-        mMsgFlagMask = 0; mMsgFlagFilter = 0;
-	mBefore = 0; mAfter = 0; mReqType = 0;
-}
+	RsTokReqOptions() : mOptions(0), mStatusFilter(0), mStatusMask(0),
+	    mMsgFlagMask(0), mMsgFlagFilter(0), mReqType(0), mSubscribeFilter(0),
+	    mSubscribeMask(0), mBefore(0), mAfter(0) {}
 
-uint32_t mOptions;
+	/**
+	 * Can be one or multiple RS_TOKREQOPT_*
+	 * TODO: cleanup this should be made with proper flags instead of macros
+	 */
+	uint32_t mOptions;
 
-// Request specific matches with Group / Message Status.
-// Should be usable with any Options... applied afterwards.
-uint32_t mStatusFilter;
-uint32_t mStatusMask;
+	// Request specific matches with Group / Message Status.
+	// Should be usable with any Options... applied afterwards.
+	uint32_t mStatusFilter;
+	uint32_t mStatusMask;
 
-// use
-uint32_t mMsgFlagMask, mMsgFlagFilter;
+	// use
+	uint32_t mMsgFlagMask, mMsgFlagFilter;
 
-uint32_t mReqType;
+	/**
+	 * Must be one of GXS_REQUEST_TYPE_*
+	 * TODO: cleanup this should be made an enum instead of macros
+	 */
+	uint32_t mReqType;
 
-uint32_t mSubscribeFilter, mSubscribeMask; // Only for Groups.
+	uint32_t mSubscribeFilter, mSubscribeMask; // Only for Groups.
 
-// Time range... again applied after Options.
-time_t   mBefore;
-time_t   mAfter;
+	// Time range... again applied after Options.
+	time_t   mBefore;
+	time_t   mAfter;
 };
 
 std::ostream &operator<<(std::ostream &out, const RsGroupMetaData &meta);
@@ -115,6 +120,7 @@ class RsTokenService
 
 public:
 
+	// TODO CLEANUP: This should be an enum
         static const uint8_t GXS_REQUEST_V2_STATUS_FAILED;
         static const uint8_t GXS_REQUEST_V2_STATUS_PENDING;
         static const uint8_t GXS_REQUEST_V2_STATUS_PARTIAL;
@@ -132,7 +138,7 @@ public:
 
     /*!
      * Use this to request group related information
-     * @param token The token returned for the request, store this value to pool for request completion
+	 * @param token The token returned for the request, store this value to poll for request completion
      * @param ansType The type of result (e.g. group data, meta, ids)
      * @param opts Additional option that affect outcome of request. Please see specific services, for valid values
      * @param groupIds group id to request info for
@@ -142,7 +148,7 @@ public:
 
     /*!
      * Use this to request all group related info
-     * @param token The token returned for the request, store this value to pool for request completion
+	 * @param token The token returned for the request, store this value to poll for request completion
      * @param ansType The type of result (e.g. group data, meta, ids)
      * @param opts Additional option that affect outcome of request. Please see specific services, for valid values
      * @return
@@ -150,7 +156,7 @@ public:
     virtual bool requestGroupInfo(uint32_t &token, uint32_t ansType, const RsTokReqOptions &opts) = 0;
 
     /*!
-     * Use this to get msg related information, store this value to pole for request completion
+	 * Use this to get msg related information, store this value to poll for request completion
      * @param token The token returned for the request
      * @param ansType The type of result wanted
      * @param opts Additional option that affect outcome of request. Please see specific services, for valid values
@@ -160,7 +166,7 @@ public:
     virtual bool requestMsgInfo(uint32_t &token, uint32_t ansType, const RsTokReqOptions &opts, const GxsMsgReq& msgIds) = 0;
 
     /*!
-     * Use this to get msg related information, store this value to pole for request completion
+	 * Use this to get msg related information, store this value to poll for request completion
      * @param token The token returned for the request
      * @param ansType The type of result wanted
      * @param opts Additional option that affect outcome of request. Please see specific services, for valid values

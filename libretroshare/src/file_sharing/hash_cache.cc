@@ -44,6 +44,7 @@ HashStorage::HashStorage(const std::string& save_file_name)
     mTotalSizeToHash = 0;
     mTotalFilesToHash = 0;
     mMaxStorageDurationDays = DEFAULT_HASH_STORAGE_DURATION_DAYS ;
+	mHashingProcessPaused = false;
 
     {
         RS_STACK_MUTEX(mHashMtx) ;
@@ -52,6 +53,18 @@ HashStorage::HashStorage(const std::string& save_file_name)
             try_load_import_old_hash_cache();
     }
 }
+
+void HashStorage::togglePauseHashingProcess()
+{
+	RS_STACK_MUTEX(mHashMtx) ;
+	mHashingProcessPaused = !mHashingProcessPaused ;
+}
+bool HashStorage::hashingProcessPaused()
+{
+	RS_STACK_MUTEX(mHashMtx) ;
+	return mHashingProcessPaused;
+}
+
 static std::string friendlyUnit(uint64_t val)
 {
     const std::string units[5] = {"B","KB","MB","GB","TB"};
@@ -78,12 +91,14 @@ void HashStorage::data_tick()
     RsFileHash hash;
     uint64_t size = 0;
 
+
     {
         bool empty ;
         uint32_t st ;
 
         {
             RS_STACK_MUTEX(mHashMtx) ;
+
             if(mChanged && mLastSaveTime + MIN_INTERVAL_BETWEEN_HASH_CACHE_SAVE < time(NULL))
             {
                 locked_save();
@@ -136,6 +151,19 @@ void HashStorage::data_tick()
         }
         mInactivitySleepTime = DEFAULT_INACTIVITY_SLEEP_TIME;
 
+		bool paused = false ;
+        {
+            RS_STACK_MUTEX(mHashMtx) ;
+			paused = mHashingProcessPaused ;
+		}
+
+		if(paused)	// we need to wait off mutex!!
+		{
+			usleep(MAX_INACTIVITY_SLEEP_TIME) ;
+			std::cerr << "Hashing process currently paused." << std::endl;
+			return;
+		}
+		else
         {
             RS_STACK_MUTEX(mHashMtx) ;
 
@@ -145,7 +173,9 @@ void HashStorage::data_tick()
 
         if(job.client->hash_confirm(job.client_param))
         {
+#ifdef HASHSTORAGE_DEBUG
             std::cerr << "Hashing file " << job.full_path << "..." ; std::cerr.flush();
+#endif
 
             std::string tmpout;
             rs_sprintf(tmpout, "%lu/%lu (%s - %d%%) : %s", (unsigned long int)mHashCounter+1, (unsigned long int)mTotalFilesToHash, friendlyUnit(mTotalHashedSize).c_str(), int(mTotalHashedSize/double(mTotalSizeToHash)*100.0), job.full_path.c_str()) ;
@@ -156,7 +186,9 @@ void HashStorage::data_tick()
             {
                 // store the result
 
+#ifdef HASHSTORAGE_DEBUG
                 std::cerr << "done."<< std::endl;
+#endif
 
                 RS_STACK_MUTEX(mHashMtx) ;
                 HashStorageInfo& info(mFiles[job.full_path]);
@@ -270,7 +302,7 @@ void HashStorage::clean()
 #endif
 
     for(std::map<std::string,HashStorageInfo>::iterator it(mFiles.begin());it!=mFiles.end();)
-        if(it->second.time_stamp + duration < (uint64_t)now)
+		if((uint64_t)(it->second.time_stamp + duration) < (uint64_t)now)
         {
 #ifdef HASHSTORAGE_DEBUG
             std::cerr << "  Entry too old: " << it->first << ", ts=" << it->second.time_stamp << std::endl ;
@@ -349,21 +381,28 @@ void HashStorage::locked_save()
 
 bool HashStorage::readHashStorageInfo(const unsigned char *data,uint32_t total_size,uint32_t& offset,HashStorageInfo& info) const
 {
-    unsigned char *section_data = NULL ;
-    uint32_t section_size = 0;
+    unsigned char *section_data = (unsigned char *)rs_malloc(FL_BASE_TMP_SECTION_SIZE) ;
+
+    if(!section_data)
+        return false ;
+
+    uint32_t section_size = FL_BASE_TMP_SECTION_SIZE;
     uint32_t section_offset = 0;
 
     // This way, the entire section is either read or skipped. That avoids the risk of being stuck somewhere in the middle
     // of a section because of some unknown field, etc.
 
     if(!FileListIO::readField(data,total_size,offset,FILE_LIST_IO_TAG_HASH_STORAGE_ENTRY,section_data,section_size))
-       return false;
+	{
+		free(section_data);
+		return false;
+	}
 
-    if(!FileListIO::readField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_FILE_NAME     ,info.filename  )) return false ;
-    if(!FileListIO::readField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_FILE_SIZE     ,info.size      )) return false ;
-    if(!FileListIO::readField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_UPDATE_TS     ,info.time_stamp)) return false ;
-    if(!FileListIO::readField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_MODIF_TS      ,info.modf_stamp)) return false ;
-    if(!FileListIO::readField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_FILE_SHA1_HASH,info.hash      )) return false ;
+    if(!FileListIO::readField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_FILE_NAME     ,info.filename  )) { free(section_data); return false ; }
+    if(!FileListIO::readField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_FILE_SIZE     ,info.size      )) { free(section_data); return false ; }
+    if(!FileListIO::readField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_UPDATE_TS     ,info.time_stamp)) { free(section_data); return false ; }
+    if(!FileListIO::readField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_MODIF_TS      ,info.modf_stamp)) { free(section_data); return false ; }
+    if(!FileListIO::readField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_FILE_SHA1_HASH,info.hash      )) { free(section_data); return false ; }
 
     free(section_data);
     return true;
@@ -371,15 +410,19 @@ bool HashStorage::readHashStorageInfo(const unsigned char *data,uint32_t total_s
 
 bool HashStorage::writeHashStorageInfo(unsigned char *& data,uint32_t&  total_size,uint32_t& offset,const HashStorageInfo& info) const
 {
-    unsigned char *section_data = NULL ;
-    uint32_t section_offset = 0 ;
-    uint32_t section_size = 0;
+    unsigned char *section_data = (unsigned char *)rs_malloc(FL_BASE_TMP_SECTION_SIZE) ;
 
-    if(!FileListIO::writeField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_FILE_NAME     ,info.filename  )) return false ;
-    if(!FileListIO::writeField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_FILE_SIZE     ,info.size      )) return false ;
-    if(!FileListIO::writeField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_UPDATE_TS     ,info.time_stamp)) return false ;
-    if(!FileListIO::writeField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_MODIF_TS      ,info.modf_stamp)) return false ;
-    if(!FileListIO::writeField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_FILE_SHA1_HASH,info.hash      )) return false ;
+    if(!section_data)
+        return false ;
+
+    uint32_t section_offset = 0 ;
+    uint32_t section_size = FL_BASE_TMP_SECTION_SIZE;
+
+    if(!FileListIO::writeField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_FILE_NAME     ,info.filename  )) { free(section_data); return false ; }
+    if(!FileListIO::writeField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_FILE_SIZE     ,info.size      )) { free(section_data); return false ; }
+    if(!FileListIO::writeField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_UPDATE_TS     ,info.time_stamp)) { free(section_data); return false ; }
+    if(!FileListIO::writeField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_MODIF_TS      ,info.modf_stamp)) { free(section_data); return false ; }
+    if(!FileListIO::writeField(section_data,section_size,section_offset,FILE_LIST_IO_TAG_FILE_SHA1_HASH,info.hash      )) { free(section_data); return false ; }
 
     // now write the whole string into a single section in the file
 

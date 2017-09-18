@@ -114,6 +114,9 @@ public:
     virtual bool getServicePermissions(uint32_t serviceId, RsServicePermissions &permissions) = 0;
     virtual bool updateServicePermissions(uint32_t serviceId, const RsServicePermissions &permissions) = 0;
 
+	 virtual std::string getServiceName(uint32_t service_id) = 0;
+	 virtual bool getServiceItemNames(uint32_t service_id,std::map<uint8_t,std::string>& names) = 0;
+
     virtual void getPeersConnected(const uint32_t serviceId, std::set<RsPeerId> &peerSet) = 0;
 
 

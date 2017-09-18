@@ -1,4 +1,1586 @@
-retroshare06 (0.6.1-1.XXXXXX~YYYYYY) YYYYYY; urgency=low
+retroshare (0.6.3-1.XXXXXX~YYYYYY) YYYYYY; urgency=low
+
+  762d025 csoler Tue, 12 Sep 2017 17:40:54 +0200 Merge pull request #1027 from PhenomRetroShare/Fix_UninitializedPeerMaxRates
+  8884a32 Phenom Mon, 11 Sep 2017 20:18:06 +0200 Fix Uninitilized Peer Max Rates.
+  66bf188 csoler Mon, 11 Sep 2017 22:20:27 +0200 Merge pull request #1029 from PhenomRetroShare/Fix_UninitValueInLocalDirUpd
+  cf90867 Phenom Mon, 11 Sep 2017 21:50:08 +0200 Fix unitialized value in LocalDirectoryUpdater.
+  3b7809a csoler Mon, 11 Sep 2017 20:49:11 +0200 Merge pull request #1028 from csoler/v0.6-FT
+  551ef63 csoler Mon, 11 Sep 2017 19:36:06 +0200 added default ignore list on linux
+  c5f91e3 csoler Mon, 11 Sep 2017 19:05:19 +0200 Merge pull request #1026 from csoler/v0.6-FT
+  0ca0b72 csoler Mon, 11 Sep 2017 19:02:07 +0200 moved file ignore test to a more appropriate place
+  eff5c5d csoler Sun, 10 Sep 2017 22:07:36 +0200 added pause to file hashing
+  ea25d4b csoler Sun, 10 Sep 2017 20:22:17 +0200 improved update of ignore list
+  884b3a6 csoler Sun, 10 Sep 2017 19:58:57 +0200 added infrastructure to add a ignore list in shared files
+  b3e1597 csoler Sat,  9 Sep 2017 18:34:25 +0200 Merge pull request #1025 from Ppjet6/master
+  c85664e Maxime Sat,  9 Sep 2017 13:54:30 +0100 Typo in GenCertDialog
+  1e2a227 csoler Sat,  9 Sep 2017 14:48:35 +0200 Merge pull request #1023 from Ppjet6/master
+  1bc9ef6 csoler Sat,  9 Sep 2017 14:48:02 +0200 Merge pull request #1022 from PhenomRetroShare/Fix_MoveSharedFilesDialog
+  64d0290 Maxime Sat,  9 Sep 2017 03:47:38 +0100 Typo in GenCertDialog
+  4336a4a Phenom Thu,  7 Sep 2017 19:37:53 +0200 Move SharedFilesDialog to /gui/FileTransfer/
+  54ee650 csoler Thu,  7 Sep 2017 18:54:04 +0200 Merge pull request #1021 from PhenomRetroShare/Fix_ProgressSorting
+  d81f9a3 Phenom Thu,  7 Sep 2017 18:09:21 +0200 Fix File Transfert Progress Sorting.
+  1dc6bef csoler Thu,  7 Sep 2017 18:08:34 +0200 Merge pull request #1019 from PhenomRetroShare/Add_GroupedUpLoadItem
+  3b4e84c Phenom Wed,  6 Sep 2017 19:57:33 +0200 Regroup Upload Items by file in TransfersDialog.
+  f9102e5 csoler Tue,  5 Sep 2017 20:59:16 +0200 Merge pull request #1001 from PhenomRetroShare/Add_OnlyHiddenNodeCF
+  9ceba80 csoler Tue,  5 Sep 2017 20:46:33 +0200 Merge pull request #1015 from PhenomRetroShare/Fix_TravisCI_MacOS
+  671b418 csoler Tue,  5 Sep 2017 20:46:05 +0200 Merge pull request #1008 from PhenomRetroShare/Add_FilterInDownloadList
+  32888f0 Phenom Tue,  5 Sep 2017 16:18:47 +0200 Fix Travis CI build for MacOS
+  bc6ea65 csoler Mon,  4 Sep 2017 16:52:59 +0200 Merge pull request #1000 from PhenomRetroShare/Fix_RemovePngPng
+  c6ffe07 csoler Mon,  4 Sep 2017 16:48:17 +0200 Merge pull request #1009 from csoler/v0.6-FT
+  160ab7b csoler Sun,  3 Sep 2017 23:32:48 +0200 added missing code for remote search by hash, fixing the bug of direct sources not added
+  8d14603 csoler Sun,  3 Sep 2017 22:52:31 +0200 fixed bug preventing search by hash to be called on own files
+  063783a csoler Sun,  3 Sep 2017 14:59:14 +0200 Merge pull request #1004 from digitigrafo/master
+  a73ea43 Phenom Sat,  2 Sep 2017 17:57:04 +0200 Add a filter to DownLoad list
+  e1e1fb4 cri    Thu, 24 Aug 2017 15:31:17 +0200 revert build orange skin
+  4fc91be cri    Thu, 24 Aug 2017 15:08:29 +0200 rwd style
+  d845a3e cri    Thu, 24 Aug 2017 14:32:22 +0200 orange css skin >48em
+  ea4495f cri    Wed, 23 Aug 2017 11:16:26 +0200 added new orange skin
+  7f8386f csoler Sun, 20 Aug 2017 21:17:19 +0200 Merge pull request #998 from myfingerhurt/master
+  5d59d56 Phenom Sun, 20 Aug 2017 13:17:28 +0200 Add Only Hidden Node configure flag
+  cb7cfb4 Phenom Sat, 19 Aug 2017 23:55:39 +0200 Remove *.png.png duplicated Files
+  130099f ben    Fri, 18 Aug 2017 16:27:30 +0900 add new keys for WebUI api peers handling, distinguishable hidden node and clear node when examining certificate
+  32f43b9 Gioacc Fri, 18 Aug 2017 01:37:39 +0200 Merge branch 'GSoC2017-evaluation-final'
+  106f03d csoler Wed, 16 Aug 2017 22:26:48 +0200 Merge pull request #993 from PhenomRetroShare/Fix_OpenMessageForAllFile
+  526d8e7 csoler Wed, 16 Aug 2017 22:26:13 +0200 Merge pull request #990 from PhenomRetroShare/Fix_RelaySettingLayoutMargin
+  06158a9 csoler Wed, 16 Aug 2017 22:25:41 +0200 Merge pull request #992 from PhenomRetroShare/Fix_MailFromText
+  291bddb csoler Wed, 16 Aug 2017 22:24:17 +0200 Merge pull request #995 from PhenomRetroShare/Fix_AppVeyor
+  2a0b9ee csoler Wed, 16 Aug 2017 22:23:15 +0200 Merge pull request #991 from PhenomRetroShare/Fix_TravisMacCompil
+  79f09f1 Angela Wed, 16 Aug 2017 14:09:38 +0200 Merge branch 'qml_app_ui_improvements' into GSoC2017-evaluation-final
+  18f7733 Angela Wed, 16 Aug 2017 14:09:26 +0200 Merge branch 'qml_app_face_generator' into GSoC2017-evaluation-final
+  73a6fee Phenom Sun, 13 Aug 2017 14:34:28 +0200 Fix AppVeyor build by disabling SQLCipher
+  a87c31f Angela Sun, 13 Aug 2017 13:04:54 +0200 Fix canvas face displaced down
+  5a1a84f Angela Sun, 13 Aug 2017 13:02:49 +0200 Refactor use better variable names
+  16856ca csoler Sat, 12 Aug 2017 22:32:46 +0200 fixed yml script for AppImage
+  041447b Phenom Sat, 12 Aug 2017 15:10:07 +0200 Add "No to All" for RSLink Open message.
+  6b2bc7d Phenom Sat, 12 Aug 2017 13:40:28 +0200 Fix From text in Mail
+  5a1c316 Phenom Sat, 12 Aug 2017 11:49:33 +0200 Fix Travis MacOs Compilation
+  55bb105 Phenom Sat, 12 Aug 2017 11:21:14 +0200 Fix Relay Setting Layout Margin
+  03d6751 csoler Fri, 11 Aug 2017 19:33:23 +0200 fixed branching problem in makeSOurcePackage.sh
+  c3460c3 csoler Fri, 11 Aug 2017 19:27:49 +0200 merged previsous revisions
+  b8a556a csoler Fri, 11 Aug 2017 19:00:15 +0200 added qt-svg as a dependency
+  c331f66 csoler Fri, 11 Aug 2017 11:07:59 +0200 added appImage generation system
+  545bcde csoler Thu, 10 Aug 2017 10:36:30 +0200 added info for building/packaging on debian stretch
+  3ae85db thunde Sun,  6 Aug 2017 14:10:23 +0200 Fixed version number in rsversion.in
+  529eabe Gioacc Sun,  6 Aug 2017 11:47:57 +0200 Merge pull request #986 from ngleb/fix-cpp-comment
+  b686771 Gleb N Sun,  6 Aug 2017 14:27:26 +0700 fix C++ comment to avoid compilation error
+  52dbd91 thunde Wed,  2 Aug 2017 10:18:58 +0200 Removed Windows specific hack to get commandline arguments.
+  ee86768 thunde Sat,  5 Aug 2017 14:19:49 +0200 Fixed name of executable for autostart in Windows Installer
+  3e25d96 csoler Fri,  4 Aug 2017 21:38:44 +0200 fixed unix -> linux-* target in .pri, as qt4 doesnt seem to recognise unix
+  27ee9ca csoler Thu,  3 Aug 2017 22:55:27 +0200 Merge pull request #982 from csoler/v0.6.3
+  11832e3 csoler Thu,  3 Aug 2017 22:51:40 +0200 updated version number
+  4e02c5f csoler Thu,  3 Aug 2017 21:29:52 +0200 Merge pull request #979 from PhenomRetroShare/Fix_LobbyAutoSubscribe
+  4b820a0 csoler Thu,  3 Aug 2017 21:08:54 +0200 Merge pull request #981 from csoler/v0.6.3
+  84b32f0 csoler Thu,  3 Aug 2017 20:09:48 +0200 removed newline that comes with debug info
+  c0f28f5 Angela Thu,  3 Aug 2017 18:31:05 +0200 Set transparent background color
+  785bd65 Angela Thu,  3 Aug 2017 18:20:14 +0200 Add shadow to the toolbar
+  9f52ffb Angela Thu,  3 Aug 2017 17:29:18 +0200 Increase toolbar size
+  c790a5b Angela Thu,  3 Aug 2017 16:48:47 +0200 Merge branch 'qml_app_ui_improvements' into GSoC2017-evaluation-II
+  83f8860 Angela Thu,  3 Aug 2017 16:48:37 +0200 Merge branch 'qml_app_emoji_font' into GSoC2017-evaluation-II
+  d70293c Angela Thu,  3 Aug 2017 16:48:27 +0200 Merge branch 'qml_app_notify_unread' into GSoC2017-evaluation-II
+  54c8e26 Angela Wed,  2 Aug 2017 18:09:40 +0200 Set emoji font declaration global for all app
+  0a5b350 Angela Wed,  2 Aug 2017 17:34:29 +0200 Set RS emoji font as default if no emoji native font is detected
+  1cdb3db Angela Wed,  2 Aug 2017 16:51:29 +0200 Add OpenSansEmoji font
+  beed9be Angela Wed,  2 Aug 2017 15:16:15 +0200 Set bigger row height
+  e6a3b35 Angela Wed,  2 Aug 2017 12:46:58 +0200 Set image PreserveAspectFit
+  bf3a230 Angela Wed,  2 Aug 2017 12:34:19 +0200 Fix partially bug: incomplete toDataURL
+  6190efe Angela Tue,  1 Aug 2017 16:59:15 +0200 Improve code
+  27bedf8 Phenom Tue,  1 Aug 2017 10:15:42 +0200 Fix Lobby auto-subscribe.
+  7d5f601 csoler Mon, 31 Jul 2017 19:22:15 +0200 Merge pull request #978 from G10h4ck/cxx11_comp
+  541b1ea Gioacc Mon, 31 Jul 2017 18:26:51 +0200 Introduce C++11 compatibility macro for gcc < 4.6
+  e39b310 Angela Mon, 31 Jul 2017 17:42:45 +0200 Open chat when click notification of one chat new message
+  c86b7c7 Angela Mon, 31 Jul 2017 16:52:03 +0200 Open contacts view on click unread notification
+  93d778a Angela Mon, 31 Jul 2017 16:11:21 +0200 Show info from message sender when is in only one conversation
+  c6f562b Angela Mon, 31 Jul 2017 15:34:29 +0200 Fix reset text area with a preedit text message
+  a041584 csoler Mon, 31 Jul 2017 01:10:35 +0200 Merge pull request #976 from csoler/v0.6.3
+  7ad0ec1 csoler Mon, 31 Jul 2017 01:10:01 +0200 reduced size of GenCertDialog window (guess) and fixed username
+  0636142 csoler Sun, 30 Jul 2017 21:29:37 +0200 Merge pull request #973 from PhenomRetroShare/Fix_DontShowAnonIconWhenImageDisabled
+  2588068 csoler Sun, 30 Jul 2017 21:29:14 +0200 Merge pull request #953 from PhenomRetroShare/Fix_NewWindowForPassword
+  39436f3 csoler Sun, 30 Jul 2017 18:45:56 +0200 Merge pull request #974 from PhenomRetroShare/Fix_WebUI_SettingSaving
+  c2a3e46 Phenom Sun, 30 Jul 2017 18:29:03 +0200 Fix WebUI Setting Saving.
+  eb75946 Phenom Sun, 30 Jul 2017 15:30:56 +0200 Fix Don't show Anonymous Icon when Images are disabled in ChatWidget
+  a2f8b5e csoler Sun, 30 Jul 2017 14:42:28 +0200 Merge pull request #972 from csoler/v0.6.3
+  c5fc8f8 csoler Sun, 30 Jul 2017 14:40:53 +0200 replaced images in homepage with the logo without flares
+  cd6c9cf csoler Sun, 30 Jul 2017 14:38:17 +0200 simplified text on homepage
+  e82b6fc csoler Sun, 30 Jul 2017 14:31:52 +0200 improved GenCertDialog with small indicator text, and hide location by default
+  5dc25e3 Phenom Wed, 19 Jul 2017 19:39:21 +0200 Fix Ask Password in new window if wrong in StartDialog.
+  b387f15 csoler Sun, 30 Jul 2017 10:36:44 +0200 fixed compilation on qt5
+  f5c4561 csoler Sat, 29 Jul 2017 23:41:45 +0200 Merge pull request #968 from csoler/v0.6.3
+  2e1bd2d csoler Sat, 29 Jul 2017 23:39:48 +0200 improved text on cert creation button
+  09faa60 csoler Sat, 29 Jul 2017 23:16:47 +0200 Merge pull request #967 from csoler/v0.6.3
+  e8415c4 csoler Sat, 29 Jul 2017 23:12:56 +0200 made RS not to ask for plugin confirmation on first load
+  345f24e csoler Sat, 29 Jul 2017 22:37:14 +0200 fixed clearing of PGP passphrase after creation of default identity
+  6f7e656 csoler Sat, 29 Jul 2017 21:48:12 +0200 Defautl GXS nickname was built from location. Changed it to use profile name
+
+ -- Retroshare Dev Team <contact@retroshare.net>  Tue, 12 Sep 2017 22:00:00 +0100
+
+retroshare (0.6.3-1.20170811.03d67515~trusty) trusty; urgency=low
+
+  a16220e csoler Sat, 29 Jul 2017 20:24:13 +0200 switched to RC2
+  d10dbf1 csoler Sat, 29 Jul 2017 20:20:53 +0200 Merge pull request #966 from csoler/v0.6.3
+  b8260e5 csoler Fri, 28 Jul 2017 18:41:34 +0200 fixed wording in GenCertDialog
+  4fdbf39 csoler Fri, 28 Jul 2017 18:32:47 +0200 fixed image replication in profile creation window
+  c6b6835 csoler Thu, 27 Jul 2017 20:43:08 +0200 exclude own friends from key removal pre-selection
+  e861f87 csoler Wed, 26 Jul 2017 21:44:24 +0200 removed unused msg item class that caused aliasing warnings (serialisation of time_t as uint32_t)
+  286e7e0 csoler Wed, 26 Jul 2017 14:01:28 +0200 Merge pull request #961 from csoler/v0.6.3
+  34ddf71 csoler Wed, 26 Jul 2017 13:54:44 +0200 Merge pull request #957 from PhenomRetroShare/Fix_CppCheckerError
+  1792273 csoler Wed, 26 Jul 2017 13:50:21 +0200 Merge pull request #946 from PhenomRetroShare/Fix_GuiAutoLogin
+  ea72c58 csoler Wed, 26 Jul 2017 12:27:38 +0200 fixed unnecessary ()
+  b0483a0 csoler Wed, 26 Jul 2017 10:23:18 +0200 fixed bug in removeDeleteExistingMsgs()
+  3ba0256 csoler Tue, 25 Jul 2017 22:23:09 +0200 Merge pull request #955 from PhenomRetroShare/Fix_CopyRSLinkWhenOnlyPlainTextInLobby
+  7820c1e csoler Tue, 25 Jul 2017 22:10:20 +0200 Merge pull request #960 from PhenomRetroShare/Add_ConfigFlagMacOSVersion
+  9881b61 csoler Tue, 25 Jul 2017 22:06:18 +0200 cleanup code in RsGenExchange
+  181a824 csoler Tue, 25 Jul 2017 21:56:20 +0200 fixed memory leak in BWGraphSource due to missing destructor
+  a382a0f csoler Tue, 25 Jul 2017 21:52:09 +0200 fixed memory leak in p3peermgr config load
+  041f989 csoler Tue, 25 Jul 2017 21:21:24 +0200 rewrote processRecvdMessages() and processRecvdGroups() in RsGenExchange. Removed mReceivedGrps and mReceivedMsgs, cleaned-up terrible branching and memory management
+  cbec818 Phenom Tue, 25 Jul 2017 18:08:37 +0200 Add qmake CONFIG flag for MacOS version.
+  461ccf3 csoler Tue, 25 Jul 2017 00:07:53 +0200 removed aliasing in storeMessages/storeGroups, removed several memory leaks in unittests, improved auto-delete structures in rsgxsutil, added deletion for members of RsGenExchange, removed shared pointers from unittests (they cause a memory leak and are only used in unittests)
+  ef24459 csoler Mon, 24 Jul 2017 18:48:13 +0200 fixed memory leak in gxssecurity test
+  79779b8 csoler Mon, 24 Jul 2017 18:45:24 +0200 fixed memory leaks in GxsSecurity
+  70f72db csoler Mon, 24 Jul 2017 18:20:21 +0200 fixed memory leak in GxsSecurity
+  bcaafc2 csoler Mon, 24 Jul 2017 14:29:30 +0200 improved template class naming for temporary Gxs grp data structures
+  df691bd csoler Mon, 24 Jul 2017 12:16:06 +0200 improved tests to avoid memory leak
+  3b1606c Gioacc Mon, 24 Jul 2017 11:52:23 +0200 Remove misguiding if
+  03cc2e6 Gioacc Mon, 24 Jul 2017 10:16:24 +0200 Remove miguiding if before delete
+  764fadf csoler Sun, 23 Jul 2017 22:58:01 +0200 suppressed memory leak in serialisation test code
+  880eb58 csoler Sun, 23 Jul 2017 22:56:27 +0200 suppressed memory leak in serialisation test code
+  0242424 csoler Sat, 22 Jul 2017 12:08:28 +0200 reverting last commit that causes crashes
+  9e2241a csoler Fri, 21 Jul 2017 23:15:50 +0200 attempt to fix memory leak in RsGenExchange. To be tested.
+  8ce10ea Phenom Fri, 21 Jul 2017 15:31:53 +0200 Fix past commit for p3idservice.cc
+  733f812 Phenom Fri, 21 Jul 2017 15:20:04 +0200 Fix CppCheck Error in utility_functions.c
+  36e3772 Phenom Fri, 21 Jul 2017 15:19:17 +0200 Fix CppCheck Error in advancedsearchdialog.cpp
+  145ce6b Phenom Fri, 21 Jul 2017 15:11:55 +0200 Fix CppCheck Error in ChatPage.cpp
+  2afc1bf Phenom Fri, 21 Jul 2017 15:04:10 +0200 Fix CppCheck Error in contentvalue.cc
+  e576743 Phenom Fri, 21 Jul 2017 14:57:43 +0200 Fix CppCheck Error in p3idservice.cc
+  8d82640 Phenom Fri, 21 Jul 2017 10:58:19 +0200 Fix copy of RSLink when on Only plain text mode in chat lobby. (sss find)
+  aa471e5 csoler Fri, 21 Jul 2017 10:25:20 +0200 fixed uninitialized memory read in GxsTrans
+  f370f59 csoler Thu, 20 Jul 2017 22:12:57 +0200 fixed typo in ppa upload script
+  581c11d csoler Thu, 20 Jul 2017 22:11:35 +0200 fixed various problems with 06 suppression in package control files
+  baac33d csoler Thu, 20 Jul 2017 21:18:07 +0200 updated revision number
+  f9d6a78 csoler Thu, 20 Jul 2017 18:19:10 +0200 Merge pull request #954 from PhenomRetroShare/Fix_ShowAuthorInPeopleTabAtStartUp
+  5b86f44 Phenom Thu, 20 Jul 2017 14:29:31 +0200 Fix Show Author In People Tab at startup
+  d60bb78 csoler Wed, 19 Jul 2017 18:37:23 +0200 Merge pull request #952 from PhenomRetroShare/Fix_LobbyAutoSubscribe
+  cbbc392 Phenom Wed, 19 Jul 2017 13:38:26 +0200 Fix Lobby auto-subscribe.
+  0d681b1 csoler Wed, 19 Jul 2017 18:26:32 +0200 Merge pull request #924 from PhenomRetroShare/Fix_retroshare06_case
+  71810e8 csoler Wed, 19 Jul 2017 18:18:32 +0200 Merge pull request #950 from PhenomRetroShare/Add_ChatServerFlag
+  833787e csoler Tue, 18 Jul 2017 23:02:54 +0200 Merge pull request #949 from PhenomRetroShare/Add_AnonIconBeforeName
+  bb8f93e csoler Tue, 18 Jul 2017 21:19:38 +0200 Merge pull request #951 from PhenomRetroShare/Fix_BadServMntorRegister
+  5bbb99a Phenom Tue, 18 Jul 2017 19:24:32 +0200 Fix Bad Service Monitor registering.
+  3a6bcf5 Phenom Tue, 18 Jul 2017 16:34:56 +0200 Add flag for ChatServer
+  b8f742d Phenom Tue, 18 Jul 2017 14:30:31 +0200 Add :/icons/anonymous_blue_128.png before name for unsigned GxsId
+  e56340e csoler Mon, 17 Jul 2017 23:12:06 +0200 Merge pull request #386 from PhenomRetroShare/Add_AbilityToChangeOpModeInCmdLine
+  d39b05c csoler Mon, 17 Jul 2017 22:49:44 +0200 Merge pull request #948 from PhenomRetroShare/Add_FilterIdInFriendList
+  f4aec11 csoler Mon, 17 Jul 2017 22:48:12 +0200 suppressed warning in p3dhtmgr.cc
+  4374264 Phenom Sat, 15 Jul 2017 15:07:05 +0200 Fix clang warning: unused variable 'pqiservicezone'
+  1f39789 Phenom Sat, 15 Jul 2017 18:32:53 +0200 Fix clang warning: 'RSGraphWidget::sizeHint' hides overloaded virtual function
+  3003598 Phenom Mon, 17 Jul 2017 11:48:08 +0200 Fix clang warning: 'p3ChatService' defined as a struct here but previously declared as a class
+  91c526f Phenom Mon, 17 Jul 2017 11:43:41 +0200 Fix clang warning: 'p3MsgService' defined as a struct here but previously declared as a class
+  896ed3e Phenom Mon, 17 Jul 2017 11:38:53 +0200 Fix clang warning: class 'p3Config' was previously declared as a struct
+  8dbb0d6 Phenom Sat, 15 Jul 2017 10:57:05 +0200 Fix warning: this statement may fall through
+  7d8b379 csoler Mon, 17 Jul 2017 22:18:53 +0200 Merge pull request #941 from PhenomRetroShare/Add_UnsignedInChatName
+  b6731ed Gioacc Mon, 17 Jul 2017 16:04:52 +0200 Better naming and doc for warning suppression CONFIG
+  f888913 Phenom Sat, 13 Aug 2016 14:34:31 +0200 Set Operating Mode in RsInit::InitRetroShare so noGUI could use it.
+  8563957 Phenom Mon, 16 May 2016 12:10:04 +0200 Add the ability to change OpMode in command line.
+  c74c865 Phenom Mon, 17 Jul 2017 14:10:26 +0200 Add new Filter by ID in FriendList.
+  1491a05 csoler Mon, 17 Jul 2017 11:16:48 +0200 fixed deadlock situation in FT causing multiple bugs: lock when DLing from a file list a file that is already being downloaded, and lock when a FT module find a direct source among friends
+  5bf056c Phenom Mon, 17 Jul 2017 10:44:27 +0200 Rename retroshare06 to retroshare
+  b12fd11 Phenom Wed,  5 Jul 2017 18:11:52 +0200 Change RetroShare06 to lower case
+  65326d9 csoler Sun, 16 Jul 2017 22:08:07 +0200 removed DEPRECATED warnings by default
+  e2fa57d Phenom Sat, 15 Jul 2017 19:03:17 +0200 Fix clang warning: unused variable 'INTERVAL_BETWEEN_DEBUG_DUMP'
+  a50c4ca Phenom Sat, 15 Jul 2017 18:54:21 +0200 Fix clang warning: unused variable 'kRecognTagClass_DEVELOPMENT'
+  f2fb05d Phenom Sat, 15 Jul 2017 18:50:32 +0200 Fix clang warning: unused variables 'PARTIAL_VIEW_SIZE', ...
+  6ee65bc Phenom Sat, 15 Jul 2017 18:42:19 +0200 Fix clang warning: using floating point absolute value function 'fabsf' when argument is of integer type
+  a0ac6b7 Phenom Sat, 15 Jul 2017 18:40:03 +0200 Fix clang warning: unused variable 'MAX_TUNNEL_REQUESTS_DISPLAY'
+  64899e4 Phenom Sat, 15 Jul 2017 18:36:14 +0200 Fix clang warning: unused variable 'SFI_DEFAULT_PERIOD'
+  b31c812 Phenom Sat, 15 Jul 2017 18:35:11 +0200 Fix clang warning: unused variable 'NEWSFEED_CHANNELMSGLIST'
+  69060f8 Phenom Sat, 15 Jul 2017 18:24:55 +0200 Modify #warning to get author and date.
+  26397d7 Phenom Sat, 15 Jul 2017 18:22:16 +0200 Fix clang warning: unused variables 'LOWER_LIMIT', ...
+  903f875 Phenom Sat, 15 Jul 2017 18:17:00 +0200 Fix clang warning: unused variable 'MAX_SERIALIZED_ARRAY_SIZE'
+  d83a962 Phenom Sat, 15 Jul 2017 16:45:19 +0200 Fix clang warning: unused variables 'GIXS_CUT_OFF', ...
+  51fa7a5 Phenom Sat, 15 Jul 2017 16:39:24 +0200 Fix clang warning: unused variable 'p3facestartupzone'
+  13220ec Phenom Sat, 15 Jul 2017 16:33:04 +0200 Fix clang warning: unused variable 'MAX_TIME_KEEP_LOCATION_WITHOUT_CONTACT'
+  fea1b83 Phenom Sat, 15 Jul 2017 16:32:11 +0200 Fix clang warning: unused variable 'p3facemsgzone'
+  5a64996 Phenom Sat, 15 Jul 2017 15:04:56 +0200 Fix clang warning: unused variables 'RS_NET_NEEDS_RESET', ...
+  4152a46 Phenom Sat, 15 Jul 2017 14:58:55 +0200 Fix clang warning: unused variable 'P3CONNMGR_UDP_DEFAULT_DELAY'
+  5b1323e Phenom Sat, 15 Jul 2017 14:53:04 +0200 Fix clang warning: unused variables 'PQI_HANDLER_NB_PRIORITY_LEVELS', ...
+  9148fa6 Phenom Sat, 15 Jul 2017 14:38:17 +0200 Fix clang warning: unused variables 'RS_NET_DOWN', ...
+  e4616c0 Phenom Sat, 15 Jul 2017 14:31:21 +0200 Fix clang warning: unused variable 'STORE_KEY_TIMEOUT'
+  0479ec0 Phenom Sat, 15 Jul 2017 14:30:06 +0200 Fix clang warning: unused variable 'MAX_MESSAGES_PER_SECONDS_NUMBER'
+  80ea4de Phenom Sat, 15 Jul 2017 14:28:29 +0200 Fix clang warning: unused variable 'ftserverzone'
+  8a270af Phenom Sat, 15 Jul 2017 14:27:19 +0200 fixed merging problem
+  35186c4 Phenom Sat, 15 Jul 2017 14:22:48 +0200 Fix clang warning: unused variable 'res'
+  7f1e230 Phenom Sat, 15 Jul 2017 14:21:53 +0200 Fix clang warning: unused variable 'FT_TM_CRC_MAP_MAX_WAIT_PER_GIG', ...
+  8b99c80 Phenom Sat, 15 Jul 2017 14:04:56 +0200 Fix clang warning: 'p3GxsTrans' defined as a class here but previously declared as a struct
+  fd24ef5 Phenom Sat, 15 Jul 2017 13:35:50 +0200 Fix warning: comparison between signed and unsigned integer expressions and misleading-indentation
+  431b564 Phenom Sat, 15 Jul 2017 13:32:04 +0200 Fix warning: unused variable ‘popLimit’
+  2444e6e Phenom Sat, 15 Jul 2017 13:29:33 +0200 Fix warning: this statement may fall through
+  dcb8a35 Phenom Sat, 15 Jul 2017 13:28:05 +0200 Fix warning: unused variable ‘self’ and misleading-indentation
+  ca9357c Phenom Sat, 15 Jul 2017 13:25:14 +0200 Fix warning: this ‘if’ clause does not guard...
+  b5c503a Phenom Sat, 15 Jul 2017 13:24:07 +0200 Fix warning: unused variable ‘prev_index’
+  3a22c6d Phenom Sat, 15 Jul 2017 13:20:46 +0200 Fix warning: comparison between signed and unsigned integer expressions
+  6fd0308 Phenom Sat, 15 Jul 2017 13:19:08 +0200 Fix warning: this statement may fall through
+  f27ce82 Phenom Sat, 15 Jul 2017 13:18:00 +0200 Fix warning: comparison between signed and unsigned integer expressions , misleading-indentation and unused-variable
+  15bc9c1 Phenom Sat, 15 Jul 2017 13:10:41 +0200 Fix warning: this statement may fall through
+  f23c84f Phenom Sat, 15 Jul 2017 13:06:19 +0200 Fix warning: this statement may fall through
+  9a4ed80 Phenom Sat, 15 Jul 2017 13:01:39 +0200 Fix warning: comparison between signed and unsigned integer expressions and unused variables
+  8455adf Phenom Sat, 15 Jul 2017 12:50:50 +0200 Fix warning: unused parameter ‘type’ and ‘req’
+  c866bf9 Phenom Sat, 15 Jul 2017 12:49:27 +0200 Fix warning: unused parameter ‘req’ and ‘resp’
+  9d4967c Phenom Sat, 15 Jul 2017 12:48:04 +0200 Fix warning: unused parameter ‘req’
+  c97269b Phenom Sat, 15 Jul 2017 12:44:55 +0200 Fix warning: this statement may fall through
+  1813948 Phenom Sat, 15 Jul 2017 11:48:37 +0200 Fix warning: unused parameter ‘grpItem’ and unused debug variables
+  e1ea92d Phenom Sat, 15 Jul 2017 11:42:02 +0200 Fix warning: unused parameter ‘n’
+  f193af2 Phenom Sat, 15 Jul 2017 11:40:38 +0200 Fix warning: unused parameter ‘size’
+  d8b0b52 Phenom Sat, 15 Jul 2017 11:39:03 +0200 Fix warning: variable ‘it’ set but not used
+  b11022a Phenom Sat, 15 Jul 2017 11:35:18 +0200 Fix warning: this statement may fall through
+  0e302e2 Phenom Sat, 15 Jul 2017 11:30:08 +0200 Fix warning: this statement may fall through
+  7b4d3c5 Phenom Sat, 15 Jul 2017 11:25:54 +0200 Fix warning: this statement may fall through
+  476b581 Phenom Sat, 15 Jul 2017 11:23:51 +0200 Fix warning: this statement may fall through
+  7bd7c57 Phenom Sat, 15 Jul 2017 11:21:36 +0200 Fix warning: variable ‘pgpNameFound’ set but not used
+  a0506c1 Phenom Sat, 15 Jul 2017 11:19:28 +0200 Fix warning: this statement may fall through
+  b9d4651 Phenom Sat, 15 Jul 2017 11:17:02 +0200 Fix warning: this statement may fall through
+  e12f51b Phenom Sat, 15 Jul 2017 11:14:53 +0200 Fix warning: variable ‘peerIt1’ set but not used
+  78cfde9 Phenom Sat, 15 Jul 2017 11:11:51 +0200 Fix warning: this statement may fall through
+  3a6ad82 Phenom Sat, 15 Jul 2017 11:03:58 +0200 Fix warning: this statement may fall through
+  635246c Phenom Sat, 15 Jul 2017 11:01:16 +0200 Fix warning: this statement may fall through
+  e718070 Phenom Sat, 15 Jul 2017 10:51:17 +0200 Fix warning: this statement may fall through
+  714f9bb Phenom Sat, 15 Jul 2017 10:46:32 +0200 Fix warning: this statement may fall through
+  987c105 csoler Sun, 16 Jul 2017 20:16:31 +0200 Merge pull request #945 from PhenomRetroShare/Add_RSLinkCreateAsStatic
+  e40dbe8 csoler Sun, 16 Jul 2017 17:03:37 +0200 Merge pull request #947 from csoler/v0.6-ImprovedGUI
+  1e98de7 csoler Sun, 16 Jul 2017 16:56:23 +0200 fixed filtering for channels when loading  items on the fly
+  82addce Phenom Sun, 16 Jul 2017 13:11:47 +0200 Change RetroShareLink creation methodes as static
+  2d5e1d6 csoler Sun, 16 Jul 2017 10:08:33 +0200 fixed last update missing commits
+
+ -- Retroshare Dev Team <contact@retroshare.net>  Wed, 20 Jul 2017 22:00:00 +0100
+
+retroshare06 (0.6.2-1.20170716.2d5e1d63~zesty) zesty; urgency=low
+
+  4718125 csoler Sun, 16 Jul 2017 10:05:33 +0200 updated changelog
+  991049d csoler Sat, 15 Jul 2017 22:20:43 +0200 Merge pull request #944 from csoler/v0.6-ImprovedGUI
+  08faa3f csoler Sat, 15 Jul 2017 22:16:45 +0200 fixed p3Gxstunnel so that it sends the data packets in the same order it received them. This fixes the bug in distant chat causing images to not transfer correctly in some cases
+  9c391cb csoler Sat, 15 Jul 2017 22:15:51 +0200 added an additional param to BinToHex so as to limit the size of the output
+  6a8b74c csoler Sat, 15 Jul 2017 22:00:35 +0200 fixed compilation for computers where qreal is a float
+  5ffb549 csoler Thu, 13 Jul 2017 21:49:47 +0200 Merge pull request #930 from myfingerhurt/master
+  3912118 csoler Thu, 13 Jul 2017 21:42:05 +0200 Merge pull request #925 from PhenomRetroShare/Fix_ChannelCommentLineWrap
+  98b0585 csoler Thu, 13 Jul 2017 21:23:14 +0200 Merge pull request #937 from csoler/v0.6-ImprovedNoGUI
+  69aa5b6 Gioacc Thu, 13 Jul 2017 13:00:32 +0200 Clean some garbage from the code
+  fd452af csoler Wed, 12 Jul 2017 23:03:17 +0200 removed some debut output that perturbated the passwd command line
+  00c1a9a csoler Wed, 12 Jul 2017 22:53:35 +0200 fixed autologin
+  66268c8 csoler Wed, 12 Jul 2017 18:48:06 +0200 fixed variable shadowing a parameter
+  1cdb971 csoler Tue, 11 Jul 2017 23:47:51 +0200 fixed compilation pb due to qtcreator bug
+  4cfdef5 csoler Tue, 11 Jul 2017 23:39:04 +0200 do not display auto-login option when software is compiled without autologin
+  a5e0b1c csoler Tue, 11 Jul 2017 23:32:22 +0200 fixed -U option in rs-nogui. Removed debug output that would ruin the terminal interface
+  3e3ee1a csoler Sun,  9 Jul 2017 22:12:01 +0200 little improvement to command line help display
+  2c6f11e csoler Sun,  9 Jul 2017 21:59:02 +0200 restored terminal output control class
+  5465e11 csoler Sun,  9 Jul 2017 21:37:39 +0200 fixed debug output
+  5dfbce7 csoler Sun,  9 Jul 2017 21:16:41 +0200 fixed Terminal Api Client logic
+  decbd35 csoler Sat,  8 Jul 2017 17:38:09 +0200 improved the login in the interaction between terminal api client and main
+  7ee527e csoler Sat,  8 Jul 2017 17:35:34 +0200 removed comments
+  b5976e1 csoler Sat,  8 Jul 2017 16:48:24 +0200 fixed message when passphrase is empty
+  4f887ff csoler Sat,  8 Jul 2017 16:47:50 +0200 commented out unused line
+  36a2053 NeverE Sat,  8 Jul 2017 00:20:09 +0900 add new functions to chat
+  75c8b71 NeverE Sat,  8 Jul 2017 00:18:51 +0900 add new functions for chat
+  fcec555 Gioacc Fri,  7 Jul 2017 11:57:17 +0200 Merge pull request #927 from Emotyco/libresapi_lobbies_invitation
+  fc396dd Gioacc Fri,  7 Jul 2017 11:56:12 +0200 Merge pull request #929 from Emotyco/libresapi_empty_cert
+  e46d91e Gioacc Fri,  7 Jul 2017 11:35:16 +0200 Merge branch 'android_share_intent'
+  f5912a3 csoler Thu,  6 Jul 2017 22:52:30 +0200 Merge pull request #928 from PhenomRetroShare/Fix_MultiDownload
+  f0ad687 Konrad Thu,  6 Jul 2017 22:44:45 +0200 Fixed: Libresapi was throwing exception when requested to add new cert which was empty
+  54047cd Phenom Thu,  6 Jul 2017 22:35:54 +0200 Fix multi download of same file.
+  42bf6b2 csoler Thu,  6 Jul 2017 20:57:38 +0200 improved display of password request
+  a778128 csoler Thu,  6 Jul 2017 20:50:59 +0200 fixed multi-digit numbers in terminal account selection
+  c630f1f Gioacc Thu,  6 Jul 2017 16:28:59 +0200 Fix unused warning in gxstokenqueue
+  b935bac Gioacc Thu,  6 Jul 2017 16:28:00 +0200 Add missing break in p3IdService::handleResponse
+  11d02f4 Konrad Thu,  6 Jul 2017 14:08:50 +0200 Added: Handling requests to answer invitation to lobby
+  c9bfe4b Konrad Thu,  6 Jul 2017 14:07:33 +0200 Added: Handling requests to get lobbies invitations
+  aca6233 Konrad Thu,  6 Jul 2017 14:05:48 +0200 Added: Handling requests to invite peers to lobby
+  dad6abd Phenom Wed,  5 Jul 2017 19:30:31 +0200 Fix channel comments line wrap
+  8e62a8b csoler Wed,  5 Jul 2017 22:32:54 +0200 updated tooltip for opinion in People
+  141277b csoler Wed,  5 Jul 2017 22:16:14 +0200 removed debug info
+  c1e18c7 csoler Wed,  5 Jul 2017 22:12:56 +0200 fixed bug causing an infinite subscribe/unsubscribe loop in GxsTrans
+  370d50b csoler Wed,  5 Jul 2017 21:36:00 +0200 cleaned a bit the code in rsinit.cc
+  7ee0b45 csoler Tue,  4 Jul 2017 23:27:43 +0200 Merge pull request #922 from csoler/v0.6-ImprovedGUI
+  5f7df7c csoler Tue,  4 Jul 2017 23:26:57 +0200 update call to notifySettingsChanged() when changing the thread loading of channels
+  2aac675 csoler Tue,  4 Jul 2017 23:15:09 +0200 merged upstream/master into v0.6-ImprovedGUI
+  931ddae csoler Tue,  4 Jul 2017 23:13:03 +0200 set load thread to false for channels on default. Fixed missing () in connect
+  dafaa56 Gioacc Tue,  4 Jul 2017 16:27:12 +0200 Qml App: better Android interaction on URL export
+  a97ba80 Gioacc Tue,  4 Jul 2017 16:41:14 +0200 Fix missing include
+  5b1def1 csoler Tue,  4 Jul 2017 10:25:40 +0200 Merge pull request #912 from Emotyco/libresapi_avatar_handlers
+  3274852 csoler Tue,  4 Jul 2017 10:24:43 +0200 Merge pull request #913 from Emotyco/libresapi_participants_refresh
+  ee25722 csoler Tue,  4 Jul 2017 10:24:05 +0200 Merge pull request #915 from PhenomRetroShare/Add_AlwaysAllowFriendTimeOffsetFeed
+  d7f0141 csoler Tue,  4 Jul 2017 10:23:30 +0200 Merge pull request #916 from PhenomRetroShare/Add_WarningToDirectDonwloadCheckBox
+  d876bb7 csoler Mon,  3 Jul 2017 23:21:31 +0200 fixing async loading of channels. To be tested.
+  1dea00d csoler Mon,  3 Jul 2017 23:09:17 +0200 attempt to fix channel post auto-size by limiting the number of lines from message to display in summary depending on available size
+  719b414 csoler Mon,  3 Jul 2017 22:32:08 +0200 fixed merging of comments in channel post with async-ed loading system
+  f0ed0dd csoler Mon,  3 Jul 2017 22:07:23 +0200 Merge pull request #918 from RetroShare/revert-917-v0.6-ImprovedGUI
+  9a5e46d csoler Mon,  3 Jul 2017 22:07:06 +0200 Revert "attempt to delay channel post loading on demand when displayed"
+  f5abf54 csoler Mon,  3 Jul 2017 21:54:22 +0200 Merge pull request #917 from csoler/v0.6-ImprovedGUI
+  b6d5c55 csoler Mon,  3 Jul 2017 21:48:17 +0200 attempt to delay channel post loading on demand when displayed
+  3987f75 Phenom Mon,  3 Jul 2017 17:14:16 +0200 Always allow Friend Time Offset Feed item.
+  2192a43 Phenom Mon,  3 Jul 2017 18:36:47 +0200 Add a warning to Direct download checkbox depends general setting.
+  f413433 csoler Mon,  3 Jul 2017 11:25:12 +0200 removed zeroing of preferred group causing a bug in GxsTrans
+  e9f9856 csoler Sun,  2 Jul 2017 10:42:22 +0200 fixed naming in friend groups in GroupChooser
+  77b064b csoler Sat,  1 Jul 2017 17:24:58 +0200 fixed translation of built-in group names in GxsGroupDialog
+  c61536e csoler Sat,  1 Jul 2017 16:21:22 +0200 fixed RsGraphWidget by adding an extra data point in the lower right corner, and fixed typo that caused an invalid point to be drawn
+  f136210 csoler Sat,  1 Jul 2017 16:20:39 +0200 fixed layout in GxsTrans stats
+  1323a97 csoler Sat,  1 Jul 2017 15:38:57 +0200 updated changelog
+
+ -- Retroshare Dev Team <contact@retroshare.net>  Sun, 16 Jul 2017 12:00:00 +0100
+ 
+retroshare06 (0.6.2-1.20170716.1323a974~trusty) trusty; urgency=low
+
+  244e8a8 csoler Sat, 1 Jul 2017 15:29:48 +0200 fixed display of GxsTrans statistics
+  27774ba csoler Thu, 29 Jun 2017 22:13:04 +0200 Merge pull request #911 from csoler/v0.6-GxsTransport
+  b294b4b csoler Thu, 29 Jun 2017 22:11:44 +0200 changed sorting of popular forums w.r.t. time of last post rather than number of supplier friends
+  a864cf7 csoler Thu, 29 Jun 2017 21:12:42 +0200 Merge pull request #910 from csoler/v0.6-GxsTransport
+  4b94b2e csoler Thu, 29 Jun 2017 21:12:02 +0200 improved display of GxsTrans statistics
+  1b4e8a4 csoler Thu, 29 Jun 2017 18:38:10 +0200 Merge pull request #909 from csoler/v0.6-GxsTransport
+  64e3fc9 csoler Thu, 29 Jun 2017 18:37:39 +0200 fixed bug preventing correct subscribe in GxsTrans
+  700d114 csoler Thu, 29 Jun 2017 18:27:00 +0200 fixed bug causing failure of group autosubscribe in GxsTrans
+  cb31a92 csoler Thu, 29 Jun 2017 18:03:31 +0200 Merge pull request #907 from PhenomRetroShare/Add_GeneralDirectDLSetting
+  b4071d1 Phenom Mon, 26 Jun 2017 23:35:01 +0200 Add General Direct Download setting.
+  a3e8b96 csoler Thu, 29 Jun 2017 13:50:41 +0200 Merge pull request #908 from csoler/v0.6-GxsTransport
+  37edcc1 csoler Thu, 29 Jun 2017 13:44:40 +0200 fixed subscribe policy to GxsTrans groups as a function of last available post and group usage
+  dc605c0 csoler Thu, 29 Jun 2017 13:15:39 +0200 added a last modif TS in GrpNetworkStats, that is inited from network Grp statistics, and used to provide a value for unsubscribed groups
+  533e2a8 csoler Wed, 28 Jun 2017 23:23:27 +0200 added check to fix existing wrong storage time value in GxsTrans
+  f37ba83 csoler Wed, 28 Jun 2017 23:12:33 +0200 moved msg keep period settings to netService and made the initialisation obei the default settings of the service
+  b96effb csoler Wed, 28 Jun 2017 22:37:50 +0200 Merge pull request #895 from PhenomRetroShare/Add_HelpInRelayTab
+  3550971 csoler Wed, 28 Jun 2017 22:37:05 +0200 Merge pull request #902 from Emotyco/libresapi_avatar_handlers
+  12b5628 csoler Tue, 27 Jun 2017 22:21:35 +0200 added more debug info in GxsUtil
+  51c7e18 csoler Tue, 27 Jun 2017 19:56:21 +0200 added last msg time in GxsTrans stats. Added mutex to protect non atomic mPreferredGroup
+  579c944 csoler Sun, 25 Jun 2017 21:50:51 +0200 Merge pull request #903 from sehraf/improve-server-page
+  3c54beb sehraf Sun, 25 Jun 2017 19:19:07 +0200 hide hidden service port for I2P instead of just disabling it (it's not used for I2P)
+  e128fcb Konrad Sun, 25 Jun 2017 15:35:23 +0200 Added: Creating identity with avatar in libresapi
+  54166ce Konrad Sun, 25 Jun 2017 14:30:38 +0200 Added: Handling requests to set and get identity avatar
+  c3a78ce csoler Sat, 24 Jun 2017 13:14:24 +0200 Merge pull request #900 from csoler/v0.6-GxsTransport
+  8c4396c csoler Sat, 24 Jun 2017 12:54:06 +0200 Merge pull request #899 from Emotyco/libresapi_wrong_password_notification
+  66a9dad Konrad Sat, 24 Jun 2017 12:05:32 +0200 Fixed: Information about wrong password
+  2aac999 Konrad Sat, 24 Jun 2017 12:02:28 +0200 Fixed: Duplication of handler declaration
+  332fedd csoler Sat, 24 Jun 2017 11:38:48 +0200 fixed mismatched free/delete[] in AvatarDefs
+  2bb49f6 csoler Fri, 23 Jun 2017 21:58:54 +0200 Merge pull request #898 from csoler/v0.6-GxsTransport
+  0f99647 csoler Fri, 23 Jun 2017 21:58:17 +0200 fixed memory leak in GxsTrans
+  25a71c9 csoler Fri, 23 Jun 2017 21:24:37 +0200 Merge pull request #897 from PhenomRetroShare/Fix_ChannelPostButton
+  adfc594 Phenom Fri, 23 Jun 2017 20:33:43 +0200 Fix GxsChannelPostItem button, like "download" or "Play" never shown.
+  c415e11 Phenom Thu, 22 Jun 2017 18:52:03 +0200 Add help in Relay setting tab.
+  07ecbec csoler Thu, 22 Jun 2017 18:05:39 +0200 fixed bug in makeSourcePackage which would always grab the release branch
+
+ -- Retroshare Dev Team <contact@retroshare.net>  Sat, 01 Jul 2017 16:00:00 +0100
+
+retroshare06 (0.6.2-1.20170623.07ecbec6~precise) precise; urgency=low
+
+  c34165e csoler Wed, 21 Jun 2017 08:08:29 +0200 pushed new changelog to force update of the date...
+  8950acc csoler Thu, 22 Jun 2017 00:39:03 +0200 Merge pull request #892 from PhenomRetroShare/Add_MoveRelayPageToNetwork
+  ea8af8a Phenom Wed, 21 Jun 2017 17:57:14 +0200 Move Relay setting page to network one.
+  8cc82f9 csoler Wed, 21 Jun 2017 18:32:51 +0200 Merge pull request #891 from PhenomRetroShare/Fix_MessageToHeight
+  812e606 csoler Tue, 20 Jun 2017 23:40:58 +0200 fixed changelog for typo
+  1f9320c csoler Tue, 20 Jun 2017 21:17:21 +0200 updated changelog
+  310c848 csoler Wed, 21 Jun 2017 07:42:15 +0200 Merge pull request #890 from G10h4ck/qml_app_identity_avatar
+  c46c747 Phenom Wed, 21 Jun 2017 06:35:29 +0200 Fix To, Cc & Bcc height in MessageWidget.
+  1d03191 Gioacc Tue, 20 Jun 2017 17:16:27 +0200 Created a dedicated component for avatar image
+  8c62c2a Gioacc Tue, 20 Jun 2017 15:35:05 +0200 Qml app: show contact avatar in details if available
+  b206015 Gioacc Tue, 20 Jun 2017 15:33:28 +0200 libresapi: expose identity avatar in JSON API
+  0133be7 csoler Sat, 17 Jun 2017 23:07:10 +0200 Merge pull request #887 from csoler/v0.6-GxsTransport 
+  12a4529 csoler Sat, 17 Jun 2017 23:02:28 +0200 added ifdef for comments on GxsTrans
+  eb4bb5b csoler Sat, 17 Jun 2017 21:42:00 +0200 fixed bug in gxs trans stats counting
+  43dcddc csoler Fri, 16 Jun 2017 12:37:09 +0200 Merge pull request #880 from PhenomRetroShare/Add_GxsCircleNotify
+  a29bc44 csoler Fri, 16 Jun 2017 12:24:45 +0200 Merge pull request #874 from G10h4ck/silent_initiate_distant_chat_api
+  12eed8e csoler Fri, 16 Jun 2017 12:22:57 +0200 Merge pull request #884 from sehraf/pr-fix-bob-settings
+  25565a7 csoler Thu, 15 Jun 2017 23:58:29 +0200 merged upstream/master
+  6633b04 csoler Thu, 15 Jun 2017 23:57:02 +0200 changed constants for GxsTransport anti-spam
+  26bb865 csoler Thu, 15 Jun 2017 19:32:31 +0200 added code to reject messages based on existing per-user statistics
+  65ab68b sehraf Thu, 15 Jun 2017 07:20:24 +0200 fix stop button being wrongly disabled
+  fe5ec8b sehraf Thu, 15 Jun 2017 07:06:52 +0200 reduce BOB log level
+  09ff94c csoler Wed, 14 Jun 2017 23:19:52 +0200 added new virtual method to refuse incoming msgs (similar to groups) in RsGenExchange, and used it in p3GxsTrans to refuse msgs from peers who send too much
+  c451d3a csoler Mon, 12 Jun 2017 22:18:34 +0200 Merge pull request #873 from RetroPooh/tunnstats
+  1e7feec csoler Mon, 12 Jun 2017 22:16:46 +0200 Merge pull request #882 from topcat/iss879
+  79825eb csoler Mon, 12 Jun 2017 20:36:02 +0200 fixed thread issue in RsGxsCleanupThread that caused random crashes
+  80ec9b7 Jeetu  Mon, 12 Jun 2017 15:51:26 +0530 Included QStringList header in ApiServerLocal.cpp [Issue 879]
+  aa64c4d Phenom Tue, 30 May 2017 22:23:31 +0200 Add Circle Feed Item.
+  1766087 csoler Wed,  7 Jun 2017 23:10:59 +0200 fixed update notification and display in GxsTransStatistics
+  9853b53 csoler Wed,  7 Jun 2017 23:10:24 +0200 fixed debug output in GxsNetService
+  7691a8e csoler Wed,  7 Jun 2017 21:41:20 +0200 removed debug info
+  4cb7522 csoler Wed,  7 Jun 2017 21:41:00 +0200 added deleted gxs messages to the reject list of GxsNetService to avoid re-downloading them right away
+  edd82d0 Gioacc Wed,  7 Jun 2017 21:37:03 +0200 libresapi: stop assuming first chat message is own
+  318ea31 csoler Sat,  3 Jun 2017 10:30:22 +0200 fixed layout of GxsTrans stats
+  23156ab csoler Sat,  3 Jun 2017 10:30:02 +0200 fixed malloc problem when chat avatar is missing
+  e726bd1 csoler Wed,  7 Jun 2017 13:37:38 +0200 attempt to fix the crash in DataStore by not calling deleteMsgs directly
+  39f003f csoler Tue,  6 Jun 2017 22:00:08 +0200 Merge pull request #875 from csoler/v0.6-GxsTransport
+  528317d Gioacc Tue,  6 Jun 2017 18:57:32 +0200 libresapi: silent /chat/initiate_distant_chat
+  f62028b csoler Tue,  6 Jun 2017 00:15:06 +0200 moved metadata info to members of OutgoingRecord, so that the un-serialized meta is not lost when saved. Ensured backward compatibility when reloading old items.
+  1e652d6 csoler Mon,  5 Jun 2017 22:27:54 +0200 reduced number of calls to indicateConfigChanged(), and renamed mIngoingQueue into mIncomingQueue in GxsTrans
+  0098433 csoler Mon,  5 Jun 2017 21:51:59 +0200 Merge pull request #871 from Emotyco/changed_socket_path_windows
+  b7c09bd csoler Mon,  5 Jun 2017 21:15:42 +0200 added calls to indicateConfigChanged() to force saving GxsTrans outgoing records when updated
+  2d8fd07 RetroP Mon,  5 Jun 2017 14:25:09 +0300 stats tunnels rearranged columns for better readablilty
+  ca1dc9d Konrad Sun,  4 Jun 2017 22:10:41 +0200 Changed: Unified socket path across systems.
+  318b2cb csoler Sun,  4 Jun 2017 20:38:20 +0200 Merge pull request #870 from BabushkaRetroShare/master
+  7fb0419 Babush Sun,  4 Jun 2017 20:34:10 +0200 Typo fixes
+  458e180 csoler Sun,  4 Jun 2017 18:44:26 +0200 Merge pull request #869 from csoler/v0.6-GxsTransport
+  1967204 csoler Sun,  4 Jun 2017 18:43:12 +0200 restored GXS trans cleanign delay
+  831b560 csoler Sun,  4 Jun 2017 18:37:38 +0200 moved deletion of msgs in GxsTransport inside the service thread
+  5eaab25 csoler Sat,  3 Jun 2017 20:00:54 +0200 Merge pull request #833 from Emotyco/libresapi_network_configuration
+  861dab3 csoler Sat,  3 Jun 2017 13:27:21 +0200 Merge pull request #863 from G10h4ck/qmlapp_pex_alpha
+  e3cd3b6 csoler Fri,  2 Jun 2017 23:26:24 +0200 fixed bug causing display of null group in GxsTransportStatistics
+  fb7ac7a csoler Fri,  2 Jun 2017 23:10:43 +0200 fixed mismatched free/delete (free is used in rschatitems.cc to delete avatars)
+  efdfa46 Gioacc Fri,  2 Jun 2017 10:39:42 +0200 Merge branch 'libresapi_attempt_connection' into qmlapp_pex_alpha
+  8b72c9c Gioacc Fri,  2 Jun 2017 10:26:15 +0200 libresapi expose connection attempt method
+  8e7e700 csoler Thu,  1 Jun 2017 10:16:30 +0200 fixed compilation for windows
+  59b77da Gioacc Wed, 31 May 2017 12:11:15 +0200 Merge branch 'master' into qmlapp_pex_alpha
+  1ebcc60 csoler Tue, 30 May 2017 22:22:06 +0200 Merge pull request #861 from RetroShare/v0.6-GxsTransport
+  d7797f1 csoler Tue, 30 May 2017 21:42:29 +0200 Merge pull request #856 from G10h4ck/GxsTransOptionalChat
+  eacf23d csoler Tue, 30 May 2017 21:40:41 +0200 Merge pull request #860 from csoler/v0.6-GxsTransport
+  832ba69 csoler Tue, 30 May 2017 21:38:59 +0200 fixed up cleanup for GxsTransport
+  a7eb167 csoler Tue, 30 May 2017 20:57:20 +0200 fixed a bug in RsThread which made finished threads unaware of their state
+  32ad43a csoler Tue, 30 May 2017 20:46:49 +0200 Merge pull request #859 from PhenomRetroShare/Fix_StartDialogMargin
+  5410c51 csoler Tue, 30 May 2017 20:45:39 +0200 added cleanup thread for GxsTransport
+  34fbee2 Phenom Tue, 30 May 2017 20:34:12 +0200 Fix StartDialog margins.
+  5c71d52 Gioacc Tue, 30 May 2017 15:43:43 +0200 async chat disabled by default in GUI
+  f4c167c csoler Tue, 30 May 2017 13:57:11 +0200 improved display of GXS Transport stats
+  2e3f62a csoler Mon, 29 May 2017 23:06:31 +0200 added msg ids to GxsTransport statistics.
+  bd1edbc csoler Sun, 28 May 2017 22:50:34 +0200 Merge pull request #850 from csoler/v0.6-GxsTransport
+  0868b64 csoler Sun, 28 May 2017 22:49:07 +0200 fixed uninitialized memory read in GxsTrans msg Id
+  4c07050 csoler Sun, 28 May 2017 22:02:14 +0200 Merge pull request #841 from sehraf/pr-minor-fix
+  048045a csoler Sun, 28 May 2017 22:01:28 +0200 Merge pull request #849 from PhenomRetroShare/Fix_logo_web_nobackground
+  54e91e3 csoler Sun, 28 May 2017 22:00:49 +0200 Merge pull request #840 from felisucoibi/master
+  9121ff6 csoler Sun, 28 May 2017 21:59:48 +0200 Merge pull request #848 from PhenomRetroShare/Fix_WindowsCompil
+  9d2e0d7 Phenom Sun, 28 May 2017 15:19:27 +0200 Fix Appveyor
+  5c99297 Phenom Sun, 28 May 2017 13:19:22 +0200 Fix logo_web_nobackground
+  28119b5 Phenom Sun, 28 May 2017 12:57:36 +0200 Fix Windows Compilation
+  6d76624 csoler Sat, 27 May 2017 23:16:20 +0200 fixed uninitialized memory read in grouter
+  e0498ba csoler Sat, 27 May 2017 22:37:14 +0200 Merge pull request #846 from csoler/v0.6-GxsTransport
+  eea63ac csoler Sat, 27 May 2017 22:19:52 +0200 minor code cleaning in p3GxsTrans (struct->class for consistency, sendMail->sendData), added popularity+subscribed status display in statistics
+  753867e csoler Sat, 27 May 2017 15:22:32 +0200 Merge pull request #845 from csoler/v0.6-GxsTransport
+  6da8b2a csoler Sat, 27 May 2017 15:13:23 +0200 fixed up icons in statistics window
+  e06bd9b csoler Sat, 27 May 2017 14:48:08 +0200 added icon for GxsTransport
+  4fef4d6 csoler Sat, 27 May 2017 14:23:16 +0200 added display of the various GxsTrans groups and their respective sizes
+  7c43998 csoler Fri, 26 May 2017 22:04:33 +0200 Merge pull request #842 from csoler/v0.6-GxsTransport
+  541b42a sehraf Fri, 26 May 2017 20:29:43 +0200 minor fix
+  a3096f2 csoler Fri, 26 May 2017 20:28:44 +0200 added data hash to GxsTrans display
+  95b0273 felisu Fri, 26 May 2017 18:54:02 +0200 small fix removed ... from text login screen.
+  4fa6cbe csoler Fri, 26 May 2017 18:42:52 +0200 fixed display in GxsTrans stats widget
+  95f1719 felisu Fri, 26 May 2017 18:37:05 +0200 Changed login screen add Profile/Node text.
+  1e8df12 felisu Fri, 26 May 2017 18:19:06 +0200 Final step to change again size and design of start up login screen. 4/4
+  7281222 felisu Fri, 26 May 2017 18:15:14 +0200 Login screen 3 / 4
+  2dbe3a1 felisu Fri, 26 May 2017 18:13:57 +0200 Start login 2/4
+  0fa3b9e felisu Fri, 26 May 2017 18:12:24 +0200 smaller login screen and less blue 1
+  873131f csoler Thu, 25 May 2017 22:20:18 +0200 Merge pull request #836 from sehraf/pr-add-i2p-bob-v2.1
+  14b9a54 csoler Thu, 25 May 2017 16:56:29 +0200 added group data retrieval to GxsTransStatistics
+  a3ee85a sehraf Sun,  9 Oct 2016 14:32:52 +0200 Add I2P BOB support to libretroashare and RetroShare GUI
+  9ff81b9 csoler Tue, 23 May 2017 22:06:46 +0200 Merge pull request #835 from felisucoibi/master
+  483d538 defnax Tue, 23 May 2017 18:46:50 +0200 fit the background image to the login page
+  a136fb6 csoler Mon, 22 May 2017 23:54:55 +0200 added display of ongoing record status for GxsTrans. Unfinished.
+  ac66ee7 felisu Mon, 22 May 2017 15:21:06 +0200 Improved GUI gencert
+  9b67e93 Konrad Sun, 21 May 2017 19:51:52 +0200 Added: Network configuration to libresapi.
+  fbeb6ff csoler Sun, 21 May 2017 15:57:10 +0200 added infrastructure for gathering statistics about GxsTransport. Unfinished.
+  8c1babe csoler Sun, 21 May 2017 15:12:49 +0200 Merge pull request #832 from felisucoibi/master
+  2adde95 felisu Sun, 21 May 2017 15:08:07 +0200 fixed bad uploading of previous pr
+  dbc2396 csoler Sun, 21 May 2017 14:52:20 +0200 Merge pull request #830 from Gottox/fix-libressl
+  6bc72dd felisu Sun, 21 May 2017 14:51:43 +0200 restored start dialog and fixed
+  33ab7fa csoler Sun, 21 May 2017 14:49:13 +0200 Merge pull request #831 from Gottox/fix-musl
+  b341fea csoler Sun, 21 May 2017 13:49:41 +0200 merged upstream/master
+  a5cebb9 felisu Sun, 21 May 2017 12:35:43 +0200 simplified and upgraded gui logo added
+  ecf3fc5 felisu Sun, 21 May 2017 12:34:52 +0200 simplified gui
+  d83c42d felisu Sun, 21 May 2017 12:33:40 +0200 Add files via upload
+  a578acd Enno B Sun, 21 May 2017 10:54:19 +0200 fix building with musl libc
+  2046d9e Enno B Sun, 21 May 2017 10:48:58 +0200 fix building with libressl
+  95c9b37 defnax Sun, 21 May 2017 04:12:34 +0200 update background image resolution
+  a439fbf csoler Sat, 20 May 2017 23:01:56 +0200 fixed bug (due to new serializer) that caused a wrong hash to be computed when sending distant messages
+  ef59a60 csoler Sat, 20 May 2017 22:39:53 +0200 Merge pull request #828 from csoler/v0.6-EditPosts
+  162095b csoler Sat, 20 May 2017 22:37:31 +0200 fixed count of unread/new posts by not counting older versions
+  8b079f8 csoler Sat, 20 May 2017 18:34:07 +0200 Merge pull request #827 from csoler/v0.6-EditPosts
+  0321037 csoler Sat, 20 May 2017 18:15:57 +0200 fixed centering of comments
+  7a2807a defnax Sat, 20 May 2017 18:06:23 +0200 added missed icon
+  9da1e1c csoler Sat, 20 May 2017 17:53:25 +0200 fixed proper comment number in channels feeds
+  51710c1 csoler Sat, 20 May 2017 17:33:05 +0200 merge comments between channel item versions
+  bda7a50 defnax Sat, 20 May 2017 15:14:43 +0200 Improved look & feel for Generate and Login Window
+  d79c117 csoler Fri, 19 May 2017 22:12:02 +0200 Merge pull request #826 from PhenomRetroShare/Fix_ChatFontSetting
+  7acefda Phenom Fri, 19 May 2017 18:40:17 +0200 Fix Chat Font setting saving.
+  6b09fa0 csoler Thu, 18 May 2017 22:31:52 +0200 allow GxsFeedItems to have versions. Unfinished (does not compile)
+  db3dad3 Gioacc Thu, 18 May 2017 21:57:24 +0200 Local API binary output support + qml image example
+  e59366d Gioacc Wed, 17 May 2017 15:49:26 +0200 Qml app: made contact sorting case insensitive
+  97a0e00 Gioacc Wed, 17 May 2017 15:34:29 +0200 Qml Better debugging for token manager
+  c1c1d5d Gioacc Wed, 17 May 2017 15:33:10 +0200 Qml app: fixed unread messages count displaying
+  d5ec641 csoler Tue, 16 May 2017 19:45:27 +0200 changing background color as a function of commenter ID (needs to be further adapted to all styles)
+  86118d9 csoler Tue, 16 May 2017 10:26:03 +0200 Merge pull request #823 from csoler/v0.6-EditPosts
+  fd136c1 csoler Tue, 16 May 2017 10:24:23 +0200 made gxs comments multi-lines
+  b9d19c2 csoler Mon, 15 May 2017 22:17:26 +0200 Merge pull request #822 from csoler/v0.6-EditPosts
+  2bc36bc csoler Mon, 15 May 2017 22:13:36 +0200 properly merge new version feed items in channels when some items are already present
+  84e588b csoler Mon, 15 May 2017 21:37:22 +0200 switch file to REMOTE state in subfileitem if the attachment has already been checked in the past but the file is not here anymore
+  635918e csoler Mon, 15 May 2017 20:09:58 +0200 Merge pull request #821 from G10h4ck/v0.6-GxsTransport
+  de9a44f Gioacc Mon, 15 May 2017 19:16:08 +0200 Merge branch 'v0.6-GxsTransport' into qmlapp_pex_alpha
+  10ec527 Gioacc Mon, 15 May 2017 15:00:21 +0200 Fix GxsTrans related serialization regressions
+  745462a Gioacc Mon, 15 May 2017 15:05:07 +0200 Merge branch 'v0.6-GxsTransport' into qmlapp_pex_alpha
+  93a6b7d Gioacc Mon, 15 May 2017 15:00:21 +0200 Fix serialization regression in async chat
+  d335d45 thunder2 Mon, 15 May 2017 09:43:47 +0200 Fixed build script for Windows
+  32b7003 csoler Sun, 14 May 2017 21:44:08 +0200 Merge pull request #820 from csoler/v0.6-EditPosts
+  18e37de csoler Sun, 14 May 2017 21:41:26 +0200 hide download buttons when the file is local in sub file item
+  1824da1 csoler Sun, 14 May 2017 21:29:04 +0200 Merge pull request #819 from csoler/v0.6-EditPosts
+  f832f3d csoler Sun, 14 May 2017 21:26:45 +0200 added delete button to channel attached files
+  af57545 csoler Sun, 14 May 2017 20:59:43 +0200 removed unused button in GxsChannelPostsWidget
+  9077d80 csoler Sun, 14 May 2017 17:52:40 +0200 Merge pull request #817 from csoler/v0.6-EditPosts
+  2f43927 csoler Sat, 13 May 2017 21:13:24 +0200 Merge pull request #698 from G10h4ck/gxs_mail_experiments
+  c0c5cc5 csoler Sat, 13 May 2017 21:08:16 +0200 Merge branch 'master' into gxs_mail_experiments
+  01bb4b0 csoler Sat, 13 May 2017 20:41:56 +0200 added ifdefs around debug info and fixed a few bugs in channel post edit
+  6859e0d csoler Sat, 13 May 2017 17:13:05 +0200 fixed post replacement algorithm in channel editing
+  022c545 Gioacc Sat, 13 May 2017 12:52:45 +0200 Qml app: show contact details when avater clicked
+  0b82b73 Gioacc Sat, 13 May 2017 11:43:31 +0200 Qml app: fixed import/export of plain certificate
+  659e3c9 csoler Fri, 12 May 2017 23:55:09 +0200 merged upstream/master
+  305c5d6 csoler Fri, 12 May 2017 23:54:02 +0200 added collapsing of new versions of channel posts
+  2f17a80 defnax Fri, 12 May 2017 21:39:50 +0200 added missed icons
+  837fcd7 defnax Fri, 12 May 2017 18:29:39 +0200 Added Placeholder text for Password field, removed "Password:" label.
+  5044ac1 csoler Thu, 11 May 2017 23:44:57 +0200 moved the edit button from top bar to each channel post
+  5406da9 csoler Thu, 11 May 2017 23:21:13 +0200 first part of channel post editing
+  38d0743 csoler Thu, 11 May 2017 18:46:40 +0200 used more saturated colors in stats graph
+  7a19dee csoler Thu, 11 May 2017 14:52:26 +0200 small fix to statistics view
+  eb30af5 csoler Thu, 11 May 2017 14:42:06 +0200 improved display in bw statistics
+  d73e850 defnax Thu, 11 May 2017 18:14:21 +0200 look n feel improvements
+  7eb5e8e csoler Wed, 10 May 2017 21:37:06 +0200 added warning when switching opmode status to non turtle for the first time
+  1ff1b89 Phenom Sun,  7 Feb 2016 11:45:55 +0100 Save last state of OpMode status bar droplist and restore it at start.
+  3cc79fb csoler Wed, 10 May 2017 20:00:42 +0200 Merge pull request #774 from PhenomRetroShare/Fix_LobbyTopic
+  af18e4c csoler Wed, 10 May 2017 19:34:53 +0200 Merge pull request #816 from PhenomRetroShare/Fix_StartPasswordFocus
+  6ffae36 Phenom Wed, 10 May 2017 19:06:03 +0200 Fix Start page password focus.
+  11708c8 csoler Tue,  9 May 2017 22:44:00 +0200 Merge pull request #814 from csoler/v0.6-ImprovedGUI
+  bd9a8ae csoler Tue,  9 May 2017 22:39:15 +0200 prevent to remove old forum messages that have follow-ups.
+  5d7d8c0 csoler Tue,  9 May 2017 21:56:22 +0200 Merge pull request #813 from csoler/v0.6-ImprovedGUI
+  52a0aea csoler Tue,  9 May 2017 21:33:02 +0200 fixed bug causing edited posts to turn into missing messages when they have submessages
+  0edbc26 csoler Tue,  9 May 2017 19:34:48 +0200 Merge pull request #812 from PhenomRetroShare/Fix_TextColorGrayForumThread
+  a5386eb Phenom Tue,  9 May 2017 19:19:13 +0200 Fix text's color gray in Forum thread when selected.
+  0af05d2 csoler Tue,  9 May 2017 19:06:31 +0200 patch to avoid re-asking for rejected plugins when the executable is upgraded.
+  88525e4 csoler Tue,  9 May 2017 18:55:28 +0200 Merge pull request #811 from PhenomRetroShare/Add_OpenCertFileInHomeAddFriend
+  237db96 Phenom Mon,  8 May 2017 17:26:12 +0200 Add Open Cert File in Home Add Friend wizard.
+  34dd68d csoler Mon,  8 May 2017 23:05:16 +0200 Merge pull request #809 from csoler/v0.6-FT
+  e0cb0f4 csoler Mon,  8 May 2017 23:04:04 +0200 fixed previous commit
+  9a0df3f csoler Mon,  8 May 2017 22:21:28 +0200 Merge pull request #804 from PhenomRetroShare/Fix_Warnings
+  9a7f78f csoler Mon,  8 May 2017 22:18:51 +0200 Merge pull request #805 from PhenomRetroShare/Fix_Commit_#77adc82
+  caa36b4 csoler Mon,  8 May 2017 22:17:09 +0200 Merge pull request #807 from PhenomRetroShare/Fix_ToasterPositionSetting
+  d74bb2a csoler Mon,  8 May 2017 22:16:39 +0200 Merge pull request #806 from PhenomRetroShare/Fix_LobbySoundNotification
+  4a2f5f0 csoler Mon,  8 May 2017 22:02:38 +0200 Merge pull request #808 from csoler/v0.6-FT
+  8a86b9e csoler Mon,  8 May 2017 22:00:51 +0200 added a per-friend upload slots limit in FT. Default is 0=unlimited
+  39646f3 Gioacc Mon,  8 May 2017 20:44:15 +0200 qml app removed unused icon
+  d0b881f Gioacc Mon,  8 May 2017 20:35:15 +0200 Added view to show/edit contact details
+  52a04e1 csoler Mon,  8 May 2017 18:24:32 +0200 updated ubuntu changelog
+  f67617a Gioacc Mon,  8 May 2017 16:57:37 +0200 Add override and final placeolders for old GCC compatibility
+  d02cba5 Phenom Sun, 16 Apr 2017 17:53:37 +0200 Fix Lobby Topic not send on invite.
+  594ab53 Phenom Mon,  8 May 2017 15:37:18 +0200 Fix Toaster Position Setting.
+  a869a37 Phenom Mon,  8 May 2017 15:29:11 +0200 Fix Lobby's sound notification.
+  79bbe0e Phenom Mon,  8 May 2017 14:53:53 +0200 Fix Commit #77adc82
+  ccaf488 Gioacc Mon,  8 May 2017 13:38:29 +0200 Merge branch 'master' into qmlapp_pex_alpha
+  4a2f688 Phenom Mon,  8 May 2017 13:01:34 +0200 Fix Windows Compilation:
+  8f30634 Gioacc Mon,  8 May 2017 12:33:40 +0200 Merge branch 'gxs_mail_experiments' into qmlapp_pex_alpha
+  5022ef0 Phenom Mon,  8 May 2017 12:26:37 +0200 Fix Warnings: this ‘if’ clause does not guard...
+  f352939 Phenom Mon,  8 May 2017 12:25:29 +0200 Fix Warnings:
+  bf47edf Phenom Mon,  8 May 2017 12:22:46 +0200 Fix Warnings:
+  523730f Phenom Mon,  8 May 2017 12:21:08 +0200 Fix Warnings: unused parameter ‘resp’, 'req' & 'resp'
+  a6acc72 Phenom Mon,  8 May 2017 12:18:51 +0200 Fix Warnings: this ‘if’ clause does not guard...
+  58c812a Phenom Mon,  8 May 2017 12:17:01 +0200 Fix Warnings: unused parameter ‘s’
+  ee7e92d Phenom Mon,  8 May 2017 12:15:45 +0200 Fix Warnings: this ‘if’ clause does not guard...
+  9b1209d Phenom Mon,  8 May 2017 12:14:04 +0200 Fix Warnings: unused parameter ‘s’ & 'n'
+  91e3cc3 Phenom Mon,  8 May 2017 12:08:29 +0200 Fix Warnings: variable ‘p’ set but not used
+  ca291b7 Phenom Mon,  8 May 2017 12:05:58 +0200 Fix Warnings: warning: unused variable ‘i2d’
+  9021609 Phenom Mon,  8 May 2017 11:55:23 +0200 Fix Warnings: unused variable ‘p’
+  7892004 Phenom Mon,  8 May 2017 11:53:16 +0200 Fix Warnings: unused parameter ‘member_name’
+  381aca4 Phenom Mon,  8 May 2017 11:49:39 +0200 Fix Warnings: unused parameter ‘j’, 'ctx' & 'name'
+  dd089a9 Phenom Mon,  8 May 2017 11:46:54 +0200 Fix Warnings: this ‘if’ clause does not guard
+  5050d4f Phenom Mon,  8 May 2017 11:42:49 +0200 Fix Warnings: unused parameter ‘indent’ warning: unused parameter ‘indent’ [-Wunused-parameter]          virtual std::ostream& print(std::ostream &out, uint16_t indent = 0) { return out; } // derived from RsItem, but should be removed
+  8e9b3c9 Gioacc Mon,  8 May 2017 12:03:42 +0200 Fix missing include
+  add529f csoler Mon,  8 May 2017 11:41:34 +0200 Merge pull request #803 from PhenomRetroShare/Fix_UnitTest
+  4e2db2f Phenom Mon,  8 May 2017 11:30:54 +0200 Fix UnitTest
+
+ -- Retroshare Dev Team <contact@retroshare.net>  Mon, 20 Jun 2017 22:00:00 +0100
+
+retroshare06 (0.6.2-1.20170508.52a04e1f~precise) precise; urgency=low
+
+  9714409 csoler Mon,  8 May 2017 10:57:00 +0200 Merge pull request #802 from csoler/v0.6-ImprovedGUI
+  de0f8b9 csoler Mon,  8 May 2017 10:51:15 +0200 moved passphrase box into start dialog, and removed blank logo, replaced it by RS splash logo
+  6cb4990 csoler Mon,  8 May 2017 10:06:40 +0200 fixed compilation with qt4
+  84c8158 csoler Mon,  8 May 2017 09:38:33 +0200 disabled show OpMode status on default
+  24eca4a defnax Sun,  7 May 2017 19:39:20 +0200 Moved status icon column to the last position
+  b18a186 csoler Sat,  6 May 2017 18:20:48 +0200 fixed ftExtraList to accept e2e encrypted transfers in addition to direct transfers. This fixed the drag+drop of shared files in a distant chat
+  59ac5a5 csoler Sat,  6 May 2017 16:51:38 +0200 added on-the-fly fix of group privacy flags, so that edited groups with old un-set flags will be set automatically. Also fixes the bug preventing to grant membership on old circles
+  868c046 csoler Sat,  6 May 2017 13:23:26 +0200 fixed bug in serializer caused to not updating the size parameter. Also fixes unittests
+  f7f0d8d csoler Fri,  5 May 2017 23:10:07 +0200 Merge pull request #800 from sehraf/pr-openssl-chacha20
+  00c80b1 csoler Fri,  5 May 2017 23:06:25 +0200 Merge pull request #797 from PhenomRetroShare/Fix_WindowsCompilation
+  e4dde95 csoler Fri,  5 May 2017 23:04:28 +0200 Merge pull request #798 from PhenomRetroShare/Fix_TravisCompilation
+  7371fdc sehraf Fri,  5 May 2017 18:50:40 +0200 add openssl chacha20 support
+  96b4a1b sehraf Fri,  5 May 2017 15:40:02 +0200 add openssl chacha20-poly1305 support
+  e913f36 csoler Thu,  4 May 2017 21:40:32 +0200 fixed crash when trying to deserialize an empty buffer in rsrecogn
+  2f2715b csoler Thu,  4 May 2017 21:23:21 +0200 Merge pull request #799 from csoler/v0.6-ImprovedGUI
+  6484ea6 csoler Thu,  4 May 2017 21:19:23 +0200 improved graph widget
+  e6a7168 csoler Thu,  4 May 2017 16:41:02 +0200 merged upstream/master
+  1c2b43b Phenom Thu,  4 May 2017 15:01:25 +0200 Fix UnitTest compilation
+  d31b80c Phenom Thu,  4 May 2017 11:31:36 +0200 Fix Windows Compilation
+  cac335e csoler Wed,  3 May 2017 23:05:50 +0200 Merge pull request #796 from csoler/v0.6-Serialization
+  4f4240d csoler Wed,  3 May 2017 22:43:16 +0200 fixed bug in history serializer
+  214aaa7 csoler Wed,  3 May 2017 22:20:58 +0200 added safety check for null chunks in TlvMemBlock_proxy deserialization
+  f006146 csoler Tue,  2 May 2017 22:41:01 +0200 merged upstream/master
+  4bee52c csoler Tue,  2 May 2017 22:34:45 +0200 removed old unused serialization code
+  861dc16 csoler Tue,  2 May 2017 22:05:54 +0200 switched VOIP to new serialization
+  c481186 csoler Tue,  2 May 2017 10:14:12 +0200 Merge pull request #793 from PhenomRetroShare/Fix_FriendListExport
+  99d8b7d csoler Mon,  1 May 2017 21:23:34 +0200 switched service control items to new serialization
+  07201e8 Phenom Mon,  1 May 2017 12:48:11 +0200 Fix FriendList Import/Export filename and error message.
+  1f56db5 csoler Sun, 30 Apr 2017 22:45:18 +0200 Merge pull request #790 from PhenomRetroShare/Add_CreateGxsIdentityByDefault
+  0c17570 csoler Sun, 30 Apr 2017 22:44:20 +0200 Merge pull request #792 from PhenomRetroShare/Add_DoubleClickOnTextBrowser
+  3d17d31 csoler Sun, 30 Apr 2017 22:43:10 +0200 Merge pull request #789 from PhenomRetroShare/Add_FriendTimeOffsetNewsFeed
+  8aa9be3 csoler Sun, 30 Apr 2017 22:39:07 +0200 Merge pull request #791 from PhenomRetroShare/Fix_MissingMessageMarkedRead
+  40aff5d csoler Sun, 30 Apr 2017 22:37:54 +0200 Merge pull request #785 from PhenomRetroShare/Add_RelayBandwidthOnServerPage
+  16b8947 csoler Sun, 30 Apr 2017 20:31:43 +0200 improved serializer documentation
+  cecd9a3 csoler Sun, 30 Apr 2017 20:14:23 +0200 merged upstream/master
+  24c7c38 csoler Sun, 30 Apr 2017 20:08:30 +0200 removed old file rssrviceserialiser.h/cc
+  14076de csoler Sun, 30 Apr 2017 19:17:44 +0200 moved code of rsservicerserialiser into rsserializer.h/cc and renamed it into RsRawSerializer
+  e401b90 csoler Sun, 30 Apr 2017 16:05:37 +0200 moved rsserializer and rstypeserializer to serialiser/
+  4f92f48 csoler Sat, 29 Apr 2017 23:02:44 +0200 dwicthed GxsTunnel items to new serialization
+  4fbcc1e Phenom Sat, 29 Apr 2017 19:47:29 +0200 Add Double Click on Name for Chat to add their name in text writer.
+  1159c86 csoler Sat, 29 Apr 2017 21:50:55 +0200 moved wiki and wire items to rsitems/
+  d58c638 csoler Sat, 29 Apr 2017 21:46:54 +0200 switched wiki and wire items to new serialization
+  77adc82 Phenom Sat, 29 Apr 2017 17:32:23 +0200 Fix Missing messages when mark all as read.
+  5cba005 csoler Fri, 28 Apr 2017 23:32:47 +0200 moved recognitems to rsitems/
+  2349269 csoler Fri, 28 Apr 2017 23:28:56 +0200 switch rsrecognitems to new serialization
+  8341c68 csoler Fri, 28 Apr 2017 18:54:07 +0200 removed old code
+  688813f csoler Fri, 28 Apr 2017 18:51:35 +0200 moved photo items to rsitems/
+  634efb6 csoler Fri, 28 Apr 2017 18:42:11 +0200 switched rsphotoitems to new serialization
+  d3c960e csoler Fri, 28 Apr 2017 17:48:54 +0200 removed old code
+  22e2416 csoler Fri, 28 Apr 2017 17:47:41 +0200 moved rsserviceinfo items to rsitems/
+  2d19783 csoler Fri, 28 Apr 2017 17:44:45 +0200 switched serviceinfo items to new serialization
+  c33c34b csoler Fri, 28 Apr 2017 16:44:04 +0200 moved rspluginitems to rsitems/
+  d32a8ca csoler Fri, 28 Apr 2017 16:39:54 +0200 switched PluginItems to new serialization
+  45eaf27 csoler Fri, 28 Apr 2017 16:30:33 +0200 moved rsgxsupdateitems to rsitems/
+  2e67665 csoler Fri, 28 Apr 2017 16:26:59 +0200 switched MsgUpdate items to new serialization
+  5995e50 csoler Thu, 27 Apr 2017 21:24:27 +0200 moved rsstatusitem.h to rsitems/
+  87018ed csoler Thu, 27 Apr 2017 21:20:30 +0200 switched rsstatusitem to new serializer
+  07a93be csoler Thu, 27 Apr 2017 21:11:10 +0200 moved heartbeatitem.h to rsitems/
+  9adbab3 csoler Thu, 27 Apr 2017 21:10:22 +0200 switched heartbeatitems to new serialization
+  8a9edb2 Phenom Thu, 27 Apr 2017 17:03:53 +0200 Create a Gxs Identity by default.
+  19b4fb8 Phenom Thu, 27 Apr 2017 16:42:25 +0200 Add Friend Time Offset news feed.
+  349d14b csoler Thu, 27 Apr 2017 14:44:41 +0200 moved rsposteditems to rsitems/
+  35ecc19 csoler Thu, 27 Apr 2017 14:41:31 +0200 switched rsposteditems to new serialization
+  22f6d15 csoler Thu, 27 Apr 2017 14:21:46 +0200 moved rsnxsitems.cc to rsitems/
+  3c20a85 csoler Thu, 27 Apr 2017 14:16:57 +0200 switched RsNxsItems to new serialization
+  f6e59f7 csoler Thu, 27 Apr 2017 11:59:18 +0200 moved gxsforumitems to rsitems/
+  449a420 csoler Thu, 27 Apr 2017 11:56:56 +0200 dwitched gxsforum items to new serialization
+  f50670f csoler Wed, 26 Apr 2017 20:59:59 +0200 moved circle items to rsitems/
+  559137d csoler Wed, 26 Apr 2017 20:57:28 +0200 switched gxscircleitems to new serialization
+  db64523 csoler Wed, 26 Apr 2017 20:15:54 +0200 moved rsgxschannel items to rsitems
+  69729ad csoler Wed, 26 Apr 2017 18:55:23 +0200 switch Channel items to new serialization
+  77c2e6d csoler Wed, 26 Apr 2017 18:14:10 +0200 improved error handlign in pqistore
+  8f97647 csoler Wed, 26 Apr 2017 15:43:00 +0200 fixed bug in RsGxsId deserialization
+  c31396a csoler Wed, 26 Apr 2017 14:31:15 +0200 moved dsdv code to unused directory
+  508a2e2 csoler Wed, 26 Apr 2017 14:28:25 +0200 moved gxs comment and Id items to rsitems/
+  97d0df0 csoler Wed, 26 Apr 2017 14:19:34 +0200 added comment about serialization hack
+  c0d8735 csoler Wed, 26 Apr 2017 14:17:38 +0200 switched RsGxsIdItems to new serialization
+  fb34fa1 csoler Wed, 26 Apr 2017 13:44:09 +0200 switch GxsComment item to new serialization
+  9c610a7 csoler Wed, 26 Apr 2017 11:40:46 +0200 cleaned the hierarchy of serialization classes
+  77e809e csoler Tue, 25 Apr 2017 21:21:46 +0200 switched GRouter to new serialization
+  9e246c9 Phenom Tue, 25 Apr 2017 18:39:30 +0200 Add warning about relays bandwidth.
+  4d7bd83 csoler Tue, 25 Apr 2017 10:14:50 +0200 Merge pull request #786 from PhenomRetroShare/Fix_RelaySettingValues
+  540a8b9 csoler Tue, 25 Apr 2017 10:01:00 +0200 Merge pull request #788 from csoler/v0.6-PRTest
+  078913f Phenom Fri, 21 Apr 2017 21:29:20 +0200 Fix GCC warnings: enumeration value ‘TYPE_IDENTITY’ not handled in switch
+  3592d5b Phenom Fri, 21 Apr 2017 19:55:37 +0200 Fix GCC warnings: unused parameter ‘names’
+  593c0cb Phenom Wed, 19 Apr 2017 14:19:54 +0200 Fix CSA warnings: Called C++ object pointer is null
+  90aaace Phenom Wed, 19 Apr 2017 14:18:35 +0200 Fix CSA warnings: Called C++ object pointer is null
+  1f16f46 Phenom Wed, 19 Apr 2017 14:15:34 +0200 Fix CSA warnings: Called C++ object pointer is null
+  30632dc Phenom Wed, 19 Apr 2017 14:06:56 +0200 Fix CSA warnings: Called C++ object pointer is null
+  90cd623 Phenom Wed, 19 Apr 2017 14:04:50 +0200 Fix CAS warnings: Potential leak of memory pointed to by 'toaster'
+  b2b7d00 Phenom Wed, 19 Apr 2017 14:01:35 +0200 Fix CSA warnings: Called C++ object pointer is null
+  ff1908e Phenom Wed, 19 Apr 2017 11:50:24 +0200 Fix Clang Static Analyser: Undefined allocation of 0 bytes
+  f22dc0f Phenom Tue, 18 Apr 2017 12:02:34 +0200 Fix Clang warnings: unused variable 'action'
+  490f8d2 Phenom Tue, 18 Apr 2017 12:00:00 +0200 Fix Clang warnings: 'TYPE_IDENTITY' not handled
+  6e42cf4 Phenom Tue, 18 Apr 2017 11:56:25 +0200 Fix Clang warnings: field 'mPassword' will be initialized after field 'mPrevIsBad'
+  0d7df56 csoler Mon, 24 Apr 2017 22:47:08 +0200 moved rsconfigitems and rshistoryitems to rsitems/
+  f7338d4 csoler Mon, 24 Apr 2017 22:39:05 +0200 removed old code
+  43b3b87 csoler Mon, 24 Apr 2017 22:36:03 +0200 fixed a few bugs in config items
+  fcabe63 csoler Mon, 24 Apr 2017 18:51:51 +0200 switch RsConfigItems to new serialization
+  be9f126 electr Mon, 24 Apr 2017 18:43:17 +0200 Merge pull request #781 from Sonetio/libresapi_requests
+  af4fcf7 csoler Mon, 24 Apr 2017 17:33:30 +0200 switched rshistoryitems to new serialization
+  1327582 Phenom Mon, 24 Apr 2017 17:28:25 +0200 Fix Relay setting values
+  8ae6541 csoler Mon, 24 Apr 2017 17:10:01 +0200 added two new classes for config/service serialisers and a base generic serialiser class
+  8da5e15 Konrad Mon, 24 Apr 2017 16:00:23 +0200 Changed: difference time to absolute time.
+  dc2df07 csoler Mon, 24 Apr 2017 14:14:34 +0200 renamed RsSerializer into RsServiceSerializer
+  976a80a csoler Mon, 24 Apr 2017 13:30:18 +0200 switch rsfilelistitems to new serialization
+  26e9541 csoler Mon, 24 Apr 2017 11:06:51 +0200 moved RTT items to rsitems/
+  f6aaee7 csoler Mon, 24 Apr 2017 11:01:45 +0200 converted RTT items to new serialization
+  5071c4b csoler Mon, 24 Apr 2017 11:00:57 +0200 moved msgitems to rsitems/
+  fc82b20 csoler Mon, 24 Apr 2017 10:36:22 +0200 removed old serialization code in msgs
+  0886794 csoler Mon, 24 Apr 2017 10:29:57 +0200 fixed bug caused by wrong cast in lobby msg signature validation
+  91b0409 csoler Mon, 24 Apr 2017 10:11:24 +0200 fixed two memory bugs in serialization code
+  6313d89 defnax Mon, 24 Apr 2017 01:23:05 +0200 Improved look n feel of Profile Generation Window.
+  31c07f4 csoler Sun, 23 Apr 2017 22:40:26 +0200 converted RsMsgItems to new serialization. Added format and flag members to RsSerialiser and used the later to handle signature and config serialization techniques
+  63b4b3a csoler Sun, 23 Apr 2017 19:07:26 +0200 moved discovery2 items to rsitems/
+  9d9ff56 csoler Sun, 23 Apr 2017 19:02:12 +0200 switched discovery2items to new serialization
+  190a638 csoler Sun, 23 Apr 2017 17:53:25 +0200 added zesty to ubuntu releases
+  06e90e6 csoler Sun, 23 Apr 2017 17:49:07 +0200 added control file for zesty
+  c738026 csoler Sun, 23 Apr 2017 17:48:39 +0200 updated ubuntu changelog
+  2e71270 csoler Sat, 22 Apr 2017 21:36:39 +0200 fixed previous file move
+  bef6db4 csoler Sat, 22 Apr 2017 21:32:57 +0200 moved files
+  311f257 csoler Sat, 22 Apr 2017 21:10:55 +0200 converted GxsReputationItems to new serialization
+  782c027 csoler Sat, 22 Apr 2017 16:00:01 +0200 added names for turtle sub items
+  f571b05 Konrad Sat, 22 Apr 2017 11:06:56 +0200 Added: Checking if the vector is empty; Changed: Grouped values into one member
+  8c0b7ce Konrad Fri, 21 Apr 2017 23:44:00 +0200 Fixed: Responds sends now correct time difference
+  c9f618d Konrad Thu, 20 Apr 2017 19:09:57 +0200 Added: Notification about changed peer status
+  9600359 Konrad Thu, 20 Apr 2017 18:09:19 +0200 Fixed: Password was not stored after creating a new location
+  4a0b51c Konrad Wed, 19 Apr 2017 22:03:24 +0200 Added: to response information whether the identity is a contact
+  b43bedf Konrad Tue, 18 Apr 2017 23:00:59 +0200 Added: Handling requests to set opinion about identity
+  120ca9d Konrad Tue, 18 Apr 2017 22:58:15 +0200 Added: Handling requests to set opinion about identity
+  3f54568 Konrad Tue, 18 Apr 2017 22:56:35 +0200 Added: Handling requests to get details about identity
+  e2d9152 csoler Tue, 18 Apr 2017 21:11:37 +0200 moved converted serialisation files into new directory rsitems/, leaving serialiser/ for the serialisation classes
+  76dd7fe Konrad Tue, 18 Apr 2017 14:02:14 +0200 Added: Handling requests to add and remove contact
+  4a99000 Konrad Tue, 18 Apr 2017 14:00:30 +0200 Added: Handling requests to get and set node options
+  f8fc8b4 csoler Sun, 16 Apr 2017 20:16:59 +0200 removed old code in turtle serialiser
+  2ca46ec csoler Sun, 16 Apr 2017 20:11:54 +0200 fixed bug in serialization of data chunks
+  1211334 csoler Sun, 16 Apr 2017 19:59:22 +0200 fixed bug in serialization for turtle
+  636450f csoler Sat, 15 Apr 2017 18:46:44 +0200 moved turtle and FT to new serialization
+  fd33315 Konrad Fri, 14 Apr 2017 17:44:17 +0200 Added: Handling requests to create lobby
+  93aeae0 Konrad Fri, 14 Apr 2017 17:41:35 +0200 Added: Handling requests to delete identity
+  3453a3e csoler Tue, 11 Apr 2017 23:05:27 +0200 switched FileTransfer items to new serialization
+  80e8769 csoler Tue, 11 Apr 2017 21:37:35 +0200 added missign file and converted BW control items
+  731e20d csoler Mon, 10 Apr 2017 22:09:56 +0200 switch BanListItem classes to new serialization system
+  691ed8d csoler Mon, 10 Apr 2017 20:34:02 +0200 added new template for std::string with type id
+  8b77388 csoler Wed,  5 Apr 2017 21:02:17 +0200 removed all chat serialization code
+  ae9d0b2 csoler Wed,  5 Apr 2017 20:49:32 +0200 fixed a few bugs in chat serialization
+  03c31ce csoler Wed,  5 Apr 2017 18:27:29 +0200 fixed serialization test example
+  6b4fdb4 csoler Wed,  5 Apr 2017 18:25:54 +0200 fixed bug in serialization
+  a941136 csoler Wed,  5 Apr 2017 18:09:45 +0200 fixed a few bugs in new serialization
+  5b3e488 csoler Wed,  5 Apr 2017 16:53:20 +0200 fixed compilation
+  48688ea csoler Wed,  5 Apr 2017 10:27:12 +0200 progress in converting chat items to new serialization
+  9438d60 csoler Tue,  4 Apr 2017 22:53:50 +0200 progress in converting Chat items to new serialization model
+  f2fa70e csoler Tue,  4 Apr 2017 16:37:57 +0200 progress in converting Chat items to new serialization model
+  32ce9ae csoler Tue,  4 Apr 2017 15:33:59 +0200 started converting rschatitems to new serialization
+  f7e3968 csoler Tue,  4 Apr 2017 14:01:33 +0200 added hability to print in the serialization process
+  059dfcf csoler Tue,  4 Apr 2017 14:00:17 +0200 added hability to print in the serialization process
+  75a3cf0 csoler Sun,  2 Apr 2017 15:04:03 +0200 fixed compilation in new serialization test code
+  ddbe2ef csoler Sun,  2 Apr 2017 14:48:17 +0200 created .cc files for serialization
+  b52071d csoler Sat,  1 Apr 2017 18:05:53 +0200 removed RsSerializable and merged it into RsItem
+  1bc4fe5 csoler Sat, 25 Mar 2017 19:01:32 +0100 polished serialisation prototype
+  369621f csoler Mon, 20 Mar 2017 23:31:04 +0100 simplified new serialization prototype
+  4f24b95 csoler Sun, 19 Mar 2017 21:28:28 +0100 added new serialization code test example
+
+ -- Retroshare Dev Team <contact@retroshare.net>  Mon, 8 May 2017 18:00:00 +0100
+
+retroshare06 (0.6.2-1.20170423.190a638c~xenial) xenial; urgency=low
+
+  5b3b903 csoler Sun, 23 Apr 2017 17:33:21 +0200 added missing line for ubuntu zesty
+  73bfc27 csoler Sun, 23 Apr 2017 17:33:50 +0200 Merge pull request #784 from PhenomRetroShare/Fix_RelaySettingsPage
+  4c326f5 Phenom Sun, 23 Apr 2017 10:27:18 +0200 Fix Relay setting page.
+  0e087db defnax Sat, 22 Apr 2017 17:32:59 +0200 Fixed to use right icons for context menu actions
+  8b9c447 electr Sat, 22 Apr 2017 10:13:23 +0200 fixed possible crash and return value in rsGetHostByName(), thanks to Kotyara for reporting this
+  4ab6021 csoler Fri, 21 Apr 2017 19:45:30 +0200 Merge pull request #782 from PhenomRetroShare/Fix_MacOSX_Compilation
+  936dcba Phenom Fri, 21 Apr 2017 18:50:36 +0200 Fix UnitTest compilation.
+  969b5ce Phenom Fri, 21 Apr 2017 15:57:57 +0200 Fix MacOSX compilation.
+  7400a8d csoler Thu, 20 Apr 2017 20:59:12 +0200 Merge pull request #780 from csoler/v0.6-ImprovedGUI
+  5f8bf03 csoler Thu, 20 Apr 2017 20:54:51 +0200 added mechanism to allow services to document the names of their items, and improved bandwidth graph to show names for GXS services. Other services still need to supply their own names
+  ccfd12b csoler Wed, 19 Apr 2017 18:53:49 +0200 Merge pull request #778 from csoler/v0.6-ImprovedGUI
+  f406b81 csoler Wed, 19 Apr 2017 18:46:58 +0200 removed all FFT code and cleaned up deleted code in graphwidget.cpp
+  1da89dd csoler Wed, 19 Apr 2017 17:16:30 +0200 changed FFT code in graph widget into a more efficient one, with free licence
+  e95ddb9 csoler Tue, 18 Apr 2017 20:28:36 +0200 Merge pull request #767 from PhenomRetroShare/Fix_CommentWithLineReturn
+  5f969e7 csoler Tue, 18 Apr 2017 20:27:20 +0200 Merge pull request #776 from PhenomRetroShare/Fix_ClangWarnings
+  3ab39c6 csoler Tue, 18 Apr 2017 20:26:14 +0200 Merge pull request #777 from PhenomRetroShare/Fix_EncodeRadixInRSLinks
+  3c5e61a Phenom Tue, 18 Apr 2017 17:36:43 +0200 Encode Radix in RSLinks.
+  3733137 Phenom Tue, 18 Apr 2017 11:25:41 +0200 Fix Clang warnings: implicit conversion
+  7d9a803 Phenom Tue, 18 Apr 2017 11:18:10 +0200 Fix Clang warnings: bdnet_inet_ntoa C-linkage
+  4faaaf7 csoler Mon, 17 Apr 2017 22:03:48 +0200 Merge pull request #775 from csoler/v0.6-PRTest
+  87dd614 Phenom Fri,  7 Apr 2017 19:32:19 +0200 Fix Clang Warnings: private field 'encoding_debug_file' is not used
+  4f939b2 Phenom Fri,  7 Apr 2017 19:29:27 +0200 Fix Clang warnings: unused function 'set_item_background'
+  76f7573 Phenom Fri,  7 Apr 2017 18:48:40 +0200 Fix Clang warnings: comparison of array != a null pointer is always true
+  0bbd149 Phenom Fri,  7 Apr 2017 18:42:22 +0200 Fix Clang warnings: comparison of integers of different signs
+  a476a81 Phenom Fri,  7 Apr 2017 18:40:02 +0200 Fix Clang warnings: function 'update_children_background' is not needed
+  d8a7313 Phenom Fri,  7 Apr 2017 18:32:55 +0200 Fix Clang warnings: implicit conversion from 'double' to 'int'
+  19196e2 Phenom Fri,  7 Apr 2017 18:21:49 +0200 Fix Clang warnings: ariable 'status' is used uninitialized
+  a3a53b9 Phenom Fri,  7 Apr 2017 18:19:42 +0200 Fix Clang warnings: unused parameter 'req'
+  94ac821 Phenom Wed, 29 Mar 2017 18:13:17 +0200 Fix Clang warnings: Unused variable Pi
+  fd92bca Phenom Tue, 28 Mar 2017 21:18:25 +0200 Fix Clang warnings: variable 'layout' is used uninitialized
+  8d85cf5 Phenom Tue, 28 Mar 2017 21:16:05 +0200 Fix Clang warnings: 'xxxWidget::sizeHint' hides overloaded vf
+  6f2d7bb Phenom Sun, 19 Mar 2017 10:51:48 +0100 Fix Clang warnings: implicit conversion from 'double' to 'int'
+  07b67e9 Phenom Sun, 19 Mar 2017 10:40:34 +0100 Fix Clang warnings: 'PopupDistantChatDialog::init' hides overloaded virtual function
+  eea49d9 Phenom Sat, 18 Mar 2017 11:56:11 +0100 Fix Clang warnings: change ChatDialog::init definition
+  9319caf Phenom Sat, 18 Mar 2017 11:32:56 +0100 Fix Clang warnings: 'Node::advance' hides overloaded virtual function
+  13c8f7d Phenom Sat, 18 Mar 2017 11:28:29 +0100 Fix Clang warnings: Infinite recursion
+  e0225ef Phenom Sat, 18 Mar 2017 11:19:42 +0100 Fix Clang warnings: 'ChatLobbyDialog::init' hides overloaded virtual function
+  de4f6c0 Phenom Sat, 18 Mar 2017 10:42:38 +0100 Fix Clang warnings: Z-order assignment to spacer
+  32eeb95 Phenom Sat, 18 Mar 2017 10:25:23 +0100 Fix Clang warnings: unused private field
+  4ac3b3f Phenom Sat, 18 Mar 2017 10:20:57 +0100 Fix Clang warnings: implicit conversion of NULL to bool
+  e83104e Phenom Sat, 18 Mar 2017 10:19:31 +0100 Fix Clang warnings: Add author and date to #warning
+  039908b Phenom Thu, 16 Mar 2017 22:58:06 +0100 Fix Clang warnings: private field not used
+  872f42b Phenom Thu, 16 Mar 2017 22:55:18 +0100 Fix Clang warnings: Overloaded vf hide in pluginmanager
+  2204309 Phenom Thu, 16 Mar 2017 22:11:33 +0100 Fix Clang warnings: extraneous parentheses
+  dc533b1 Phenom Thu, 16 Mar 2017 22:01:22 +0100 Fix Clang warnings: private field not used
+  6532150 Phenom Thu, 16 Mar 2017 21:04:38 +0100 Fix Clang warnings: Overloaded vf hide in p3dhtmgr
+  5bc6558 Phenom Thu, 16 Mar 2017 18:28:48 +0100 Fix Clang warnings: explicitly assigning value to itself
+  6fecac5 Phenom Thu, 16 Mar 2017 17:50:25 +0100 Fix Clang warnings: Overloaded vf hide
+  cf963c0 Phenom Wed, 15 Mar 2017 20:41:39 +0100 Fix Clang warnings: struct declared as class
+  105840a Phenom Wed, 15 Mar 2017 19:03:39 +0100 Fix Clang Warning: Overloaded vf hide
+  da4b168 Phenom Wed, 15 Mar 2017 18:55:24 +0100 Fix Clang warnings: mFns is not used
+  cbc264f Phenom Wed, 15 Mar 2017 18:53:30 +0100 Fix clang warning:Implicit conversion from enumeration
+  b2e37fe csoler Sat, 15 Apr 2017 20:24:06 +0200 Merge pull request #773 from csoler/v0.6-Identity
+  273aae7 csoler Sat, 15 Apr 2017 19:01:13 +0200 fixed sharing of own identity
+  98e1a6d electr Thu, 13 Apr 2017 14:12:46 +0200 Merge pull request #770 from Sonetio/fix_reselecting_accounts
+  144d570 Konrad Thu, 13 Apr 2017 13:40:30 +0200 Fixed: Thread safe access to RsControlModule member variables
+  dcc8c6e Konrad Thu, 13 Apr 2017 13:31:32 +0200 Changed: Using PeersHandler::mRsPeers instead of rsPeers
+  a382d68 electr Thu, 13 Apr 2017 09:22:19 +0200 Merge pull request #769 from electron128/fix-gui-multiinstance
+  aa81cc1 Konrad Wed, 12 Apr 2017 20:24:18 +0200 Added: Functions for handling PGP account details requests
+  9402b8e Konrad Mon, 10 Apr 2017 23:42:22 +0200 Fixed: mFixedPassword remained empty after logging
+  e1350a0 Konrad Mon, 10 Apr 2017 22:58:23 +0200 Fixed: Re-selecting accounts via RsControlModule; Added: Sending feedback about incorrect password
+  3130ec9 csoler Mon, 10 Apr 2017 20:02:14 +0200 added GUI async call to ID serialised data. Allows to copy+paste identities.
+  4c9b620 electr Sun,  9 Apr 2017 10:26:18 +0200 fixed --base-dir command line argument in rs-gui when running multiple instances. Only forward "link" and "rsfile" arguments to a running instance. Start a new instance if other arguments are present.
+  7f12ca2 electr Sun,  9 Apr 2017 09:57:48 +0200 fixed name of local socket where RS waits for rslinks etc.
+  d66e653 csoler Sat,  8 Apr 2017 23:39:05 +0200 fixed bug in deserialisation of group informaiton
+  54cd402 csoler Sat,  8 Apr 2017 21:43:07 +0200 fixed a few bugs in latest identity link code
+  6d29038 csoler Sat,  8 Apr 2017 21:12:48 +0200 added RSLink for GXS identities
+  4f5da86 csoler Sat,  8 Apr 2017 19:07:33 +0200 added method to serialise/deserialise groups to/from memory and export of GxsIdentities to memory chunk in radix format
+  f175533 Phenom Sat,  8 Apr 2017 14:06:47 +0200 Fix comment view when they have line return.
+  4067c95 electr Wed,  5 Apr 2017 18:49:32 +0200 Merge pull request #760 from Sonetio/windows_service
+  6e65fcd Konrad Sat,  1 Apr 2017 14:32:49 +0200 Removed: Unused #include statement
+  8543525 Konrad Sat,  1 Apr 2017 14:28:55 +0200 Fixed: Linker problem
+  fbc1bb4 Konrad Wed, 29 Mar 2017 16:06:39 +0200 Added: function for handling autosubscribing lobbies
+  22956be Konrad Tue, 28 Mar 2017 11:24:16 +0200 Deleted: functions for hadling particular lobbies types in ChatHandler
+  6e53002 Konrad Tue, 28 Mar 2017 11:20:51 +0200 Added: tokens in PeersHandler
+  efd6ce3 Konrad Tue, 28 Mar 2017 11:19:50 +0200 Changed: Simplified asking for deferred self signature
+  5694581 Konrad Tue, 28 Mar 2017 11:18:27 +0200 Changed: Qt dependecies are optional
+  4031e49 Konrad Mon, 27 Mar 2017 16:11:04 +0200 Deleted: unused stateTokens
+  c33107c Konrad Sun, 26 Mar 2017 19:12:04 +0200 Fixed: backward comptiblity
+  bef7540 Konrad Sun, 26 Mar 2017 15:11:07 +0200 Fixed building on Travis CI
+  dbcf2d2 csoler Sat, 25 Mar 2017 20:27:18 +0100 Merge pull request #756 from RetroPooh/guistuff
+  04af39f csoler Sat, 25 Mar 2017 20:24:40 +0100 Merge pull request #754 from PhenomRetroShare/Fix_WinNoSQLCipherCompil
+  ccb632a csoler Sat, 25 Mar 2017 19:26:12 +0100 Merge pull request #749 from PhenomRetroShare/Fix_WindowsHeightAtFirstStart
+  8624c93 Konrad Sat, 25 Mar 2017 18:33:35 +0100 Added functions for hadling particular lobbies types to ChatHandler
+  194878a Konrad Sat, 25 Mar 2017 18:31:13 +0100 Added functions for handling own and not own identities to IdentityHandler
+  cb32f30 Konrad Sat, 25 Mar 2017 18:28:31 +0100 Added states handling to PeersHandler
+  28d37c2 Konrad Sat, 25 Mar 2017 18:25:26 +0100 Added password storing to RsControlModule for GUI benefits
+  39967b7 Konrad Sat, 25 Mar 2017 18:23:28 +0100 Added name of requests to be used by GUI
+  ae95b49 Konrad Sat, 25 Mar 2017 18:20:53 +0100 Added SettingsHandler to handle response to settings requests
+  cb04134 Konrad Sat, 25 Mar 2017 18:15:47 +0100 Added Windows support to libresapi when working with retroshare_android_service
+  b0d2249 Konrad Sat, 25 Mar 2017 18:12:39 +0100 Added Windows support to retroshare-android-service
+  f5e7217 RetroP Tue, 21 Mar 2017 17:24:59 +0300 statistics - router - fix bold marking for tunnel speeds over 1mbs
+  85cfda1 RetroP Tue, 21 Mar 2017 16:52:40 +0300 add tree item counters for channels,forums,posted
+  50c81d7 RetroP Tue, 21 Mar 2017 16:41:39 +0300 chat lobby list - mark signed lobbies with color
+  000dabf RetroP Tue, 21 Mar 2017 15:02:46 +0300 chat lobby list - add tree item counters
+  19bd51d RetroP Tue, 21 Mar 2017 14:57:06 +0300 searchdialog - mark current downloads green
+  5efa8e3 Phenom Fri, 17 Mar 2017 22:14:14 +0100 Fix Windows Compilation with CONFIG+=no_sqlcipher
+  ca0521c csoler Thu, 16 Mar 2017 21:01:27 +0100 allowed to edit subject hen editing forum posts. Only the latest subject is visible
+  107d48f Phenom Wed, 15 Mar 2017 22:50:51 +0100 Fix windows height at first start.
+  2046dbe csoler Wed, 15 Mar 2017 20:53:01 +0100 merged latest fixes from official 0.6.2 release branch
+  e4fad45 csoler Wed, 15 Mar 2017 20:51:40 +0100 fixed layout in ConfCertDialog, removed overnumerous tabs
+  2114374 csoler Wed, 15 Mar 2017 19:26:07 +0100 fixed update of Tor proxy address in hidden nodes server page
+  44f2971 csoler Tue, 14 Mar 2017 20:04:22 +0100 Merge pull request #682 from csoler/v0.6-EditPosts
+  a0d1089 csoler Sat, 11 Mar 2017 18:15:35 +0100 added branch parameter to makeSourcePackage script
+  fdab480 csoler Sat, 11 Mar 2017 18:10:14 +0100 added minimum version number for debian stretch
+  733b114 thunde Fri, 10 Mar 2017 15:57:40 +0100 Updated languages from Transifex
+  ed5779f csoler Fri, 10 Mar 2017 15:39:22 +0100 Merge pull request #743 from mestaritonttu/patch-22
+  69c3df6 csoler Fri, 10 Mar 2017 15:36:50 +0100 fixed bug in total item size estimation in pqiqosstreamer due to item slicing
+  c377bf3 csoler Fri, 10 Mar 2017 15:12:10 +0100 fixed debug output for groups with no data
+  fd84639 csoler Fri, 10 Mar 2017 15:05:41 +0100 removed some debug info
+  c87de3e csoler Fri, 10 Mar 2017 10:48:40 +0100 fixed mistake in pointer handling
+  cf2edb5 csoler Thu,  9 Mar 2017 22:47:06 +0100 fixed memory leak in deleteGroup and removed unnecessary pointer in the functions called below
+  a545481 csoler Thu,  9 Mar 2017 22:05:06 +0100 fixed memory leak when receving multi-chunk file lists
+  5b819eb csoler Thu,  9 Mar 2017 20:59:01 +0100 added missing virtual destructor causing a memory leak
+  1f8fd95 csoler Thu,  9 Mar 2017 20:48:26 +0100 fixed uninitialised memory read in chacha20 test code
+  d5f2ae8 csoler Thu,  9 Mar 2017 20:39:12 +0100 fixed memory leak recently introduced with openssl-1.1.0 changes
+  f76454d csoler Thu,  9 Mar 2017 13:05:03 +0100 updated full pipeline packaging script for debian
+  999e845 mestar Wed,  8 Mar 2017 13:17:34 +0200 Fix grammar
+  e6cf628 csoler Tue,  7 Mar 2017 21:58:59 +0100 Merge pull request #740 from RetroPooh/trstats
+  283a2ee csoler Tue,  7 Mar 2017 21:54:56 +0100 Merge pull request #717 from PhenomRetroShare/Fix_SettingListWidth
+  b3b2a4b csoler Tue,  7 Mar 2017 21:54:10 +0100 Merge pull request #726 from mestaritonttu/patch-8
+  bbc27b2 csoler Tue,  7 Mar 2017 21:53:21 +0100 Merge pull request #736 from mestaritonttu/patch-18
+  3d0c28d csoler Tue,  7 Mar 2017 21:52:19 +0100 Merge pull request #724 from mestaritonttu/patch-6
+  ed22b48 csoler Tue,  7 Mar 2017 21:51:51 +0100 Merge pull request #738 from mestaritonttu/patch-20
+  376be42 csoler Tue,  7 Mar 2017 21:51:13 +0100 Merge pull request #739 from mestaritonttu/patch-21
+  b3578f6 csoler Tue,  7 Mar 2017 21:50:20 +0100 Merge pull request #734 from mestaritonttu/patch-16
+  d9c084b csoler Tue,  7 Mar 2017 21:49:52 +0100 Merge pull request #730 from mestaritonttu/patch-12
+  5bad326 csoler Tue,  7 Mar 2017 21:49:14 +0100 Merge pull request #725 from mestaritonttu/patch-7
+  ec21698 csoler Tue,  7 Mar 2017 21:48:30 +0100 Merge pull request #727 from mestaritonttu/patch-9
+  7d8e06b csoler Tue,  7 Mar 2017 21:47:43 +0100 Merge pull request #732 from mestaritonttu/patch-14
+  f3e29bd csoler Tue,  7 Mar 2017 21:47:00 +0100 Merge pull request #731 from mestaritonttu/patch-13
+  17c44db csoler Tue,  7 Mar 2017 21:46:21 +0100 Merge pull request #733 from mestaritonttu/patch-15
+  5f9f061 csoler Tue,  7 Mar 2017 21:45:50 +0100 Merge pull request #735 from mestaritonttu/patch-17
+  8881a44 csoler Tue,  7 Mar 2017 21:45:11 +0100 Merge pull request #737 from mestaritonttu/patch-19
+  160c289 csoler Tue,  7 Mar 2017 21:44:42 +0100 Merge pull request #728 from mestaritonttu/patch-10
+  22308bc csoler Tue,  7 Mar 2017 21:44:14 +0100 Merge pull request #729 from mestaritonttu/patch-11
+  fedffd7 csoler Tue,  7 Mar 2017 21:43:36 +0100 Merge pull request #723 from mestaritonttu/patch-5
+  d3f0f9d RetroP Tue,  7 Mar 2017 17:50:13 +0300 router stats - mark active tunnels bold
+  87f9dba mestar Tue,  7 Mar 2017 14:05:21 +0200 Improvements and typo fixes in strings
+  222cf48 mestar Tue,  7 Mar 2017 14:03:05 +0200 Various improvements and fixes to strings
+  83283d9 mestar Tue,  7 Mar 2017 13:58:43 +0200 Remove extra your
+  7005126 mestar Tue,  7 Mar 2017 13:57:10 +0200 Added whitespace to strings
+  6ec5415 mestar Tue,  7 Mar 2017 13:55:02 +0200 ASCII uppercase
+  28d2e27 mestar Tue,  7 Mar 2017 13:53:08 +0200 Remove whitespace from string
+  931531b mestar Tue,  7 Mar 2017 13:51:28 +0200 Fix typo
+  65c7ca7 mestar Tue,  7 Mar 2017 13:49:57 +0200 Clarify sorting by posts
+  21b7861 mestar Tue,  7 Mar 2017 13:48:14 +0200 Fix grammar
+  ba18fcd mestar Tue,  7 Mar 2017 13:45:31 +0200 Fix grammar
+  a4c2015 mestar Tue,  7 Mar 2017 13:41:45 +0200 Fix typos
+  6b4f7e3 mestar Tue,  7 Mar 2017 13:39:39 +0200 Removed extra "to"
+  b444567 mestar Tue,  7 Mar 2017 13:34:53 +0200 Added period
+  400dde9 mestar Tue,  7 Mar 2017 13:09:04 +0200 Added whitespace
+  c9a4a55 mestar Tue,  7 Mar 2017 13:06:22 +0200 Fix grammar
+  86e7243 mestar Tue,  7 Mar 2017 12:56:25 +0200 Fix typos
+  d7dc9cc mestar Tue,  7 Mar 2017 12:53:18 +0200 Whitespace inside <p>
+  a518225 csoler Tue,  7 Mar 2017 11:27:17 +0100 Merge pull request #716 from felisucoibi/master
+  6a6bcf7 thunde Mon,  6 Mar 2017 21:46:42 +0100 Fixed Windows compile of VOIP
+  dc65d3f Phenom Sun,  5 Mar 2017 13:22:30 +0100 Fix Setting list width.
+  0316c8c thunde Mon,  6 Mar 2017 06:34:06 +0100 Added workaround for crash on Windows 7 for Qt versions with gcc 5.3.0. The call to GetProcAddress in openssl (cryptlib.c) finds an function pointer to the not existing function _OPENSSL_isservice in the executable running on Windows 7.
+  313e1b3 csoler Sun,  5 Mar 2017 20:08:53 +0100 updated translation files
+  88a5c03 csoler Sun,  5 Mar 2017 20:08:36 +0100 removed some debug info
+  94c9c94 thunde Sun,  5 Mar 2017 14:30:45 +0100 updated version number to 0.6.2 in rsversion.in
+  b71f475 csoler Sun,  5 Mar 2017 14:14:46 +0100 qick fix to allow re-advertising for known forums/channels during the same session. Will be reset at restart (probably best)
+  fbd72dd csoler Sun,  5 Mar 2017 13:57:49 +0100 fixed settings SoundPage
+  15bb0ff felisu Sun,  5 Mar 2017 02:45:37 +0100 Update ChatPage.h
+  951820f felisu Sun,  5 Mar 2017 02:45:07 +0100 Update ForumPage.h
+  63174aa felisu Sun,  5 Mar 2017 02:44:18 +0100 Update PostedPage.h
+  ca75515 felisu Sun,  5 Mar 2017 02:43:40 +0100 Update MessagePage.h
+  d3cdd15 csoler Sat,  4 Mar 2017 21:20:34 +0100 fixed uninitialised memory read in GxsReputation
+  dec5c5c csoler Sat,  4 Mar 2017 21:13:34 +0100 suppressed uninitialised memory leak in LocalDirectoryStorage
+  b14e4d5 csoler Sat,  4 Mar 2017 21:08:10 +0100 removed memory leak due to missing delete for BWGraph
+  0bd0056 csoler Sat,  4 Mar 2017 20:52:41 +0100 fixed memory leak in RsGxsNetService
+  7111579 csoler Sat,  4 Mar 2017 20:52:06 +0100 fixed memory leak in config of msgService
+  2302c46 csoler Sat,  4 Mar 2017 16:41:10 +0100 updated version number in changelog
+  0024ddf csoler Sat,  4 Mar 2017 16:39:39 +0100 fixed utf8 bug in ShareManager
+  3600905 csoler Sat,  4 Mar 2017 12:04:41 +0100 updated packaging files
+  c715b03 csoler Sat,  4 Mar 2017 11:56:51 +0100 updated version number to 0.6.2
+  5e2a253 csoler Sat,  4 Mar 2017 11:44:31 +0100 updated ubuntu changelog
+  bd8189c csoler Tue, 28 Feb 2017 18:05:44 +0100 added test to prevent msgs with a different name to be used as different version
+  763f227 csoler Sun, 26 Feb 2017 20:39:40 +0100 merged upstream/master into v0.6-EditPosts branch
+  22f2edb csoler Sat, 11 Feb 2017 10:45:30 +0100 removed debug info and added comment
+  ea82d26 csoler Thu,  9 Feb 2017 23:35:59 +0100 fixed signature verification bug for versionned messages
+  5bf8376 csoler Thu,  9 Feb 2017 21:49:24 +0100 fixed a few more bugs in post version UI
+  8deeec6 csoler Thu,  9 Feb 2017 18:45:55 +0100 fixed UI for post versions
+  b93130a csoler Thu,  9 Feb 2017 16:15:35 +0100 fixed a few bugs in post version collecting
+  f8056e5 csoler Thu,  9 Feb 2017 14:49:43 +0100 added collection of older posts versions.
+  6681985 csoler Wed,  8 Feb 2017 20:40:47 +0100 merged upstream/master
+  dfcb66d csoler Fri,  3 Feb 2017 13:02:53 +0100 added spinbox to show older versions
+  777a73e csoler Fri,  3 Feb 2017 12:48:51 +0100 added GUI for editing forum messages
+
+ -- Retroshare Dev Team <contact@retroshare.net>  Dim, 23 Apr 2017 16:00:00 +0100
+
+retroshare06 (0.6.2-1.931442~trusty) trusty; urgency=low
+
+  931442a csoler    Sat,  4 Mar 2017 00:07:51 +0100 fixed compilation
+  b4e0a8f csoler    Sat,  4 Mar 2017 00:04:52 +0100 removed unused file DirectoriesPage.{cpp,ui,h}
+  e257563 csoler    Sat,  4 Mar 2017 00:01:21 +0100 merged Directories settings page into Transfers and renamed it Files
+  8bdf4f3 csoler    Fri,  3 Mar 2017 23:28:35 +0100 fixed sharing of sshfs mounted dirs by allowing files of type DT_UNKNOWN to be explored
+  b82a18e csoler    Fri,  3 Mar 2017 22:41:32 +0100 hide add cert file button
+  556aae6 csoler    Fri,  3 Mar 2017 22:37:16 +0100 Merge pull request #711 from RetroPooh/test2
+  9716b92 csoler    Fri,  3 Mar 2017 22:26:32 +0100 Merge pull request #715 from PhenomRetroShare/Fix_NatDisplayOptionSaving
+  d6870b4 RetroPooh Sat,  4 Mar 2017 00:12:36 +0300 homepage - add friend from cert file button
+  1584b77 Phenom    Fri,  3 Mar 2017 20:35:18 +0100 Fix NAT Display setting saving.
+  cb960a3 RetroPooh Fri,  3 Mar 2017 22:31:23 +0300 add webmail invite option to homepage dropmenu
+  c98e6c6 csoler    Fri,  3 Mar 2017 18:54:54 +0100 Merge pull request #714 from RetroPooh/new1
+  76ab91f RetroPooh Fri,  3 Mar 2017 20:11:09 +0300 quick config on homepage hidden until rework
+  47b836d RetroPooh Fri,  3 Mar 2017 19:49:56 +0300 people window fix layout compression on resize
+  d360968 RetroPooh Fri,  3 Mar 2017 16:59:18 +0300 forum post dialog - hide obsolete sign option
+  711e38b csoler    Fri,  3 Mar 2017 14:35:33 +0100 Merge pull request #713 from felisucoibi/master
+  c7115da felisucoi Fri,  3 Mar 2017 14:23:50 +0100 CHANGED ORDER IN SETTINGS
+  303bc09 csoler    Thu,  2 Mar 2017 23:18:12 +0100 fixed force check directories when auto check is disabled
+  cdb0c6e csoler    Thu,  2 Mar 2017 22:35:21 +0100 fixed [No title] text in people
+  1e1fe77 csoler    Thu,  2 Mar 2017 22:30:51 +0100 fixed styles loading in chat. Added missing history/compact/colored style
+  d053400 csoler    Thu,  2 Mar 2017 20:30:54 +0100 attempt to fix problems with chat styles
+  af1c22a csoler    Thu,  2 Mar 2017 20:10:10 +0100 Merge pull request #712 from RetroPooh/test3
+  328168d RetroPooh Thu,  2 Mar 2017 20:03:16 +0300 add space after quoting sign
+  fc0cfc0 RetroPooh Thu,  2 Mar 2017 19:57:21 +0300 id edit dialog - tag functions hidden (unfinished)
+  c9ddd04 RetroPooh Thu,  2 Mar 2017 19:00:54 +0300 channel item display layout fix correct comments view
+  939b5b4 RetroPooh Thu,  2 Mar 2017 18:08:35 +0300 fix channel item display layout
+  132da5f thunder2  Thu,  2 Mar 2017 13:08:42 +0100 Updated Windows build script - speex-1.2.0 - libxml2-2.9.4 - curl-7.53.1 - libmicrohttpd-0.9.52 - ffmpeg-3.2.4
+  e408751 RetroPooh Thu,  2 Mar 2017 15:49:12 +0300 newsfeed item layout for new channel made uniform with forums
+  1eb22f8 thunder2  Thu,  2 Mar 2017 06:52:18 +0100 Updated Windows build to opencv-3.2.0
+  ff5f3df defnax    Thu,  2 Mar 2017 01:38:11 +0100 Fixed default Layout size, it was to big for small screens.
+  ea2c832 csoler    Wed,  1 Mar 2017 22:54:25 +0100 attempt to sort out chat style config issus
+  f8b3194 csoler    Wed,  1 Mar 2017 22:43:51 +0100 Merge pull request #705 from PhenomRetroShare/Fix_NewWarnings
+  b596791 csoler    Wed,  1 Mar 2017 22:33:01 +0100 improved wording in keyring
+  0fea0e0 csoler    Wed,  1 Mar 2017 22:25:57 +0100 fixed sorting by last time used in keyring
+  006e542 csoler    Wed,  1 Mar 2017 21:18:16 +0100 fixed auto-expanding of nodes in friend list
+  5618358 RetroPooh Wed,  1 Mar 2017 22:36:36 +0300 homepage quickstartwizard webhelp
+  e4dbc46 Phenom    Mon, 27 Feb 2017 22:12:48 +0100 Fiw New Warnings
+  91f2cf7 csoler    Wed,  1 Mar 2017 19:12:32 +0100 fixed typo
+  40c14db csoler    Wed,  1 Mar 2017 19:10:45 +0100 fixed wrong passwd html text
+  e081567 csoler    Wed,  1 Mar 2017 19:08:20 +0100 fixed empty names in header drop menu
+  a8adf8d csoler    Tue, 28 Feb 2017 23:05:19 +0100 fixed names in FriendList for details
+  c078d93 RetroPooh Wed,  1 Mar 2017 00:21:42 +0300 people header fix layout so invite panel does not obstruct the name
+  b52c4b8 RetroPooh Tue, 28 Feb 2017 12:07:45 +0300 GenCertDialog fix min 3 letters length, fields rearrange for sequential display on advanced switch
+  d427182 RetroPooh Tue, 28 Feb 2017 10:14:08 +0300 fix gxs storage period 1year to 372 days to match old clients
+  62a0ccd RetroPooh Wed, 25 Jan 2017 18:36:28 +0300 QuickStartWizard fixed reset hidden mode
+  da41343 RetroPooh Tue, 24 Jan 2017 22:56:55 +0300 add friend wizard - refinements for hidden nodes
+  03b5fb6 RetroPooh Tue, 24 Jan 2017 17:51:57 +0300 add chatlobby splitter position saving
+  53186ee csoler    Tue, 28 Feb 2017 22:20:52 +0100 set proper default options in make friend dialog, and hide the frame showing own cert since it is not needed anymore
+  4abf2c6 csoler    Tue, 28 Feb 2017 21:41:45 +0100 hide the feed option button until we figure out how to do it properly. Also fixed the crash when showing network settings on hidden nodes
+  9d3df7c csoler    Tue, 28 Feb 2017 00:10:54 +0100 added signal blocking calls to a few last config pages
+  6d67da5 csoler    Tue, 28 Feb 2017 00:04:33 +0100 Merge pull request #709 from PhenomRetroShare/Fix_NotifyPageSignelBlocking
+  8caeda9 Phenom    Mon, 27 Feb 2017 23:41:31 +0100 Fix missing signals blocking calls in Notify config page.
+  88afe51 csoler    Mon, 27 Feb 2017 23:13:45 +0100 added missing signal blocking calls in several config pages
+  58efbc2 csoler    Mon, 27 Feb 2017 23:11:37 +0100 Merge pull request #708 from PhenomRetroShare/Fix_NotifySettings
+  0642022 Phenom    Mon, 27 Feb 2017 23:00:49 +0100 Fix Notify Settings
+  f70cbbe csoler    Mon, 27 Feb 2017 22:37:27 +0100 prevent port values to go below 1024 in the backend
+  30c4dfe csoler    Mon, 27 Feb 2017 22:35:24 +0100 prevent port values to go below 1024 in the GUI
+  ee9fbef csoler    Mon, 27 Feb 2017 22:29:01 +0100 added signal blockign trick for widgets, and fixed the bug causing wrong values to be displayed in server settings
+  e7a7c17 csoler    Mon, 27 Feb 2017 21:10:20 +0100 fixed bug preventing circle creation.
+  18cc77a csoler    Sun, 26 Feb 2017 22:15:14 +0100 Merge pull request #704 from G10h4ck/master
+  c51ee19 Gioacchin Sun, 26 Feb 2017 21:41:45 +0100 Some consistence fixes in GUI
+  99cf69a csoler    Sun, 26 Feb 2017 20:14:34 +0100 Merge pull request #703 from RetroShare/v0.6-ImprovedGUI
+  eb817af csoler    Sun, 26 Feb 2017 20:12:52 +0100 Merge pull request #689 from csoler/v0.6-SSL110Fix
+  98eed2a csoler    Sun, 26 Feb 2017 20:09:53 +0100 Merge pull request #702 from PhenomRetroShare/Fix_AppVeyorBuild
+  3a2312d csoler    Sun, 26 Feb 2017 18:38:42 +0100 Merge pull request #701 from csoler/v0.6-ImprovedGUI
+  158d421 csoler    Sun, 26 Feb 2017 18:27:39 +0100 fixed graphical bug in AboutWidget
+  b3fadf3 csoler    Sun, 26 Feb 2017 18:22:36 +0100 Merge pull request #649 from jolavillette/jola_BW_Bursts
+  5f8c57c csoler    Sun, 26 Feb 2017 18:22:02 +0100 Merge pull request #697 from PhenomRetroShare/Add_ShiftEnterForNewLineInChatWidget
+  9ebf0e1 Phenom    Sun, 26 Feb 2017 18:15:14 +0100 Fix AppVeyor Build
+  7028bb5 csoler    Sun, 26 Feb 2017 17:54:51 +0100 Merge pull request #700 from PhenomRetroShare/Fix_LocalDirectoryUpdaterTakeCareIfEnabled
+  c3c2671 Phenom    Sun, 26 Feb 2017 15:42:32 +0100 Fix LocalDirectoryUpdater to take care if is Enabled in option.
+  3452821 Phenom    Sun, 26 Feb 2017 11:31:43 +0100 Add Shift+Enter to create new line in chat widget when Ctrl+Enter option is disabled. Proposed by MMT1
+  cae0668 csoler    Sun, 26 Feb 2017 00:18:15 +0100 Merge pull request #695 from csoler/v0.6-ImprovedGUI
+  3230e55 csoler    Sun, 26 Feb 2017 00:16:36 +0100 added some delay in the showHelp() feature
+  12246e3 csoler    Sat, 25 Feb 2017 23:52:57 +0100 added settings variable to allow to always display the help of each tab the first time it is shown
+  e75487e csoler    Sat, 25 Feb 2017 23:16:43 +0100 suppressed a few warnings (suggested by Phenom)
+  a531a41 csoler    Sat, 25 Feb 2017 18:21:24 +0100 fixed recursive call to BIO_set_fd()
+  c313fb5 csoler    Sat, 25 Feb 2017 14:09:39 +0100 removed compilation warning
+  e18cc3e csoler    Fri, 24 Feb 2017 23:34:52 +0100 changed reset to cleanup for backward compatibility in EVP_CIPHER_CTX_cleanup call
+  d1bf977 csoler    Fri, 24 Feb 2017 23:19:47 +0100 fixed bug causing decryption of group data to crash
+  65a383a csoler    Thu, 23 Feb 2017 19:16:48 +0100 fixed typo causing crash in openpgp-sdk
+  753ebdd csoler    Thu, 23 Feb 2017 18:29:02 +0100 Merge pull request #691 from PhenomRetroShare/Fix_UnitTestCompilation
+  83195e1 csoler    Wed, 22 Feb 2017 23:57:04 +0100 Merge pull request #692 from csoler/v0.6-ImprovedGUI
+  dc51911 csoler    Wed, 22 Feb 2017 23:55:29 +0100 added welcome message to show on first start in HomePage
+  fe2059f csoler    Wed, 22 Feb 2017 22:44:00 +0100 fixed update of GxsGroupWidget layout when changing options
+  0e57874 csoler    Wed, 22 Feb 2017 22:22:50 +0100 fixed loading of settings::Server page
+  27db797 csoler    Wed, 22 Feb 2017 22:06:00 +0100 fixed show/hide buttons in appearance settings page
+  8325c72 Phenom    Mon, 20 Feb 2017 16:15:31 +0100 Fix UnitTest Compilation and Travis Error.
+  9371521 csoler    Mon, 20 Feb 2017 23:19:29 +0100 fixed bug causing crash in openssl_crypto due to not zeroing a field that was not duplicated before delete
+  8c3f553 csoler    Mon, 20 Feb 2017 22:54:25 +0100 fixed compilation with openssl1.0.1 broken by previous commits
+  4dac3b4 csoler    Mon, 20 Feb 2017 22:36:35 +0100 removed compilation tweak
+  c3b4985 csoler    Mon, 20 Feb 2017 21:44:48 +0100 compilation fix for openssl-1.1.0 (gxssecurity+gxstunnel part)
+  5c95b88 csoler    Sun, 19 Feb 2017 22:38:02 +0100 compilation fix for openssl-1.1.0 (pqissl+authssl part)
+  57bbd15 csoler    Sun, 19 Feb 2017 11:10:25 +0100 fixing compilation for openssl-1.1.0 (chacha20.cc, HMAC structure, part 2)
+  d7bfc32 csoler    Sun, 19 Feb 2017 10:56:33 +0100 fixing compilation for openssl-1.1.0 (chacha20.cc, HMAC structure)
+  175664e csoler    Sat, 18 Feb 2017 23:58:47 +0100 fixing compilation for openssl-1.1.0 (part 12)
+  0c77a10 csoler    Sat, 18 Feb 2017 23:47:53 +0100 fixing compilation for openssl-1.1.0 (part 11)
+  01e89bb csoler    Sat, 18 Feb 2017 23:47:47 +0100 fixing compilation for openssl-1.1.0 (part 10)
+  fc1a792 csoler    Sat, 18 Feb 2017 18:16:10 +0100 fixing compilation for openssl-1.1.0 (part 9)
+  d5e6792 csoler    Sat, 18 Feb 2017 18:09:49 +0100 fixing compilation for openssl-1.1.0 (part 8)
+  deb3a49 csoler    Sat, 18 Feb 2017 17:00:46 +0100 fixing compilation for openssl-1.1.0 (part 7)
+  5951f46 csoler    Sat, 18 Feb 2017 16:49:35 +0100 fixing compilation for openssl-1.1.0 (part 6)
+  70e2a67 csoler    Sat, 18 Feb 2017 16:40:38 +0100 fixing compilation for openssl-1.1.0 (part 5)
+  13a8389 csoler    Sat, 18 Feb 2017 16:21:17 +0100 fixing compilation for openssl-1.1.0 (part 4)
+  262fa9c csoler    Sat, 18 Feb 2017 15:45:45 +0100 fixing compilation for openssl-1.1.0 (part 3)
+  ba52b05 csoler    Sat, 18 Feb 2017 15:28:27 +0100 fixing compilation for openssl-1.1.0 (part 2)
+  63a2210 csoler    Sat, 18 Feb 2017 14:40:44 +0100 fixing compilation with openssl-1.1.0 (part 1)
+  cda3c74 csoler    Fri, 17 Feb 2017 09:17:22 +0100 attempt at fixing a bug that can cause a crash in p3filelists.cc
+  2e7d952 csoler    Thu, 16 Feb 2017 15:53:15 +0100 Merge pull request #687 from csoler/v0.6-ImprovedGUI
+  f9f79d4 csoler    Thu, 16 Feb 2017 10:17:29 +0100 removed some mentions to PGP
+  dcab611 csoler    Thu, 16 Feb 2017 09:53:54 +0100 improved layout of Home page
+  6cc9468 csoler    Wed, 15 Feb 2017 22:04:15 +0100 Merge pull request #686 from csoler/v0.6-ImprovedGUI
+  3c75135 csoler    Wed, 15 Feb 2017 21:50:53 +0100 pass over AppearancePage to fit to the removal of tool buttons
+  7c8f8ef csoler    Wed, 15 Feb 2017 21:30:49 +0100 pass over settings to improve layouts
+  64d39d8 csoler    Wed, 15 Feb 2017 19:28:26 +0100 Merge pull request #685 from csoler/v0.6-ImprovedGUI
+  391ef3e csoler    Wed, 15 Feb 2017 19:25:46 +0100 improved passphrase window
+  b817648 csoler    Wed, 15 Feb 2017 19:17:41 +0100 fixed a few bugs in cert creation window
+  59f428f csoler    Sun, 12 Feb 2017 23:35:43 +0100 fixed the update of check icons in genCertDialog
+  5069ba8 csoler    Sun, 12 Feb 2017 21:45:22 +0100 improved style/layout of gen cert dialog
+  ccacba7 csoler    Sun, 12 Feb 2017 15:27:13 +0100 added pgp passphrase temporary caching in order to avoid re-asking for password at location creation time
+  f3824f2 csoler    Sat, 11 Feb 2017 10:46:51 +0100 merged upstream/master
+  c61ccda csoler    Tue,  7 Feb 2017 22:04:07 +0100 fixed compilation problem caused by a bug in qtcreator global replace. Warning: always check the result of qtcreator global replace
+  37f3e1a csoler    Tue,  7 Feb 2017 20:15:55 +0100 fixed problem in ID creation code.
+  9226ccc defnax    Tue,  7 Feb 2017 17:01:36 +0100 Added invite info frame for Friend Request Messages.
+  90594bc csoler    Mon,  6 Feb 2017 23:59:18 +0100 Merge pull request #679 from csoler/v0.6-QtOptim
+  32b2cda csoler    Mon,  6 Feb 2017 23:57:50 +0100 Merge pull request #678 from PhenomRetroShare/Fix_DisableSysTrayToolTipOption
+  266affe csoler    Mon,  6 Feb 2017 23:56:43 +0100 Merge pull request #659 from hunbernd/fix/slow-emoticons
+  6a9b697 csoler    Mon,  6 Feb 2017 23:46:01 +0100 made RsReputation::overallReputationLevel() to also return the identity ownership flags so that we dont need to rely on async calls to p3IdService to get them
+  013eb93 csoler    Mon,  6 Feb 2017 00:11:26 +0100 rewrote forum loading method with the proper logarithmic containers
+  d1328f4 hunbernd  Sat, 21 Jan 2017 22:53:56 +0100 Fix spaces between emoticons in message composer and forum
+  d0ab10c hunbernd  Sun,  5 Feb 2017 19:13:40 +0100 Fix slow emoticons by using generic regex rules where possible.
+  865a574 Phenom    Sun,  5 Feb 2017 14:34:33 +0100 Fix DisableSysTrayToolTip Option
+  80e6742 csoler    Fri,  3 Feb 2017 11:45:00 +0100 teaking of the css file
+  389eff0 csoler    Thu,  2 Feb 2017 22:05:28 +0100 improved the qss and look of login window
+  a9b7ed3 csoler    Thu,  2 Feb 2017 21:48:18 +0100 attempt to make the login creation window look better
+  3baaae7 defnax    Thu,  2 Feb 2017 17:58:48 +0100 Fixed People Header Text color Moved info frame for Invite to Top Header
+  bc8aac1 defnax    Thu,  2 Feb 2017 17:15:32 +0100 Added warn messagebox before send invite
+  89a27ae csoler    Wed,  1 Feb 2017 23:08:57 +0100 finished new profile creation window
+  2a36d6b csoler    Wed,  1 Feb 2017 21:55:06 +0100 re-working on the node creation wizard (unfinished)
+  873fbf9 csoler    Wed,  1 Feb 2017 14:32:35 +0100 added 3 missing delete, responsible for small memory leaks
+  0ad581a thunder2  Wed,  1 Feb 2017 13:03:16 +0100 Updated Windows build script to openssl-1.0.2k
+  3eedf1b csoler    Tue, 31 Jan 2017 23:24:09 +0100 Merge pull request #675 from csoler/v0.6-ImprovedGUI
+  79ef403 csoler    Tue, 31 Jan 2017 23:07:59 +0100 tested/fixed all option buttons
+  a357c52 csoler    Tue, 31 Jan 2017 21:51:16 +0100 fixed a few things in options
+  deea1b5 csoler    Tue, 31 Jan 2017 20:59:50 +0100 moved temporary GXS object structures into rsgxsutil.h and used them in p3gxscircles to remove a memory leak
+  0a02419 csoler    Tue, 31 Jan 2017 20:07:00 +0100 fixed a big memory leak in hash cache storage load code, and improved deletion of allocated memory if file reading fails
+  66bbf4d csoler    Mon, 30 Jan 2017 21:38:06 +0100 converted the last CONFIG pages to interactive mode
+  60d9ea0 csoler    Sun, 29 Jan 2017 21:47:13 +0100 changed more ConfigPages to not requiring calls to save()
+  7861b09 defnax    Sun, 29 Jan 2017 19:01:38 +0100 Fixed to display Avatars and nickname on news feeds Messages Item for Distant Messages. Added for Invite Message RS_MSG_USER_REQUEST flag & auto send invites to outbox. Optimized Messages Item for Invite Messages, display a Send Invite Button, to send back own rs cert link via Distant Message.
+  bd379e6 csoler    Sat, 28 Jan 2017 18:13:38 +0100 changed a few pages to not requiring to call save()
+  7327f1a csoler    Sat, 28 Jan 2017 15:26:12 +0100 fixed deadlock caused by locking the mutex in p3Identity after the one in p3GxsReputation
+  f935d9f csoler    Thu, 26 Jan 2017 22:48:25 +0100 Merge pull request #669 from csoler/v0.6-ImprovedGUI
+  53a1993 csoler    Thu, 26 Jan 2017 22:46:58 +0100 added missing files
+  6321bc1 csoler    Thu, 26 Jan 2017 22:43:44 +0100 Merge pull request #668 from csoler/v0.6-ImprovedGUI
+  3395727 csoler    Thu, 26 Jan 2017 22:42:24 +0100 keep quit button into toolbar
+  67af166 csoler    Thu, 26 Jan 2017 22:35:33 +0100 moved Options window into a new Preferences tab
+  f3caad9 csoler    Thu, 26 Jan 2017 18:16:30 +0100 Merge pull request #667 from csoler/v0.6-ImprovedGUI
+  883c4cc csoler    Thu, 26 Jan 2017 09:19:18 +0100 improved AboutWidget a little bit
+  1cd64ce csoler    Wed, 25 Jan 2017 22:41:23 +0100 improved EE
+  0774f08 csoler    Wed, 25 Jan 2017 20:27:53 +0100 fixed display of about widget
+  1cdb970 csoler    Tue, 24 Jan 2017 22:39:28 +0100 moved the AboutDialog into Options
+  f90ebb1 defnax    Tue, 24 Jan 2017 16:17:53 +0100 update Person details window used on Statistics. clean up look and feel of Friend Details to get more user friendly for normal users.
+  ca5fa7a csoler    Mon, 23 Jan 2017 21:11:22 +0100 Merge pull request #653 from RetroPooh/master
+  1d5c536 csoler    Mon, 23 Jan 2017 21:04:41 +0100 Merge pull request #650 from PhenomRetroShare/Add_StatusBarHideOption
+  f7a1348 csoler    Mon, 23 Jan 2017 19:13:50 +0100 made Accepted option in Transfers to send tunnel requests for both encrypted and clear tunnels
+  8cf5abc RetroPooh Mon, 23 Jan 2017 21:10:06 +0300 options-network default tab opened changed to first
+  9937513 Phenom    Wed, 18 Jan 2017 20:18:12 +0100 Add StatusBar and its widgets show options.
+  091ea05 RetroPooh Mon, 23 Jan 2017 19:58:31 +0300 fix previous - forgot .h file
+  5dc5496 RetroPooh Mon, 23 Jan 2017 18:31:00 +0300 add friend dialog - hide email and trust strings if not in advanced mode
+  bcb1f19 RetroPooh Mon, 23 Jan 2017 15:09:40 +0300 friend add wizard - hide options checkboxes in collapsible panel, default on in advanced mode
+  e82b4fe RetroPooh Mon, 23 Jan 2017 00:34:02 +0300 friend connect wizard - add tooltips for checkboxes; hide 40peers warning if you have <30 friends; restored back own cert actions for advanced mode
+  58c296c RetroPooh Mon, 23 Jan 2017 00:25:17 +0300 hide typing notification setting in chat options by default
+  9268fd5 RetroPooh Mon, 23 Jan 2017 00:21:23 +0300 Merge branch 'master' of https://github.com/RetroShare/RetroShare
+  297907e csoler    Sun, 22 Jan 2017 21:48:48 +0100 Merge pull request #662 from csoler/v0.6-ImprovedGUI
+  7da68ff csoler    Sun, 22 Jan 2017 21:44:26 +0100 improved certificate parsing in Home so that corrupted certs never get accepted
+  214fbc7 csoler    Sun, 22 Jan 2017 21:06:11 +0100 added a friend recommendation menu entry in Home drop menu, and created the dialog to create/send the recommendations
+  aa62136 csoler    Sun, 22 Jan 2017 19:47:50 +0100 Merge pull request #657 from PhenomRetroShare/Add_NoCppWarningFlag
+  dc43611 csoler    Sun, 22 Jan 2017 18:52:30 +0100 changed Lobbies into Chat rooms in a few places
+  73d9a48 csoler    Sun, 22 Jan 2017 18:36:36 +0100 update client Grp TS even when friend peer is subscribed to no groups, so as to avoid the friend re-sendign an empty list indefinitly (fix suggested by jo)
+  baa9713 csoler    Sat, 21 Jan 2017 21:38:10 +0100 partially changed lobby->chat room in displayed strings in the GUI
+  3538b0a csoler    Sat, 21 Jan 2017 20:56:00 +0100 merged upstream/pr/648
+  72493ad csoler    Sat, 21 Jan 2017 17:31:06 +0100 Merge pull request #658 from PhenomRetroShare/Fix_Compilation
+  1f5ef4c Phenom    Sat, 21 Jan 2017 17:15:38 +0100 Fix Compilation
+  e07d6ff csoler    Sat, 21 Jan 2017 17:26:44 +0100 removed debuginfo from PR 654
+  6f7f1c2 csoler    Sat, 21 Jan 2017 17:16:56 +0100 Merge pull request #656 from PhenomRetroShare/Fix_UnitTestWarnings
+  eee2a7b Phenom    Sat, 21 Jan 2017 16:51:37 +0100 Add no cpp #warning Config flag to better show other ones.
+  aa05d60 Phenom    Sat, 21 Jan 2017 16:31:22 +0100 Fix all warnings in UnitTest
+  e3240de csoler    Sat, 21 Jan 2017 15:06:46 +0100 Merge pull request #654 from csoler/v0.6-GXS-LimitedSync2
+  9a20160 csoler    Sat, 21 Jan 2017 14:01:53 +0100 merged upstream/master
+  e95c131 felisucoi Sat, 21 Jan 2017 00:08:23 +0100 Merge branch 'master' of https://github.com/RetroShare/RetroShare
+  ee4d722 csoler    Fri, 20 Jan 2017 23:27:18 +0100 fixed cache deletion of GXS grp meta that caused deleted groups to not come back when available
+  7bbb993 csoler    Fri, 20 Jan 2017 23:00:05 +0100 disabled emoticons from messages and toasters, since they significantly slow down the whole software
+  0ca477d RetroPooh Fri, 20 Jan 2017 22:26:50 +0300 add chatlobby option to disable sending typing notifications
+  d1af2e0 csoler    Fri, 20 Jan 2017 00:00:47 +0100 merged with upstream/master
+  b52ab0f csoler    Thu, 19 Jan 2017 23:59:26 +0100 added auto-clean of unused groups when grpAutoSync is enabled (so it does not touch identities)
+  39aaca9 felisuc   oibi Thu, 19 Jan 2017 14:45:08 +0100 Merge branch 'master' of https://github.com/RetroShare/RetroShare
+  f3b3d2b csoler    Thu, 19 Jan 2017 14:01:54 +0100 disabled emoticon replacement in GxsChannelPostItem and chat lobby toaster and chat toaster, where there are not needed as compare to how problematic they can be
+  73f59c2 felisucoi Thu, 19 Jan 2017 13:58:36 +0100 Merge branch 'master' of https://github.com/RetroShare/RetroShare
+  cb61d58 csoler    Thu, 19 Jan 2017 13:49:17 +0100 disabled emoticon replacement in channel title because it causes channels to load extremely slowly due to the enormous amount of emoticons
+  410123b csoler    Thu, 19 Jan 2017 11:16:47 +0100 added warning about consistency error in idservice group flags
+  06265f2 csoler    Thu, 19 Jan 2017 11:12:37 +0100 added consistency check in meta data in publishGroup() and updateGroup() in order to avoid bad data supplied from GXS services
+  5f7327f felisucoi Wed, 18 Jan 2017 21:45:56 +0100 Merge branch 'master' of https://github.com/RetroShare/RetroShare
+  d2dc632 csoler    Wed, 18 Jan 2017 21:27:27 +0100 Merge pull request #651 from csoler/v0.6-QtOptim
+  34962c3 csoler    Wed, 18 Jan 2017 21:22:38 +0100 added a checkbox to load emoticons in forums as an option, so as to avoid crazy loading times. Disabled by default until we fix the RsHtml code
+  1b8de7b jolaville Wed, 18 Jan 2017 13:25:45 +0100 Attempt to reduce BW bursts
+  717b455 felisucoi Wed, 18 Jan 2017 10:55:01 +0100 Merge pull request #13 from felisucoibi/0.6-buttons
+  47a4ed5 felisucoi Wed, 18 Jan 2017 10:34:34 +0100 Update ChatLobbyWidget.ui
+  837bb76 felisucoi Wed, 18 Jan 2017 10:31:50 +0100 Update CreateLobbyDialog.cpp
+  2d764f4 felisucoi Wed, 18 Jan 2017 10:26:25 +0100 updated sectionnames chat lobbi
+  1217a85 felisucoi Wed, 18 Jan 2017 10:15:07 +0100 change chat lobies t chat rooms strings
+  07dd196 felisucoi Wed, 18 Jan 2017 09:54:32 +0100 changed friends to second flaces csoler agreed
+  5646187 felisucoi Wed, 18 Jan 2017 00:48:00 +0100 Merge branch 'master' of https://github.com/RetroShare/RetroShare
+  bdc5680 csoler    Tue, 17 Jan 2017 23:01:51 +0100 Merge pull request #647 from RetroPooh/master
+  e778b8c felisucoi Tue, 17 Jan 2017 17:01:37 +0100 Merge pull request #12 from felisucoibi/0.6-buttons
+  dc391c5 felisucoi Tue, 17 Jan 2017 17:00:41 +0100 Update ChatLobbyWidget.h
+  8519b79 felisucoi Tue, 17 Jan 2017 16:56:17 +0100 Merge pull request #11 from felisucoibi/0.6-buttons
+  ce53a9d felisucoi Tue, 17 Jan 2017 16:55:14 +0100 Update FriendsDialog.h
+  296903a felisucoi Tue, 17 Jan 2017 16:51:16 +0100 Update MainWindow.cpp
+  66ab7c9 felisucoi Tue, 17 Jan 2017 16:49:36 +0100 Update ChatLobbyUserNotify.cpp
+  afd5e55 felisucoi Tue, 17 Jan 2017 16:38:18 +0100 Merge pull request #10 from felisucoibi/0.6-buttons
+  982c837 felisucoi Tue, 17 Jan 2017 16:37:23 +0100 Update PostedDialog.h
+  d31cb0d felisucoi Tue, 17 Jan 2017 16:36:24 +0100 Update NewsFeed.h
+  701868d felisucoi Tue, 17 Jan 2017 16:35:20 +0100 Update MessagesDialog.h
+  0633744 felisucoi Tue, 17 Jan 2017 16:34:37 +0100 buttons
+  02aec3d felisucoi Tue, 17 Jan 2017 16:32:56 +0100 button changes
+  f079e99 RetroPooh Tue, 17 Jan 2017 17:21:51 +0300 fix mute option in chatlobby id menu
+  8568199 csoler    Tue, 17 Jan 2017 12:39:54 +0100 fixed mistake that prevented GXS posts to propagate
+  e197117 csoler    Mon, 16 Jan 2017 20:57:19 +0100 fixed last commit because of compilation
+  d5936a5 csoler    Mon, 16 Jan 2017 20:49:30 +0100 removed debug msg
+  967b85c csoler    Mon, 16 Jan 2017 20:49:15 +0100 removed old call to rsIdentity in rsgxsnetservice and removed warning
+  c00caa9 csoler    Sun, 15 Jan 2017 21:28:28 +0100 Merge pull request #644 from G10h4ck/ccleanup
+  e7a119f csoler    Sun, 15 Jan 2017 21:13:27 +0100 added a warning and skip files with missing hash in copy link
+  f314e7d csoler    Sun, 15 Jan 2017 20:56:44 +0100 simplified code in PR/630
+  7e750d3 csoler    Sun, 15 Jan 2017 20:31:22 +0100 Merge pull request #630 from RetroPooh/master
+  75d717c RetroPooh Sun, 15 Jan 2017 20:29:59 +0300 fix
+
+ -- Retroshare Dev Team <contact@retroshare.net>  Sat, 04 Mar 2017 12:00:00 +0100
+
+retroshare06 (0.6.1-1.20170117~5c296b9~trusty) trusty; urgency=low
+
+  5c296b9 csoler Sun, 15 Jan 2017 09:57:06 +0100 removed warning when peer list is empty in cache_load of identities
+  233c38d csoler Sat, 14 Jan 2017 20:45:53 +0100 Merge pull request #641 from csoler/v0.6-Reputations
+  dd40877 csoler Sat, 14 Jan 2017 19:08:14 +0100 removed debug info
+  318a372 csoler Sat, 14 Jan 2017 19:04:14 +0100 fixed reloading of distribution icons when opinion is changed over an ID in forums. Improved efficiency of forum loading in general
+  25680d5 csoler Sat, 14 Jan 2017 17:29:37 +0100 removed quadratic cost in forum thread fill
+  7308695 csoler Sat, 14 Jan 2017 11:02:02 +0100 fixed reloading of GXS id icon when banned/unbanned in forums
+  57f22e9 csoler Sat, 14 Jan 2017 10:51:14 +0100 removed costly size() call in QList
+  1435222 csoler Sat, 14 Jan 2017 10:19:31 +0100 fixed compilation in tests
+  c4695e3 csoler Fri, 13 Jan 2017 22:41:54 +0100 fixed compilation of unittests
+  df94de9 csoler Fri, 13 Jan 2017 18:31:50 +0100 disallow to ban your own identity in forums, and make opinions show up as a function ofwhat the ID opinion already is
+  17cf660 csoler Fri, 13 Jan 2017 16:35:42 +0100 improved settings->People text fields and tooltip
+  e4960e0 csoler Fri, 13 Jan 2017 10:24:28 +0100 Merge pull request #642 from G10h4ck/ccleanup
+  3c800c4 csoler Thu, 12 Jan 2017 22:54:38 +0100 fixed enabled 0 in settings->People fields
+  cdd3973 Gio. Mazzurco Thu, 12 Jan 2017 22:28:58 +0100 Documentation and code cleanup
+  19819b9 csoler Thu, 12 Jan 2017 22:14:41 +0100 removed debug info
+  d7e0682 csoler Thu, 12 Jan 2017 21:59:44 +0100 fixed sorting by reputation in IdDialog
+  3c07d50 csoler Thu, 12 Jan 2017 21:27:02 +0100 set auto-reset of banned nodes to "never" by default
+  70a92a1 csoler Thu, 12 Jan 2017 21:14:36 +0100 various small fixes in reputation/identity cleaning
+  bd7f6ac csoler Thu, 12 Jan 2017 20:39:49 +0100 added to parameters in options to fix the time banned ids are kept in list and prevented to re-download
+  a7f0fff csoler Tue, 10 Jan 2017 23:05:00 +0100 made sure reputations are not stamped when requested for debugging/printing
+  e329815 csoler Tue, 10 Jan 2017 21:59:27 +0100 Merge pull request #621 from G10h4ck/ccleanup
+  a810ae9 csoler Tue, 10 Jan 2017 21:44:37 +0100 use rsReputations instead of rsIdentity for reputation calls. Suspended reputation vetting code which is not needed anymore
+  2f1d907 csoler Tue, 10 Jan 2017 20:10:28 +0100 removed debug info
+  3057533 csoler Tue, 10 Jan 2017 20:06:40 +0100 Merge pull request #608 from PhenomRetroShare/Add_NoDeprecatedWarningFlag
+  4838916 csoler Tue, 10 Jan 2017 19:24:51 +0100 Merge pull request #622 from G10h4ck/android_quircks
+  8d8453f csoler Mon,  9 Jan 2017 23:47:51 +0100 removed the reputation calls through rsIdentity. Improved the logic of updating static identity flags in p3gxsreputations
+  2ed9830 csoler Mon,  9 Jan 2017 15:49:12 +0100 fixed 2 comments in GXS net service
+  2fc8d22 csoler Sun,  8 Jan 2017 22:00:54 +0100 changed cleaning strategy of p3gxsreputations to be based on last activity of the reputation system rather than the identity system
+  b6a3f53 csoler Sun,  8 Jan 2017 11:14:18 +0100 changed the needsUpdate flag so that unset/default needs update, and added code to read old reputation set item class
+  0dd3a31 csoler Sun,  8 Jan 2017 11:10:33 +0100 added last used TS in reputation items
+  e895b6b csoler Thu,  5 Jan 2017 23:32:27 +0100 Merge pull request #626 from csoler/v0.6-Reputations
+  d631758 csoler Thu,  5 Jan 2017 23:07:59 +0100 added hashstream class to hash content of RsIdentityUsage and fix duplication of identity usage statistics
+
+ -- Retroshare Dev Team <contact@retroshare.net>  Sun, 15 Jan 2017 12:00:00 +0100
+
+retroshare06 (0.6.1-1.20170103.f79706a1~trusty) trusty; urgency=low
+
+  5469eb1 defnax   Tue,  3 Jan 2017 16:43:31 +0100 Added display labels to show positive and negative votes
+  0ba28a2 defnax   Tue,  3 Jan 2017 01:37:16 +0100 Removed Column text for Votes, Distribution replaced by icon. Set column header to "ResizeToContents" to not use much space Added new Bio hazard icons to look same like other ones
+  00613d4 csoler   Mon,  2 Jan 2017 14:00:23 +0100 made sure we have the public keys for msg validation, as only the private key is available when we are admin/publisher of a group
+  a962330 csoler   Sun,  1 Jan 2017 21:28:14 +0100 fixed compilation in GxsSecurity with debug flags
+  e883a32 csoler   Sun,  1 Jan 2017 21:10:14 +0100 added more debug info in msg validation code
+  bb7d829 csoler   Sun,  1 Jan 2017 20:54:00 +0100 fixed compilaiton in debug mode for rsgenexchange
+  a261094 csoler   Sun,  1 Jan 2017 20:22:54 +0100 removed debug output form p3idservice
+  1a9f191 csoler   Sun,  1 Jan 2017 18:22:01 +0100 Merge pull request #617 from csoler/v0.6-Circles2
+  a6ec626 csoler   Sun,  1 Jan 2017 18:07:02 +0100 fixed wrong icon in GxsIdChooser
+  f07ebbf csoler   Sun,  1 Jan 2017 17:51:03 +0100 fixed circle authentication policy
+  e312848 csoler   Sun,  1 Jan 2017 17:50:09 +0100 added documentation of flags in GXS msg authentication  policy
+  fcf8a35 csoler   Sun,  1 Jan 2017 17:49:34 +0100 check that author id is not null before complaining that it does not exist
+  c71cf7a csoler   Sun,  1 Jan 2017 17:47:24 +0100 removed timestamping of key that was in the wrong place
+  97957bd csoler   Sat, 31 Dec 2016 18:20:28 +0100 fixed update problem due to forgetting that delay=0 means no time constraints
+  b1923dd csoler   Sat, 31 Dec 2016 17:47:15 +0100 fixed compilation
+  6c49b3d csoler   Sat, 31 Dec 2016 16:43:52 +0100 Merge pull request #616 from PhenomRetroShare/Fix_SomeNewWarnings
+  41386c6 Phenom   Sat, 31 Dec 2016 15:17:51 +0100 Fix some new warnings
+  e2dfadf csoler   Sat, 31 Dec 2016 14:23:37 +0100 started documentation of GXS flags. Fixed a bug in p3gxscircles authentication policy
+  85e6f61 csoler   Sat, 31 Dec 2016 13:48:17 +0100 Merge pull request #612 from csoler/v0.6-Reputations
+  f8ac391 csoler   Sat, 31 Dec 2016 13:42:29 +0100 better documentation of anti-spam policy
+  924e3bf csoler   Thu, 29 Dec 2016 21:54:50 +0100 changed anti-spam policy to require a minimum of NEUTRAL to forward posts of trusted people
+  057e3eb csoler   Thu, 29 Dec 2016 18:10:21 +0100 extended GXS sync limit to sending instead of just requesting, in order to make backward compatibility less painful
+  9d82a3f csoler   Thu, 29 Dec 2016 15:24:31 +0100 replace mNbAttempts in signature and validation of posts by a timeout, which allows to wait for missing keys more robustly
+  3a45bac csoler   Thu, 29 Dec 2016 15:12:58 +0100 removed unused autoBanIdentitiesLimit variable
+  f3f0fce csoler   Thu, 29 Dec 2016 10:34:57 +0100 added load/save of new thresholds in p3gxsreputation. Removed some unused variables
+  fb73391 csoler   Wed, 28 Dec 2016 18:58:49 +0100 added two fields in settings/people to setup the thresholds to decide between neutral and remotely positive/negative reputation
+  da881e1 csoler   Tue, 27 Dec 2016 21:13:37 +0100 fixed setting of author reputation from forum thread menu
+  3a92124 csoler   Tue, 27 Dec 2016 20:42:47 +0100 added method to show a given post author into the people tab
+  6473782 csoler   Tue, 27 Dec 2016 17:17:23 +0100 added an icon for when information is missing for an ID in forum distribution
+  5ed879c csoler   Mon, 26 Dec 2016 17:00:21 +0100 added small debug output in GxsForumThreadWidget
+  d8233bb csoler   Mon, 26 Dec 2016 16:59:52 +0100 merged updatream/master
+  742a764 csoler   Mon, 26 Dec 2016 15:59:53 +0100 added display of warning for non forwarded posts
+  811d084 csoler   Sun, 25 Dec 2016 23:43:29 +0100 only show distribution column if anti-spam is enabled
+  c80d3ec csoler   Sun, 25 Dec 2016 23:12:07 +0100 added check for reputation before sending message ids
+  b34ab44 csoler   Sat, 24 Dec 2016 17:29:53 +0100 added menu entries to vote for/against a forum poster
+  d423745 csoler   Sat, 24 Dec 2016 15:04:08 +0100 added column to show distribution data and moved ReputationItemDelegate to GxsIdDetails
+  c100775 defnax   Sat, 24 Dec 2016 14:40:56 +0100 Changed Share icon on Home View
+  873c0e6 csoler   Sat, 24 Dec 2016 14:13:02 +0100 added display of reputation in forums
+  e5e5909 csoler   Fri, 23 Dec 2016 22:53:57 +0100 added proper display of reputation as an icon in IDDialog
+  72fb8f1 csoler   Fri, 23 Dec 2016 17:52:02 +0100 changed the reputation system to output a level that differentiate your own opinion to your friends opinion
+  36453dd csoler   Thu, 22 Dec 2016 22:20:07 +0100 Merge pull request #609 from G10h4ck/android_debug
+  8647761 defnax   Thu, 22 Dec 2016 17:10:51 +0100 Changed Paste icon
+  1b032e0 Gio      Thu, 22 Dec 2016 13:49:13 +0100 qml-app: remove deprecated usage of LibresapiLocalClient in ChatView
+  2c10e20 Gio      Thu, 22 Dec 2016 13:47:44 +0100 qml-app: Added button to deny friendship
+  3de3bec Gio      Thu, 22 Dec 2016 13:47:08 +0100 Cleanup #ifdef mess in RsAccountsDetail::PathDataDirectory()
+  06a1020 Gio      Thu, 22 Dec 2016 00:33:34 +0100 Add workaround to see debug messages from native code in android service
+  8b9038a csoler   Thu, 22 Dec 2016 11:21:49 +0100 improved display/wording of usage statstics in People
+  0a3ec97 csoler   Thu, 22 Dec 2016 00:14:16 +0100 added statistics info for key requests
+  83302e0 csoler   Wed, 21 Dec 2016 23:19:20 +0100 Merge pull request #607 from PhenomRetroShare/Fix_Compilation
+  40cf768 Phenom   Wed, 21 Dec 2016 21:23:54 +0100 Fix compilation and some new warnings.
+  aca36a3 defnax   Wed, 21 Dec 2016 19:07:57 +0100 Improving the Certificate Page for Connect Wizard: Added place holder text for Cert Field renamed some strings Improved layout for easy paste key and display the errors.
+  d3051ef csoler   Wed, 21 Dec 2016 00:34:07 +0100 added display of usage statistics for GXS identities
+  f3e699a csoler   Tue, 20 Dec 2016 14:08:47 +0100 fixed typo causing publishTest to fail in some cases
+  8de9ee8 csoler   Mon, 19 Dec 2016 23:28:57 +0100 made friendly time unit returns empty string when time is 0. Fixes 46y display in search dialog
+  9d8690b csoler   Mon, 19 Dec 2016 21:46:55 +0100 Merge pull request #606 from csoler/v0.6-GXS-LimitedSync2
+  948b88b csoler   Mon, 19 Dec 2016 21:40:04 +0100 fixed bug caused by calling clear in constructor which would reset the TS in GXS when saving...
+  c9511c4 defnax   Mon, 19 Dec 2016 20:52:24 +0100 update emotes strings
+  ef0850e csoler   Mon, 19 Dec 2016 20:44:15 +0100 added recording system for usage cases of GXS ids
+  0cbe83e thunder2 Sun, 18 Dec 2016 12:30:27 +0100 Added auto-login as default in Windows build script
+  ed61d72 csoler   Sat, 17 Dec 2016 19:10:13 +0100 fixed compilaiton
+  330cc98 csoler   Sat, 17 Dec 2016 18:14:44 +0100 fixed test of max age when receiving posts
+  4dc284a csoler   Sat, 17 Dec 2016 14:15:51 +0100 added auto-login default on ubuntu
+
+ -- Retroshare Dev Team <contact@retroshare.net>  Tue, 03 Jan 2017 23:00:00 +0100
+
+retroshare06 (0.6.1-1.20161217.4dc284a3~vivid) vivid; urgency=low
+
+  f8f040b csoler Fri, 16 Dec 2016 10:03:23 +0100 fixed deadlock due to cross-locking RsGxsNetService and RsGxsGenExchange (reported by sss)
+  1ef11a2 csoler Thu, 15 Dec 2016 23:21:11 +0100 Merge pull request #599 from G10h4ck/qml_app_chat
+  b857d9a csoler Thu, 15 Dec 2016 23:10:09 +0100 Merge pull request #605 from csoler/v0.6-FileListsOptim
+  8637cfa csoler Thu, 15 Dec 2016 23:07:40 +0100 added detection of flag change so that new TS is set on root of hierarchy and changes are made visible to friends at next update
+  c3443df csoler Thu, 15 Dec 2016 12:36:27 +0100 Merge pull request #603 from G10h4ck/master
+  3662a36 Gio    Thu, 15 Dec 2016 11:20:13 +0100 Coherent behaviour of general config with auto-login compile option
+  31b1583 csoler Thu, 15 Dec 2016 09:31:20 +0100 Merge pull request #601 from csoler/v0.6-FileListsOptim
+  08294de csoler Wed, 14 Dec 2016 22:58:49 +0100 removed unused updateHash() functions in directory_storage. Fixed a bug that caused H(H(F)) to not be recomputed at start, causing e2e encryption to fail in some cases.
+  81dffbe csoler Wed, 14 Dec 2016 16:45:45 +0100 Merge pull request #591 from G10h4ck/split_autologin
+  96b6cd3 defnax Wed, 14 Dec 2016 15:20:03 +0100 Added "Add friends Certificate" Button for Home View, for call easy the Text Page for Paste friends Cert faster.
+  f618abe Gio    Wed, 14 Dec 2016 14:25:43 +0100 Change the auto-login warning message accordign to Cyril suggestion
+  f3c4de2 csoler Wed, 14 Dec 2016 10:06:41 +0100 Merge pull request #598 from csoler/v0.6-GXS-LimitedSync2
+  a842202 csoler Wed, 14 Dec 2016 09:59:20 +0100 fixed compilation and set the default storage to 1year to comply with forum default
+  1202339 csoler Wed, 14 Dec 2016 00:09:54 +0100 Merge pull request #592 from csoler/v0.6-GXS-LimitedSync2
+  cbc8287 csoler Tue, 13 Dec 2016 22:46:30 +0100 used item disable to show current choice in sync/store menu since some systems dont show the menu icons
+  fca8d6f csoler Tue, 13 Dec 2016 21:52:11 +0100 added display of storage/sync in forum summary
+  5953e56 csoler Tue, 13 Dec 2016 21:12:34 +0100 added auto-consistency between store/sync periods
+  dd2a3c2 csoler Mon, 12 Dec 2016 22:52:55 +0100 fixed serialisation bug in new UpdateMap code, and removed debug info from RsGxsNetService
+  2e717d3 defnax Mon, 12 Dec 2016 21:16:56 +0100 Added Home Page View for easy see own Cert to Copy and Share to Friends Fixed Share Manager Label layout Update emotes file Set radio items font size to stylesheet file
+  0d94b68 csoler Mon, 12 Dec 2016 21:01:24 +0100 removed duplicate peerID/grpId in msg/grp update maps
+  4933cce csoler Sat, 10 Dec 2016 22:58:23 +0100 Merge pull request #595 from PhenomRetroShare/Add_UnreadColumnToGroupTreeWidget
+  f2898da csoler Sat, 10 Dec 2016 20:51:12 +0100 Merge pull request #596 from PhenomRetroShare/Fix_RSElidedItemDelegateTextColor
+  6c6b437 Gio    Sat, 10 Dec 2016 20:23:30 +0100 qml-app: Fix responsiveness of ChatView
+  803d1b6 Phenom Sat, 10 Dec 2016 19:52:46 +0100 Fix RSElidedItemDelegate text color.
+  8f452ee Phenom Sat, 10 Dec 2016 17:59:58 +0100 Add Unread column to GroupTreeWidget
+  478746f csoler Thu,  8 Dec 2016 23:53:28 +0100 moved incoming msg time check to RsGenExchange validation method
+  1fa20e1 Gio    Thu,  8 Dec 2016 21:57:26 +0100 Added a dialog to create GXS Identities
+  8b697eb csoler Thu,  8 Dec 2016 21:53:39 +0100 added check to prevent loading saving corrupted peer/grp ids in GXS update maps
+  c3aca0c Gio    Thu,  8 Dec 2016 15:56:23 +0100 Implement a working Distant Chat prototype in Qml
+  ae2accd csoler Thu,  8 Dec 2016 14:30:47 +0100 fixed cmpilation of unittests
+  ae37787 csoler Thu,  8 Dec 2016 09:17:56 +0100 merged with upstream/master
+  242338d csoler Thu,  8 Dec 2016 09:00:55 +0100 Merge pull request #593 from G10h4ck/libresapi_distant_chat
+  6c4497a csoler Wed,  7 Dec 2016 22:41:05 +0100 improved debug output in rsgxsutil. Added disabled code for removing old unused groups
+  d9416d3 csoler Wed,  7 Dec 2016 22:00:50 +0100 added proper use of storage time parameter in group msg cleanup
+  9eef412 Gio    Wed,  7 Dec 2016 20:09:14 +0100 Expose libresapi for distant chat
+  b03fe3d csoler Tue,  6 Dec 2016 23:28:28 +0100 fixed computation of max update time for sync
+  68f7fff csoler Tue,  6 Dec 2016 23:02:25 +0100 fixed saving bug in GrpConfigMap
+  a4c14c2 csoler Tue,  6 Dec 2016 22:17:03 +0100 improved serialisation methods in RsGxsNet items, and added serialisation for RsGrpConfigItem
+  661038d csoler Mon,  5 Dec 2016 23:42:44 +0100 added a function to check keep/req times for consistency
+  7afb91d csoler Mon,  5 Dec 2016 22:14:48 +0100 added machinery to allow to set/get sync and store periods for GXS groups
+  f8de12d csoler Mon,  5 Dec 2016 17:49:00 +0100 updated changelog
+  d2ef224 csoler Sun,  4 Dec 2016 23:26:48 +0100 added entry in rsgxsnetservice to change sync params
+  5612647 csoler Fri, 11 Nov 2016 00:10:01 +0100 added new GrpServerConfigMap to store additional data on groups for net service. Removed pointers to simplify the code
+  143829c csoler Wed,  9 Nov 2016 16:18:43 +0100 moved constants for GXS group management into rsgxs.h
+  f3a34bf csoler Sat, 29 Oct 2016 17:26:08 +0200 created a new item to hold/save per gxs group information (statistics, update delays)
+  c6d21e4 csoler Fri, 28 Oct 2016 22:55:01 +0200 changed old msg update default strategy to one month
+  bba1a71 csoler Fri, 28 Oct 2016 22:37:56 +0200 removed deprecated bandwidth recorder code in RsGxsNetService
+  7c35411 Gio    Sat,  3 Dec 2016 22:22:13 +0100 Suppress compiler warning about autologin parameter not used
+
+ -- Retroshare Dev Team <contact@retroshare.net>  Sat, 17 Dec 2016 13:00:00 +0100
+
+retroshare06 (0.6.1-1.20161205.f8de12d3~trusty) trusty; urgency=low
+
+  cf8dac2 csoler   Sat,  3 Dec 2016 21:00:16 +0100 fixed initialisation of random salt in directory updater when no config file is presen
+  eedeaeb csoler   Sat,  3 Dec 2016 15:13:04 +0100 used light grey instead of read to show missing directories
+  8adb91b csoler   Sat,  3 Dec 2016 15:04:57 +0100 removed compilation of ShareDialog that is unused, and cleanup the editing in ShareMan
+  6890669 defnax   Fri,  2 Dec 2016 23:00:57 +0100 update emotes file
+  a005fa0 csoler   Fri,  2 Dec 2016 19:36:34 +0100 display missing directories in red in share manager
+  ff271c6 csoler   Fri,  2 Dec 2016 19:02:41 +0100 force recheck of existing files at start, to possibly re-hash files that were not alre
+  d986216 csoler   Thu,  1 Dec 2016 23:27:15 +0100 remove non existing shared directories when not found on the disk
+  d7ef33e csoler   Wed, 30 Nov 2016 22:51:18 +0100 Merge pull request #544 from PhenomRetroShare/Fix_SomeWarnings
+  674b6de Phenom   Sat, 22 Oct 2016 23:48:19 +0200 Fix Some gcc warnings 383 to 208 lines
+  74aa55e defnax   Wed, 30 Nov 2016 08:12:46 +0100 Merge pull request #587 from dimqua/patch-1
+  d616df3 defnax   Wed, 30 Nov 2016 08:12:38 +0100 Merge pull request #586 from hunbernd/fix/external-emoticons
+  90abd2f dimqua   Tue, 29 Nov 2016 19:05:02 +0300 bdboot update
+  5fd1de0 hunbernd Mon, 28 Nov 2016 00:35:09 +0100 Fixed loading of external emoticons - path comparison was Linux specific, also it h
+  137d71c csoler   Sun, 27 Nov 2016 20:57:38 +0100 extended the window during which the GUI is told to tell that the update of shared di
+  6937d87 csoler   Sun, 27 Nov 2016 12:21:14 +0100 changed from std::string to RsPgpId to represent openned items in FriendList
+  f3d7948 csoler   Sun, 27 Nov 2016 12:20:32 +0100 turned one error into a warning in p3filelists.cc when requesting an unexisting ref
+  8b22924 defnax   Sun, 27 Nov 2016 18:00:26 +0100 Merge branch 'master' of https://github.com/RetroShare/RetroShare
+  cfd4afd defnax   Sun, 27 Nov 2016 17:59:15 +0100 Update emoticons file
+  5216636 defnax   Sun, 27 Nov 2016 16:42:45 +0100 Merge pull request #585 from PhenomRetroShare/Add_RSELidedItemDelegate
+  486c113 defnax   Sun, 27 Nov 2016 15:58:53 +0100 Changed smiley widget default width Update Emotes file
+  0f63921 defnax   Sun, 27 Nov 2016 00:11:21 +0100 Fixing icon size for smiley widget.
+  2a758dd csoler   Sat, 26 Nov 2016 19:19:15 +0100 changed shared files tree header when updating
+  aa4ecd7 csoler   Sat, 26 Nov 2016 18:58:02 +0100 added limit to calls of PreMods() in SharedFilesDialog so as to keep CPU load minimal when updating dirs from friends. Disabled sorting when new data comes.
+  d01644c csoler   Sat, 26 Nov 2016 11:26:02 +0100 added back the test for local/remote in SharedFilesDialog as it reduces the load anyway
+  4ef1b08 csoler   Sat, 26 Nov 2016 11:22:35 +0100 attempt to fix emoticons sizes on high DPI screens
+  3386238 csoler   Sat, 26 Nov 2016 11:03:31 +0100 improved preservation of directories when updating, and allow to temporarily disable sorting while an update is received
+  7aaf330 defnax   Sat, 26 Nov 2016 00:02:58 +0100 Added category icons for Smiley Groups Updated emotes file, sorted Emoticons.
+  c92c270 csoler   Fri, 25 Nov 2016 22:30:47 +0100 Merge pull request #584 from mr-alice/v0.6-FileLists
+  729c05a mr-alice Fri, 25 Nov 2016 21:09:34 +0100 merged with upstream code
+  d975a18 csoler   Fri, 25 Nov 2016 21:06:40 +0100 added doubling of buffer size in checkSectionSize when missing space. Used 1024 instead of 1000 as start size
+  2953957 mr-alice Fri, 25 Nov 2016 20:50:10 +0100 added full re-scan when symbolic links are (des)activated, since the directory time stamps will not trigger an update
+  3f3efca mr-alice Fri, 25 Nov 2016 20:33:27 +0100 removed canonicalize_file_name from MacOS compilation
+  5fbc263 csoler   Fri, 25 Nov 2016 20:05:23 +0100 applied removal of realloc to other files in file_sharing/ directory
+  0cb7778 csoler   Fri, 25 Nov 2016 18:52:04 +0100 removed all calls to realloc causing major slow down on windows where its implementation is extremely inefficient
+  5f69c9e mr-alice Thu, 24 Nov 2016 23:42:56 +0100 added an option to follow symbolic links or not, and anti-loop system during directories traversal
+  cf270d7 defnax   Thu, 24 Nov 2016 08:04:00 +0100 Merge pull request #583 from PhenomRetroShare/Add_GroupedEmoticons
+  1e1c19e csoler   Wed, 23 Nov 2016 20:30:06 +0100 Merge pull request #582 from mr-alice/v0.6-DLQueue
+  66c3259 mr-alice Wed, 23 Nov 2016 19:12:38 +0100 removed debug output
+  ae83651 Phenom   Wed, 23 Nov 2016 17:48:35 +0100 Add grouped emoticons.
+  fb70cb2 mr-alice Tue, 22 Nov 2016 23:39:09 +0100 removed duplicate copy/rename file methods from ftController
+  47b8258 mr-alice Tue, 22 Nov 2016 23:19:34 +0100 fixed the download queue, and allow queued files to start when sources get online and empty slots are present
+  69f503e defnax   Tue, 22 Nov 2016 13:26:29 +0100 Merge pull request #580 from sehraf/pr-improve-smiley
+  2faefe8 csoler   Mon, 21 Nov 2016 20:38:45 +0100 Merge pull request #581 from csoler/v0.6-FileListsOptim
+  172b513 csoler   Mon, 21 Nov 2016 16:14:11 +0100 added change in TS for shared directories when virtual name changes
+  2ffe3e3 sehraf   Mon, 21 Nov 2016 15:00:33 +0100 fix emoticons: make ':)' actually look like ':)' instead of ':D'
+  5d1f479 csoler   Mon, 21 Nov 2016 10:13:26 +0100 fixed bug preventing plugins loaded as symbolic links to be considered by folderIterator
+  5af5425 csoler   Mon, 21 Nov 2016 00:17:10 +0100 Merge pull request #579 from csoler/v0.6-FileListsOptim
+  da84b88 csoler   Sun, 20 Nov 2016 20:42:14 +0100 fixed constant updating of flat dir model. Had to limit to at most 10000 files to keep it interactive.
+  7b78a68 csoler   Sat, 19 Nov 2016 23:42:07 +0100 Merge pull request #577 from PhenomRetroShare/Fix_AnchorOnChannelMessage
+  9718385 csoler   Sat, 19 Nov 2016 20:15:53 +0100 added missing mutex probably causing crashes when saving directory storage
+  007825b Phenom   Sat, 19 Nov 2016 16:44:12 +0100 Fix Anchor on Channel Message
+  7a2f02e csoler   Sat, 19 Nov 2016 15:16:03 +0100 added missing control file for xenial
+  3c32bb6 csoler   Sat, 19 Nov 2016 15:03:47 +0100 updated ubuntu changelog
+
+ -- Retroshare Dev Team <contact@retroshare.net>  Sat, 26 Nov 2016 15:00:00 +0100
+
+retroshare06 (0.6.1-1.20161119~87183853) xenial; urgency=low
+
+  5b9b63e csoler      Sat, 19 Nov 2016 14:42:43 +0100 Merge pull request #575 from PhenomRetroShare/FixCrashOnCheckBigBigFileStorage
+  a8782f0 Phenom      Fri, 18 Nov 2016 23:04:32 +0100 Fix Crash when checking a big-big file storage.
+  4bdfc6e csoler      Fri, 18 Nov 2016 17:56:42 +0100 removed unused old file
+  6d0293c csoler      Thu, 17 Nov 2016 22:10:57 +0100 Merge pull request #573 from csoler/v0.6-FileListsOptim
+  bdc8086 csoler      Thu, 17 Nov 2016 21:27:37 +0100 added missing mChanged=true when removign a directory
+  deadb1f csoler      Thu, 17 Nov 2016 21:01:01 +0100 small optimization of RemoteDirModel::data()
+  5339e99 csoler      Thu, 17 Nov 2016 21:00:34 +0100 force re-sweep of remote directory that has been updated with new dir content to 10 sec
+  36755c4 csoler      Thu, 17 Nov 2016 19:03:53 +0100 added load/save of own file hierarchy
+  ff4e6f3 csoler      Thu, 17 Nov 2016 14:23:25 +0100 added missing time.h for windows compilation
+  1b9fe3b csoler      Thu, 17 Nov 2016 09:31:05 +0100 removed symbolic links handling from windows compilation
+  fe965d2 csoler      Wed, 16 Nov 2016 22:12:55 +0100 Merge pull request #572 from csoler/v0.6-FileListsOptim
+  ba78007 csoler      Wed, 16 Nov 2016 21:49:27 +0100 added parameter to disallow hashing files which time is in the future (as they severely perturbate the synchronisation process)
+  6272856 csoler      Wed, 16 Nov 2016 21:41:32 +0100 added param to folderIterator to skip/follow symbolic links
+  188f345 csoler      Wed, 16 Nov 2016 12:10:37 +0100 Merge pull request #571 from felisucoibi/master
+  999ab0b felisucoibi Wed, 16 Nov 2016 12:07:38 +0100 fix sorting crashing with qt5 in shared files of friends rev3
+  ee23c42 felisucoibi Wed, 16 Nov 2016 12:05:05 +0100 fix sorting crashing with qt5 in shared files of friends rev2
+  1757a7b felisucoibi Wed, 16 Nov 2016 12:02:54 +0100 fix sorting crashing with qt5 in shared files of friends
+  176999d csoler      Wed, 16 Nov 2016 11:47:02 +0100 Merge pull request #570 from felisucoibi/master
+  628177c felisucoibi Wed, 16 Nov 2016 11:22:23 +0100 fix for windows compile
+  ddff9f5 felisucoibi Wed, 16 Nov 2016 11:03:02 +0100 Improved total file size and a small bug with a comma in TB string of file size 2 CLEANED CODE
+  e3d832c thunder2    Wed, 16 Nov 2016 10:47:34 +0100 Added missing include time.h for Windows compile
+  cc452ae csoler      Tue, 15 Nov 2016 22:58:37 +0100 Merge pull request #569 from csoler/v0.6-FileListsOptim
+  608d0d0 csoler      Tue, 15 Nov 2016 21:33:39 +0100 auto-remove remote directories for friends offline for too long (depending on whether the dir is empty or not) and also remove unused dir files
+  99860c1 csoler      Tue, 15 Nov 2016 20:10:18 +0100 only allocate a remote directory entry if the peer is online, or the file already exists
+  de6f753 csoler      Tue, 15 Nov 2016 09:18:51 +0100 fixed compilation due to previous commit
+  aeb6834 csoler      Mon, 14 Nov 2016 22:03:47 +0100 Merge pull request #568 from csoler/v0.6-FileListsOptim
+  8c8cc88 csoler      Mon, 14 Nov 2016 21:58:58 +0100 fixed problems with negative time shifts in DirDetails causing multiple GUI bugs in File Lists and Search
+  d433713 csoler      Mon, 14 Nov 2016 14:10:49 +0100 fixed possible uninitialised memory read in folderiterator for windows, and changed file folderiterator.cc to unix format
+  fb30200 csoler      Mon, 14 Nov 2016 09:56:46 +0100 Merge pull request #567 from Reedych/patch-1
+  5fd11eb csoler      Mon, 14 Nov 2016 09:56:05 +0100 Merge pull request #565 from G10h4ck/master
+  baaa82a Reedych     Sun, 13 Nov 2016 01:39:54 +0700 Updated link for Qt
+  1773803 csoler      Sat, 12 Nov 2016 16:12:55 +0100 Merge pull request #562 from csoler/v0.6-FileListsOptim
+  c07dd83 csoler      Sat, 12 Nov 2016 15:53:17 +0100 merged upstream/master
+  5ef4e75 csoler      Fri, 11 Nov 2016 20:25:11 +0100 added count of total number of files and total file isze on top of shared directories
+  98183e1 Gio         Thu, 10 Nov 2016 11:45:41 +0100 Add some documentation for QML app and link android readme in main README
+  ae8fc61 Thunder     Wed,  9 Nov 2016 06:37:52 +0100 Merge pull request #564 from PhenomRetroShare/Fix_WindowsCompil
+  2827233 Phenom      Tue,  8 Nov 2016 19:47:17 +0100 Fix windows Compil with sys/socket.h
+  61131e4 csoler      Tue,  8 Nov 2016 19:56:07 +0100 simplified the remoteDirModel cache system a little bie
+  644c41e csoler      Mon,  7 Nov 2016 22:24:02 +0100 added a small trick to cache last request of RemoteDirModel::requestDirDetails
+  befeb44 csoler      Mon,  7 Nov 2016 20:55:02 +0100 Merge pull request #550 from G10h4ck/android
+  8ab3c7d Gio         Mon,  7 Nov 2016 14:37:23 +0100 Merge branch 'master' into android
+  beaf479 Gio         Mon,  7 Nov 2016 14:14:28 +0100 Remove rotten code in rsloginhandler autologin
+  461975f csoler      Mon,  7 Nov 2016 10:09:28 +0100 generally prevent threads to start twice, and fixed bug causing DirWatcher to be run twice
+  eb95c68 thunder2    Thu,  3 Nov 2016 08:32:15 +0100 Windows build environment: - Renamed folder build_libs to build-libs - Removed old file stripSVN.sh - Fixed some batch files - Switch from curl to wget - Added Qt environment - Added build.bat to build everything
+  0008572 csoler      Sun,  6 Nov 2016 19:15:05 +0100 Merge pull request #514 from PhenomRetroShare/Add_MacOSInTravisCI
+  7a58a87 Phenom      Sun,  4 Sep 2016 13:08:09 +0200 Add MacOS compilation test on Travis CI
+  c1b1e25 csoler      Sun,  6 Nov 2016 12:32:36 +0100 updated ubuntu changelog and added control file for ubuntu 16.10
+  17fb682 csoler      Sat,  5 Nov 2016 21:09:49 +0100 Merge pull request #559 from jolavillette/PacketSlicingGroupingFlags
+
+ -- Cyril Soler <csoler@users.sourceforge.net>  Sat, 19 Nov 2016 15:00:00 +0100
+
+retroshare06 (0.6.1-1.20161105.8cebb33d~xenial) xenial; urgency=low
+
+  e4e3667 csoler   Sat,  5 Nov 2016 17:32:40 +0100 fixed bug that caused hierarchies that contain files being hashed to not send updates when the hash is finished
+  390bdfe csoler   Sat,  5 Nov 2016 17:03:31 +0100 added request for sync on double click item for shared file lists
+  a97fa1e csoler   Sat,  5 Nov 2016 16:07:30 +0100 fixed generation of pseudo-random request ids in p3filelists
+  1e919a1 csoler   Sat,  5 Nov 2016 15:30:07 +0100 set delay between directory sweep to 60 secs and a-synced sweeps for different friends. Set drop time to 600 for un-answered dir sync requests
+  ffcf44b csoler   Fri,  4 Nov 2016 21:54:28 +0100 removing call to drand48(). RSRandom is safer
+  2ef51ed csoler   Fri,  4 Nov 2016 21:51:18 +0100 fixed wrong comment about RS_FILE_HINT_SEARCHABLE flag
+  79632ed csoler   Fri,  4 Nov 2016 21:48:58 +0100 fixed compilation on windows
+  f39272a csoler   Thu,  3 Nov 2016 21:44:40 +0100 fixed compilation in debug mode for p3filelists.cc
+  8c1a653 csoler   Fri,  4 Nov 2016 20:02:14 +0100 Merge pull request #557 from mr-alice/v0.6-FTEncryption
+  2bb9a87 mr-alice Fri,  4 Nov 2016 13:52:11 +0100 merged and fixed conflict with upstream/master
+  30860b8 mr-alice Fri,  4 Nov 2016 13:46:20 +0100 removed ^M that polluted unittests.pro
+  45cb442 csoler   Fri,  4 Nov 2016 09:47:49 +0100 Merge pull request #558 from csoler/v0.6-FileListsOptim
+  2bf2465 csoler   Fri,  4 Nov 2016 09:18:34 +0100 Merge pull request #498 from PhenomRetroShare/Fix_ElCapitanCompil
+  8dacb22 csoler   Thu,  3 Nov 2016 22:32:27 +0100 reducing linear cost of allocateNewIndex to constant. Should improve huge lags when receiving big file lists for the first time
+  e324d7d mr-alice Thu,  3 Nov 2016 20:31:47 +0100 removed warning in ftserver for rejected non encrypted tunnels
+  8653649 mr-alice Thu,  3 Nov 2016 20:26:35 +0100 fixed two bugs in ShareManager popup menu
+  29b5bfe mr-alice Thu,  3 Nov 2016 08:50:13 +0100 attempt to fixed leading tabs
+  2db8dbd Phenom   Sat, 16 Jul 2016 23:10:00 +0200 Fix El Capitan OSX 10.11 Compil
+  1c2cfb2 mr-alice Wed,  2 Nov 2016 21:32:14 +0100 removed debug info in ftServer
+  5aef67d mr-alice Wed,  2 Nov 2016 21:31:14 +0100 fixed tooltips in ShareManager, and fixed anonymous search mechanism
+  d2118c5 mr-alice Wed,  2 Nov 2016 20:51:42 +0100 supressed deadlock in ftController due to calling ftServer from ftcontroller itself
+  46dd5be csoler   Tue,  1 Nov 2016 16:30:46 +0100 Merge pull request #554 from hunbernd/feature/paste-RS-link
+  02f442a mr-alice Tue,  1 Nov 2016 14:28:00 +0100 changed naming for files visibility
+  8c7c764 mr-alice Tue,  1 Nov 2016 14:23:13 +0100 fixed conflicts in merging upstream/master to v0.6-FTEncryption
+  6a3610e mr-alice Tue,  1 Nov 2016 14:13:43 +0100 disallow double tunnels (encrypted+clear) in Accepted mode, since it is not needed
+  ffdac64 mr-alice Tue,  1 Nov 2016 11:57:25 +0100 fixed swarming with encrypted end-to-end tunnels
+  c6df59a mr-alice Tue,  1 Nov 2016 11:11:28 +0100 fixed bug in duplication of virtual dir names
+  761d595 mr-alice Tue,  1 Nov 2016 10:46:29 +0100 fixed layout and names in ShareManager and SharedFilesDialog
+  3430eec mr-alice Tue,  1 Nov 2016 10:30:36 +0100 fixed display of share flags as a proper nice icon set
+  8fe85b9 mr-alice Mon, 31 Oct 2016 23:24:35 +0100 improved ShareManager a little bit more
+  9d586bc mr-alice Mon, 31 Oct 2016 16:28:26 +0100 made a drastic simplification pass on the ShareManager, which now only needs a single window except for selecting files using a QFileDialog
+  e8e054e mr-alice Mon, 31 Oct 2016 14:26:01 +0100 addednew flag for anonymous search. Merged the two browsable flags in one single flag.
+  f934e88 csoler   Mon, 31 Oct 2016 12:12:40 +0100 Merge pull request #555 from hunbernd/fix/random-emoji-order
+  36dc532 hunbernd Mon, 31 Oct 2016 00:23:39 +0100 Automatically detect retroshare links when pasting text
+  05b5c08 hunbernd Sat, 10 Sep 2016 21:59:45 +0200 Fixed emoticon order
+  5b9ef04 mr-alice Sun, 30 Oct 2016 15:33:05 +0100 improved debug output in ftserver
+  def20a3 mr-alice Sun, 30 Oct 2016 15:11:22 +0100 encrypted FT works. Fixed last bugs in ftServer
+  34dcb41 mr-alice Sun, 30 Oct 2016 11:36:00 +0100 fixed a few bugs in ftServer for encrypted tunnel management
+  9a88161 mr-alice Sat, 29 Oct 2016 18:35:48 +0200 added record for H(H(F)) in LocalDirectoryStorage
+  d843c1c mr-alice Sat, 29 Oct 2016 18:18:02 +0200 put consts behind serial_size() and serialise() in turtle items and ft items
+  babc126 mr-alice Sat, 29 Oct 2016 17:59:03 +0200 added default encryption policy variable and GUI to change it
+  8486346 mr-alice Wed, 26 Oct 2016 22:05:56 +0200 added new encryption/authentication format AEAD_chacha20_sha256
+  c87ca67 mr-alice Wed, 26 Oct 2016 18:15:47 +0200 improved efficiency of AEAD
+  88298b9 mr-alice Wed, 26 Oct 2016 14:45:21 +0200 added check for cleartext in AEAD test vector #1
+  42f6f26 mr-alice Wed, 26 Oct 2016 14:36:35 +0200 fixed bug in AEAD
+  7e536ef csoler   Wed, 26 Oct 2016 11:35:30 +0200 Merge pull request #549 from PhenomRetroShare/Fix_PR#536
+  177752e mr-alice Tue, 25 Oct 2016 23:16:36 +0200 fixed a few bugs in AEAD construction based on test results
+  32e54e5 Phenom   Tue, 25 Oct 2016 14:58:06 +0200 Fix PR#536 revealing of bad factor management in StyledElidedLabel.
+  0570427 mr-alice Tue, 25 Oct 2016 14:09:39 +0200 added google test for chacha20 code
+  0387a28 mr-alice Tue, 25 Oct 2016 00:08:27 +0200 added methods to get files from hash(hash) in directory_storage and ftServer
+  5f5b0d4 csoler   Mon, 24 Oct 2016 20:16:21 +0200 Merge pull request #548 from PhenomRetroShare/Fix_PR#540
+  fd5a5cc Phenom   Mon, 24 Oct 2016 20:11:47 +0200 Fix PR#540
+  2d72b88 mr-alice Mon, 24 Oct 2016 15:59:34 +0200 added code for AEAD construction
+  bd4c252 csoler   Sun, 23 Oct 2016 23:30:56 +0200 Merge pull request #539 from RetroShare/md-fix
+  f3bebc0 csoler   Sun, 23 Oct 2016 23:29:06 +0200 Merge pull request #540 from PhenomRetroShare/Fix_EmbedInHtmlAhref
+  c77d052 csoler   Sun, 23 Oct 2016 23:25:53 +0200 Merge pull request #536 from PhenomRetroShare/Add_ElidedLabelToGroupTreeWidget
+  04992c9 csoler   Sun, 23 Oct 2016 23:15:32 +0200 Merge pull request #543 from PhenomRetroShare/Add_TooltipOnComments
+  e525461 csoler   Sun, 23 Oct 2016 23:14:29 +0200 Merge pull request #542 from PhenomRetroShare/Add_PasteRsLinkInTextFields
+  07564c7 csoler   Sun, 23 Oct 2016 23:12:22 +0200 Merge pull request #541 from PhenomRetroShare/Fix_RsLinkCopyToClipBoard
+  5ccdc28 csoler   Sun, 23 Oct 2016 22:51:32 +0200 Merge pull request #547 from hunbernd/fix/upload
+  54ba617 hunbernd Sun, 23 Oct 2016 20:42:59 +0200 Fix: unable to upload files on Windows Caused by multiple unneeded / character in file path.
+  46cf25d Phenom   Sat, 22 Oct 2016 15:17:49 +0200 Fix Copy RsLink in Clipboard.
+  a67cf92 Phenom   Sat, 22 Oct 2016 16:15:29 +0200 Add Tooltip on comments column to see too long text.
+  9eafdd3 Phenom   Sat, 22 Oct 2016 16:02:38 +0200 Add ability to past RsLink in some more text fields.
+  58a4d39 Phenom   Sat, 22 Oct 2016 14:48:23 +0200 Fix handle of url in EmbedInHtmlAhref.
+  f20ee21 cave     Fri, 21 Oct 2016 19:56:02 +0200 Update README.md
+  9d32406 mr-alice Wed, 19 Oct 2016 22:49:51 +0200 added ft decryption routine
+  3ad0a81 mr-alice Wed, 19 Oct 2016 21:30:37 +0200 added encryption routine for FT
+  b8b78dd csoler   Wed, 19 Oct 2016 15:50:22 +0200 Merge pull request #538 from Hopetech/master
+  ecaea05 hopetech Wed, 19 Oct 2016 15:41:25 +0200 Fix some compilation warnings
+  8483c0d Phenom   Sun, 16 Oct 2016 15:48:50 +0200 Add ElidedLabel to GroupTreeWidget
+  997154f mr-alice Thu, 13 Oct 2016 15:13:56 +0200 added preliminary implementation of chacha20/poly1305
+  0e1fad0 csoler   Thu, 13 Oct 2016 13:48:32 +0200 Merge pull request #533 from PhenomRetroShare/Fix_MissingDesktopFileShow
+  4db6d6b Phenom   Thu, 13 Oct 2016 13:26:44 +0200 Fix the "Desktop file is missing" shown in option page.
+  64129a7 csoler   Thu, 13 Oct 2016 10:05:14 +0200 Merge pull request #532 from G10h4ck/less_warning
+  8de0548          Gio Thu, 13 Oct 2016 00:09:53 +0200 Merge branch 'master' into less_warning
+  633a6cf          Gio Wed, 12 Oct 2016 20:43:38 +0200 Fixed a bunch of warnings in safe ways
+  10c269e csoler   Wed, 12 Oct 2016 23:31:32 +0200 removed warning when friend directory list cannot be found
+  bd9a464 csoler   Wed, 12 Oct 2016 23:20:38 +0200 added deterministic but unredictable hash generation for dir hashes, which should be preserved accross reboots. Should fix the  msg from friends sending requests for the "wrong" dir hashes.
+  3c5e12a csoler   Mon, 10 Oct 2016 11:29:03 +0200 fixed compilation on windows
+  4e48005 csoler   Sun,  9 Oct 2016 21:43:00 +0200 replaced explicit old code in cleanupDirectory() by new code based on FolderIterator
+  957d48b csoler   Sun,  9 Oct 2016 21:03:01 +0200 removed folderIterator::d_name() because it duplicates file_name()
+  32816ed csoler   Sun,  9 Oct 2016 18:23:25 +0200 Merge pull request #531 from PhenomRetroShare/Fix_AvatarOnEditCircle
+  6e8e5d0 csoler   Sun,  9 Oct 2016 18:20:00 +0200 Merge pull request #529 from cavebeat/rus_patch
+  3d9fb60 Phenom   Sun,  9 Oct 2016 12:37:09 +0200 Fix Missing ID-Avatars in Create Circle Menu
+
+ -- Cyril Soler <csoler@users.sourceforge.net>  Sat, 5 Nov 2016 21:00:00 +0100
+
+retroshare06 (0.6.1-1.20161008.9e1f21b9~xenial) xenial; urgency=low
+
+  9a3eb1c csoler       Sat,  8 Oct 2016 14:30:58 +0200 Merge pull request #528 from sehraf/pr-drop-ssh-protobuf
+  c55fb0d csoler       Sat,  8 Oct 2016 14:11:43 +0200 Merge pull request #524 from cavebeat/compile
+  97f2589 csoler       Sat,  8 Oct 2016 14:09:34 +0200 Merge pull request #513 from grennvyper/patch-1
+  aa200bf csoler       Sat,  8 Oct 2016 14:06:54 +0200 Merge pull request #526 from marcobarbosa16/master
+  2591818 csoler       Sat,  8 Oct 2016 14:04:31 +0200 Merge pull request #515 from PhenomRetroShare/Add_ContextMenuToShowImageInLobby
+  9ed759d csoler       Sat,  8 Oct 2016 13:38:18 +0200 Merge pull request #527 from PhenomRetroShare/Fix_DesktopFileName
+  ada1cee sehraf       Sat,  8 Oct 2016 12:59:27 +0200 remove deprecated ssh/protobuf code
+  4b0f82a Phenom       Sat,  8 Oct 2016 12:12:26 +0200 Fix Desktop Filename for option page message.
+  69ecca4 MarcoBarbosa Fri,  7 Oct 2016 23:12:40 -0300 add uninstall section in README.md
+  7cd31aa csoler       Wed,  5 Oct 2016 14:15:12 +0200 fixed bug preventign update of subdirs after last commit
+  fdfd2e9 Phenom       Sat, 24 Sep 2016 16:12:44 +0200 Add context menu to show hidden image on lobby.
+  854eebb csoler       Wed,  5 Oct 2016 10:59:51 +0200 only update subfiles and subdirs list during dir watching sweep when the TS of the dir has changed. Greatly improve cost of regular directory watching process
+  d020d8d thunder2     Wed,  5 Oct 2016 06:40:02 +0200 Windows build environment: - Added automatic mode for creating git-log - Fixed filename of installer
+  891e61e cave beat    Tue,  4 Oct 2016 23:27:40 +0200 MacOS to .md, + README update
+  9177c82 cave beat    Tue,  4 Oct 2016 23:14:50 +0200 updated MSys2 Install Guide to .md
+  d367491 thunder2     Tue,  4 Oct 2016 21:45:59 +0200 Fixed env.bat for Windows build
+  20cd123 csoler       Tue,  4 Oct 2016 21:41:38 +0200 removed annoying ERROR output that is more a debug info than a real error, in p3filelists
+  e42dae8 csoler       Tue,  4 Oct 2016 21:34:23 +0200 continue sending packet slicing probes in case the peer has restarted
+  b08a62a csoler       Tue,  4 Oct 2016 21:25:48 +0200 restored delay between location cleaning to 5 mins
+  133676f csoler       Tue,  4 Oct 2016 21:24:53 +0200 simplified the code to remove old locations and fixed bug that in some situation would let a PGP key with no locations
+  a35985e thunder2     Tue,  6 Sep 2016 21:31:41 +0200 Windows build environment: - Added build script - Added build-installer script - Added pack script - Added gitlog script - Use shadow build
+  ebfc82c csoler       Mon,  3 Oct 2016 21:44:34 +0200 save/restore selection in shared dir list tree view
+  ed8d786 csoler       Mon,  3 Oct 2016 20:49:49 +0200 added missing mChanged=false that caused remote directories to save far too often
+  c968490 csoler       Sat,  1 Oct 2016 22:14:50 +0200 switched to floating point time for bandwidth estimation in pqistreamer. Helps a lot RTTs since rounding to int prveviously caused packets to be delayed up to 1 sec (improvement by Jollavilette)
+  20397c3 csoler       Sat,  1 Oct 2016 18:09:39 +0200 Merge pull request #523 from bryongloden/patch-1
+  9ae0511 Bryon Gloden Sat,  1 Oct 2016 12:01:09 -0400 uninitialized variable: size
+  a751155 csoler       Sat,  1 Oct 2016 15:46:32 +0200 do not send un-hashed files to friends, and allow to re-send the directory content when all files are hashed
+  84341f2 csoler       Thu, 29 Sep 2016 22:30:26 +0200 changed _outgoing_file_hashes into a new map that connects services to tunnel ID instead of file hash, hence avoiding to remove a hash on server side when a tunnel is closed (bug found by Jolavillette)
+  b62b66a csoler       Thu, 29 Sep 2016 20:55:16 +0200 replace std::vector for std::set to represent _hashes_to_remove, so as to avoid duplicates (suggested by Jo)
+  1fd624c csoler       Thu, 29 Sep 2016 12:47:14 +0200 Merge pull request #519 from PhenomRetroShare/Fix_WinCompil
+  0ea909d Phenom       Thu, 29 Sep 2016 12:45:01 +0200 Fix Windows Compilation after 6e4ba76b
+  e185bcd csoler       Wed, 28 Sep 2016 23:02:24 +0200 fixed removal of directory when removing a friend
+  c276165 csoler       Wed, 28 Sep 2016 22:28:43 +0200 updated clean.sh script to 0.6.1
+  
+ -- Cyril Soler <csoler@users.sourceforge.net>  Sat, 8 Oct 2016 15:00:00 +0100
+
+retroshare06 (0.6.1-1.20160928.e185bcda~trusty) trusty; urgency=low
 
   Warning: new file list sharing system. 
      * Old list of shares is not preserved and should be re-defined. 

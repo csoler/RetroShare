@@ -19,18 +19,15 @@
  *  Boston, MA  02110-1301, USA.
  ****************************************************************/
 
-#include <QMessageBox>
-#include <QString>
-#include <QtDebug>
-#include <QIcon>
-#include <QPixmap>
 #include <QColorDialog>
 #include <QDesktopServices>
+#include <QIcon>
+#include <QMessageBox>
+#include <QPixmap>
+#include <QStatusBar>
+#include <QString>
 #include <QUrl>
-
-#ifdef BLOGS
-#include "gui/unfinished/blogs/BlogsDialog.h"
-#endif 
+#include <QtDebug>
 
 #include <retroshare/rsplugin.h>
 #include <retroshare/rsconfig.h>
@@ -39,11 +36,12 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 #include "MessengerWindow.h"
+#include "HomePage.h"
 #include "NetworkDialog.h"
 #include "gui/FileTransfer/SearchDialog.h"
+#include "gui/FileTransfer/SharedFilesDialog.h"
 #include "gui/FileTransfer/TransfersDialog.h"
 #include "MessagesDialog.h"
-#include "SharedFilesDialog.h"
 #include "PluginsPage.h"
 #include "NewsFeed.h"
 #include "ShareManager.h"
@@ -222,8 +220,11 @@ MainWindow::MainWindow(QWidget* parent, Qt::WindowFlags flags)
     if (!state.isEmpty()) restoreState(state);
 
     /** StatusBar section ********/
+    statusBar()->setVisible(Settings->valueFromGroup("StatusBar", "ShowStatusBar", QVariant(true)).toBool());
+
     /* initialize combobox in status bar */
     statusComboBox = new QComboBox(statusBar());
+    statusComboBox->setVisible(Settings->valueFromGroup("StatusBar", "ShowStatus", QVariant(true)).toBool());
     statusComboBox->setFocusPolicy(Qt::ClickFocus);
     initializeStatusObject(statusComboBox, true);
 
@@ -236,32 +237,39 @@ MainWindow::MainWindow(QWidget* parent, Qt::WindowFlags flags)
     statusBar()->addWidget(widget);
 
     peerstatus = new PeerStatus();
+    peerstatus->setVisible(Settings->valueFromGroup("StatusBar", "ShowPeer", QVariant(true)).toBool());
     statusBar()->addWidget(peerstatus);
 
     natstatus = new NATStatus();
+    natstatus->setVisible(Settings->valueFromGroup("StatusBar", "ShowNAT", QVariant(true)).toBool());
     statusBar()->addWidget(natstatus);
     
     dhtstatus = new DHTStatus();
+    dhtstatus->setVisible(Settings->valueFromGroup("StatusBar", "ShowDHT", QVariant(true)).toBool());
     statusBar()->addWidget(dhtstatus);
 
     hashingstatus = new HashingStatus();
+    hashingstatus->setVisible(Settings->valueFromGroup("StatusBar", "ShowHashing", QVariant(true)).toBool());
     statusBar()->addPermanentWidget(hashingstatus, 1);
 
     discstatus = new DiscStatus();
+    discstatus->setVisible(Settings->valueFromGroup("StatusBar", "ShowDisc", QVariant(true)).toBool());
     statusBar()->addPermanentWidget(discstatus);
 
     ratesstatus = new RatesStatus();
+    ratesstatus->setVisible(Settings->valueFromGroup("StatusBar", "ShowRate", QVariant(true)).toBool());
     statusBar()->addPermanentWidget(ratesstatus);
 
     opModeStatus = new OpModeStatus();
+    opModeStatus->setVisible(Settings->valueFromGroup("StatusBar", "ShowOpMode", QVariant(false)).toBool());
     statusBar()->addPermanentWidget(opModeStatus);
 
     soundStatus = new SoundStatus();
-    soundStatus->setHidden(Settings->valueFromGroup("StatusBar", "HideSound", QVariant(false)).toBool());
+    soundStatus->setVisible(Settings->valueFromGroup("StatusBar", "ShowSound", QVariant(true)).toBool());
     statusBar()->addPermanentWidget(soundStatus);
 
     toasterDisable = new ToasterDisable();
-    toasterDisable->setHidden(Settings->valueFromGroup("StatusBar", "HideToaster", QVariant(false)).toBool());
+    toasterDisable->setVisible(Settings->valueFromGroup("StatusBar", "ShowToaster", QVariant(true)).toBool());
     statusBar()->addPermanentWidget(toasterDisable);
 
     sysTrayStatus = new SysTrayStatus();
@@ -308,6 +316,7 @@ MainWindow::~MainWindow()
     Settings->setValueToGroup("MainWindow", "SplitterState", ui->splitter->saveState());
     Settings->setValueToGroup("MainWindow", "State", saveState());
 
+    delete statusComboBox;
     delete peerstatus;
     delete natstatus;
     delete dhtstatus;
@@ -330,47 +339,40 @@ MainWindow::~MainWindow()
 void MainWindow::initStackedPage()
 {
   /* WORK OUT IF WE"RE IN ADVANCED MODE OR NOT */
-  bool advancedMode = false;
-  std::string advsetting;
-  if (rsConfig->getConfigurationOption(RS_CONFIG_ADVANCED, advsetting) && (advsetting == "YES")) {
-      advancedMode = true;
-  }
+  //bool advancedMode = false;
+  //std::string advsetting;
+  //if (rsConfig->getConfigurationOption(RS_CONFIG_ADVANCED, advsetting) && (advsetting == "YES")) {
+  //    advancedMode = true;
+  //}
 
   QList<QPair<MainPage*, QPair<QAction*, QListWidgetItem*> > > notify;
 
   /* Create the Main pages and actions */
   QActionGroup *grp = new QActionGroup(this);
 
-  addPage(newsFeed = new NewsFeed(ui->stackPages), grp, &notify);
-  addPage(friendsDialog = new FriendsDialog(ui->stackPages), grp, &notify);
-
-#ifdef RS_USE_NEW_PEOPLE_DIALOG
-  PeopleDialog *peopleDialog = NULL;
-  addPage(peopleDialog = new PeopleDialog(ui->stackPages), grp, &notify);
-#endif
-
-  IdDialog *idDialog = NULL;
-  addPage(idDialog = new IdDialog(ui->stackPages), grp, &notify);
+  addPage(homePage = new HomePage(ui->stackPages), grp, NULL);
 
 //#ifdef RS_USE_CIRCLES
 //  CirclesDialog *circlesDialog = NULL;
 //  addPage(circlesDialog = new CirclesDialog(ui->stackPages), grp, &notify);
 //#endif
-
-  addPage(transfersDialog = new TransfersDialog(ui->stackPages), grp, &notify);
+  addPage(friendsDialog = new FriendsDialog(ui->stackPages), grp, &notify);
+  addPage(idDialog = new IdDialog(ui->stackPages), grp, &notify);
   addPage(chatLobbyDialog = new ChatLobbyWidget(ui->stackPages), grp, &notify);
   addPage(messagesDialog = new MessagesDialog(ui->stackPages), grp, &notify);
+  addPage(transfersDialog = new TransfersDialog(ui->stackPages), grp, &notify);
   addPage(gxschannelDialog = new GxsChannelDialog(ui->stackPages), grp, &notify);
   addPage(gxsforumDialog = new GxsForumsDialog(ui->stackPages), grp, &notify);
   addPage(postedDialog = new PostedDialog(ui->stackPages), grp, &notify);
 
+  #ifdef RS_USE_NEW_PEOPLE_DIALOG
+  PeopleDialog *peopleDialog = NULL;
+  addPage(peopleDialog = new PeopleDialog(ui->stackPages), grp, &notify);
+  #endif
+  addPage(newsFeed = new NewsFeed(ui->stackPages), grp, &notify);
 #ifdef RS_USE_WIKI
   WikiDialog *wikiDialog = NULL;
   addPage(wikiDialog = new WikiDialog(ui->stackPages), grp, &notify);
-#endif
-
-#ifdef BLOGS
-  addPage(blogsFeed = new BlogsDialog(ui->stackPages), grp, NULL);
 #endif
 
  std::cerr << "Looking for interfaces in existing plugins:" << std::endl;
@@ -416,6 +418,19 @@ void MainWindow::initStackedPage()
   }
 #endif
 
+  //List All notify before Setting was created
+  QList<QPair<MainPage*, QPair<QAction*, QListWidgetItem*> > >::iterator notifyIt;
+  for (notifyIt = notify.begin(); notifyIt != notify.end(); ++notifyIt) {
+      UserNotify *userNotify = notifyIt->first->getUserNotify(this);
+      if (userNotify) {
+          userNotify->initialize(ui->toolBarPage, notifyIt->second.first, notifyIt->second.second);
+          connect(userNotify, SIGNAL(countChanged()), this, SLOT(updateTrayCombine()));
+          userNotifyList.push_back(userNotify);
+      }
+  }
+
+  addPage(settingsDialog = new SettingsPage(ui->stackPages),grp,&notify);
+
   /* Create the toolbar */
   ui->toolBarPage->addActions(grp->actions());
   connect(grp, SIGNAL(triggered(QAction *)), ui->stackPages, SLOT(showPage(QAction *)));
@@ -428,21 +443,15 @@ void MainWindow::initStackedPage()
 #endif
 
   /** Add icon on Action bar */
-  addAction(new QAction(QIcon(IMAGE_ADDFRIEND), tr("Add"), ui->toolBarAction), &MainWindow::addFriend, SLOT(addFriend()));
+  // I remove add a friend because it's in HOME ghibli
+  //addAction(new QAction(QIcon(IMAGE_ADDFRIEND), tr("Add"), ui->toolBarAction), &MainWindow::addFriend, SLOT(addFriend()));
   //addAction(new QAction(QIcon(IMAGE_NEWRSCOLLECTION), tr("New"), ui->toolBarAction), &MainWindow::newRsCollection, SLOT(newRsCollection()));
-  addAction(new QAction(QIcon(IMAGE_PREFERENCES), tr("Options"), ui->toolBarAction), &MainWindow::showSettings, SLOT(showSettings()));
-  addAction(new QAction(QIcon(IMAGE_ABOUT), tr("About"), ui->toolBarAction), &MainWindow::showabout, SLOT(showabout()));
-  addAction(new QAction(QIcon(IMAGE_QUIT), tr("Quit"), ui->toolBarAction), &MainWindow::doQuit, SLOT(doQuit()));
+  //addAction(new QAction(QIcon(IMAGE_PREFERENCES), tr("Options"), ui->toolBarAction), &MainWindow::showSettings, SLOT(showSettings()));
 
-  QList<QPair<MainPage*, QPair<QAction*, QListWidgetItem*> > >::iterator notifyIt;
-  for (notifyIt = notify.begin(); notifyIt != notify.end(); ++notifyIt) {
-      UserNotify *userNotify = notifyIt->first->getUserNotify(this);
-      if (userNotify) {
-          userNotify->initialize(ui->toolBarPage, notifyIt->second.first, notifyIt->second.second);
-          connect(userNotify, SIGNAL(countChanged()), this, SLOT(updateTrayCombine()));
-          userNotifyList.push_back(userNotify);
-      }
-  }
+  // Removed About because it's now in options.
+  //addAction(new QAction(QIcon(IMAGE_ABOUT), tr("About"), ui->toolBarAction), &MainWindow::showabout, SLOT(showabout()));
+
+  addAction(new QAction(QIcon(IMAGE_QUIT), tr("Quit"), ui->toolBarAction), &MainWindow::doQuit, SLOT(doQuit()));
 
 }
 
@@ -659,7 +668,8 @@ void MainWindow::updateTrayCombine()
 
         }
     }
-    notifyMenu->menuAction()->setVisible(visible);
+    if (notifyMenu)
+        notifyMenu->menuAction()->setVisible(visible);
 
     // update tray icon
     updateFriends();
@@ -676,8 +686,6 @@ void MainWindow::updateStatus()
 {
     // This call is essential to remove locks due to QEventLoop re-entrance while asking gpg passwds. Dont' remove it!
     if(RsAutoUpdatePage::eventsLocked())
-        return;
-    if(Settings->valueFromGroup("StatusBar", "DisableSysTrayToolTip", QVariant(false)).toBool())
         return;
     float downKb = 0;
     float upKb = 0;
@@ -696,6 +704,8 @@ void MainWindow::updateStatus()
         discstatus->update();
     }
 
+    if(!Settings->valueFromGroup("StatusBar", "DisableSysTrayToolTip", QVariant(false)).toBool()) {
+
     QString tray = "RetroShare\n" + tr("Down: %1 (kB/s)").arg(downKb, 0, 'f', 2) + " | " + tr("Up: %1 (kB/s)").arg(upKb, 0, 'f', 2) + "\n";
 
     if (onlineCount == 1) {
@@ -711,6 +721,7 @@ void MainWindow::updateStatus()
         tray += notifyToolTip;
     }
     trayIcon->setToolTip(tray);
+    }
 }
 
 void MainWindow::updateFriends()
@@ -753,13 +764,9 @@ void MainWindow::updateFriends()
     if (sysTrayStatus) sysTrayStatus->setIcon(icon);
 }
 
-void MainWindow::postModDirectories(bool update_local)
+void MainWindow::postModDirectories(bool /*update_local*/)
 {
-    RSettingsWin::postModDirectories(update_local);
-
-    // Why would we need that?? The effect is to reset the flags while we're changing them, so it's really not
-    // a good idea.
-    //ShareManager::postModDirectories(update_local);
+    //RSettingsPage::postModDirectories(update_local);
 
     QCoreApplication::flush();
 }
@@ -875,6 +882,9 @@ void SetForegroundWindowInternal(HWND hWnd)
 		 case Friends:
 			 _instance->ui->stackPages->setCurrentPage( _instance->friendsDialog );
 			 break;
+		 case People:
+			 _instance->ui->stackPages->setCurrentPage( _instance->idDialog );
+			 break;
 		 case ChatLobby:
 			 _instance->ui->stackPages->setCurrentPage( _instance->chatLobbyDialog );
 			 break;
@@ -885,6 +895,9 @@ void SetForegroundWindowInternal(HWND hWnd)
 			 _instance->ui->stackPages->setCurrentPage( _instance->transfersDialog );
 			 _instance->transfersDialog->activatePage(TransfersDialog::LocalSharedFilesTab) ;
 			 break;
+		 case Options:
+			 _instance->ui->stackPages->setCurrentPage( _instance->settingsDialog );
+			 break;
 		 case Messages:
 			 _instance->ui->stackPages->setCurrentPage( _instance->messagesDialog );
 			 break;
@@ -894,11 +907,6 @@ void SetForegroundWindowInternal(HWND hWnd)
 		 case Forums:
                          _instance->ui->stackPages->setCurrentPage( _instance->gxsforumDialog );
                          return true ;
-#ifdef BLOGS
-		 case Blogs:
-			 Page = _instance->blogsFeed;
-			 return true ;
-#endif
 		case Posted:
 			_instance->ui->stackPages->setCurrentPage( _instance->postedDialog );
 			return true ;
@@ -924,6 +932,9 @@ void SetForegroundWindowInternal(HWND hWnd)
    if (page == _instance->friendsDialog) {
        return Friends;
    }
+   if (page == _instance->settingsDialog) {
+       return Options;
+   }
    if (page == _instance->chatLobbyDialog) {
        return ChatLobby;
    }
@@ -936,22 +947,12 @@ void SetForegroundWindowInternal(HWND hWnd)
    if (page == _instance->messagesDialog) {
        return Messages;
    }
-#ifdef RS_USE_LINKS
-   if (page == _instance->linksDialog) {
-       return Links;
-   }
-#endif
 #if 0
    if (page == _instance->channelFeed) {
        return Channels;
    }
    if (page == _instance->forumsDialog) {
        return Forums;
-   }
-#endif
-#ifdef BLOGS
-   if (page == _instance->blogsFeed) {
-       return Blogs;
    }
 #endif
 
@@ -971,8 +972,12 @@ void SetForegroundWindowInternal(HWND hWnd)
 			return _instance->friendsDialog->networkDialog;
 		case Friends:
 			return _instance->friendsDialog;
+		case People:
+			return _instance->idDialog;
 		case ChatLobby:
 			return _instance->chatLobbyDialog;
+		case Options:
+			return _instance->settingsDialog;
 		case Transfers:
 			return _instance->transfersDialog;
 		case SharedDirectories:
@@ -981,20 +986,12 @@ void SetForegroundWindowInternal(HWND hWnd)
 			return _instance->transfersDialog->searchDialog;
 		case Messages:
 			return _instance->messagesDialog;
-#ifdef RS_USE_LINKS
-		case Links:
-			return _instance->linksDialog;
-#endif
 		case Channels:
 			return _instance->gxschannelDialog;
 		case Forums:
 			return _instance->gxsforumDialog;
 		case Posted:
 			return _instance->postedDialog;
-#ifdef BLOGS
-		case Blogs:
-			return _instance->blogsFeed;
-#endif
 	}
 
    return NULL;
@@ -1036,7 +1033,7 @@ MainWindow::showMess()
 /** Shows Options */
 void MainWindow::showSettings()
 {
-    RSettingsWin::showYourself(this);
+    showWindow(MainWindow::Options);
 }
 
 /** Shows Messenger window */
@@ -1180,7 +1177,7 @@ void MainWindow::showHelpDialog(const QString &topic)
 void
 MainWindow::retranslateUi()
 {
-  retranslateUi();
+  //retranslateUi();
   foreach (MainPage *page, ui->stackPages->pages()) {
     page->retranslateUi();
   }
@@ -1464,12 +1461,92 @@ void MainWindow::processLastArgs()
 		/* Now use files from the command line, because no RetroShare was running */
 		openRsCollection(Rshare::files()->takeFirst());
 	}
+	/* Handle the -opmode options. */
+	if (opModeStatus) {
+		QString opmode = Rshare::opmode().toLower();
+		if (opmode == "noturtle") {
+			opModeStatus->setCurrentIndex(RS_OPMODE_NOTURTLE - 1);
+		} else if (opmode == "gaming") {
+			opModeStatus->setCurrentIndex(RS_OPMODE_GAMING - 1);
+		} else if (opmode == "minimal") {
+			opModeStatus->setCurrentIndex(RS_OPMODE_MINIMAL - 1);
+		} else {
+			opModeStatus->setCurrentIndex(RS_OPMODE_FULL - 1);
+		}
+		opModeStatus->setOpMode();
+	} else {
+		std::cerr << "ERR: MainWindow::processLastArgs opModeStatus is not initialized.";
+	}
+
+}
+
+void MainWindow::switchVisibilityStatus(StatusElement e,bool b)
+{
+    switch(e)
+    {
+        case 	StatusGrpStatus   : getInstance()->statusBar()               ->setVisible(b); break ;
+        case 	StatusCompactMode : getInstance()->setCompactStatusMode(b) ; break ;
+        case 	StatusShowToolTip : getInstance()->toggleStatusToolTip(b) ; break ;
+        case 	StatusShowStatus  : getInstance()->statusComboBoxInstance()  ->setVisible(b); break ;
+        case 	StatusShowPeer    : getInstance()->peerstatusInstance()      ->setVisible(b); break ;
+        case 	StatusShowNAT     : getInstance()->natstatusInstance()       ->setVisible(b); break ;
+        case 	StatusShowDHT     : getInstance()->dhtstatusInstance()       ->setVisible(b); break ;
+        case 	StatusShowHashing : getInstance()->hashingstatusInstance()   ->setVisible(b); break ;
+        case 	StatusShowDisc    : getInstance()->discstatusInstance()      ->setVisible(b); break ;
+        case 	StatusShowRate    : getInstance()->ratesstatusInstance()     ->setVisible(b); break ;
+        case 	StatusShowOpMode  : getInstance()->opModeStatusInstance()    ->setVisible(b); break ;
+        case 	StatusShowSound   : getInstance()->soundStatusInstance()     ->setVisible(b); break ;
+        case 	StatusShowToaster : getInstance()->toasterDisableInstance()  ->setVisible(b); break ;
+        case 	StatusShowSystray : getInstance()->sysTrayStatusInstance()   ->setVisible(b); break ;
+
+    default:
+        std::cerr << "(EE) Unknown object to change visibility of: " << (int)e << std::endl;
+    }
 }
 
 //void MainWindow::servicePermission()
 //{
 //    ServicePermissionDialog::showYourself();
 //}
+QComboBox *MainWindow::statusComboBoxInstance()
+{
+	return statusComboBox;
+}
+
+PeerStatus *MainWindow::peerstatusInstance()
+{
+	return peerstatus;
+}
+
+NATStatus *MainWindow::natstatusInstance()
+{
+	return natstatus;
+}
+
+DHTStatus *MainWindow::dhtstatusInstance()
+{
+	return dhtstatus;
+}
+
+HashingStatus *MainWindow::hashingstatusInstance()
+{
+	return hashingstatus;
+}
+
+DiscStatus *MainWindow::discstatusInstance()
+{
+	return discstatus;
+}
+
+RatesStatus *MainWindow::ratesstatusInstance()
+{
+	return ratesstatus;
+}
+
+OpModeStatus *MainWindow::opModeStatusInstance()
+{
+	return opModeStatus;
+}
 
 SoundStatus *MainWindow::soundStatusInstance()
 {

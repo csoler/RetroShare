@@ -27,30 +27,27 @@
 #include "pqi/p3servicecontrol.h"
 #include "pgp/pgpauxutils.h"
 
-
  const time_t AuthorPending::EXPIRY_PERIOD_OFFSET = 30; // 30 seconds
  const int AuthorPending::MSG_PEND = 1;
  const int AuthorPending::GRP_PEND = 2;
 
+AuthorPending::AuthorPending(RsGixsReputation* rep, time_t timeStamp) : mRep(rep), mTimeStamp(timeStamp) {}
 
-AuthorPending::AuthorPending(RsGixsReputation* rep, time_t timeStamp)
- : mRep(rep), mTimeStamp(timeStamp) {
-}
-
-AuthorPending::~AuthorPending()
-{
-
-}
+AuthorPending::~AuthorPending() {}
 
 bool AuthorPending::expired() const
 {
 	return time(NULL) > (mTimeStamp + EXPIRY_PERIOD_OFFSET);
 }
 
-bool AuthorPending::getAuthorRep(GixsReputation& rep,
-                                 const RsGxsId& authorId, const RsPeerId& peerId)
+bool AuthorPending::getAuthorRep(GixsReputation& rep, const RsGxsId& authorId, const RsPeerId& /*peerId*/)
 {
-	if(mRep->haveReputation(authorId))
+    rep.id = authorId ;
+    rep.reputation_level = mRep->overallReputationLevel(authorId);
+
+#warning csoler 2017-01-10: Can it happen that reputations do not have the info yet?
+    return true ;
+#ifdef TO_BE_REMOVED
 	{
 		return mRep->getReputation(authorId, rep);
 	}
@@ -59,7 +56,7 @@ bool AuthorPending::getAuthorRep(GixsReputation& rep,
         peers.push_back(peerId);
         mRep->loadReputation(authorId, peers);
 	return false;
-
+#endif
 }
 
 MsgAuthEntry::MsgAuthEntry()
@@ -99,7 +96,7 @@ bool MsgRespPending::accepted()
 			GixsReputation rep;
                         if(getAuthorRep(rep, entry.mAuthorId, mPeerId))
 			{
-				if(rep.score >= mCutOff)
+				if(rep.reputation_level >= (uint32_t)mCutOff)
 				{
 					entry.mPassedVetting = true;
 					count++;
@@ -134,7 +131,7 @@ bool GrpRespPending::accepted()
 
                         if(getAuthorRep(rep, entry.mAuthorId, mPeerId))
 			{
-				if(rep.score >= mCutOff)
+				if(rep.reputation_level >= (uint32_t)mCutOff)
 				{
 					entry.mPassedVetting = true;
 					count++;
@@ -154,12 +151,12 @@ bool GrpRespPending::accepted()
 
 /** NxsTransaction definition **/
 
-const uint8_t NxsTransaction::FLAG_STATE_STARTING = 0x0001; // when
-const uint8_t NxsTransaction::FLAG_STATE_RECEIVING = 0x0002; // begin receiving items for incoming trans
-const uint8_t NxsTransaction::FLAG_STATE_SENDING = 0x0004; // begin sending items for outgoing trans
-const uint8_t NxsTransaction::FLAG_STATE_COMPLETED = 0x008;
-const uint8_t NxsTransaction::FLAG_STATE_FAILED = 0x0010;
+const uint8_t NxsTransaction::FLAG_STATE_STARTING        = 0x0001; // when
+const uint8_t NxsTransaction::FLAG_STATE_RECEIVING       = 0x0002; // begin receiving items for incoming trans
+const uint8_t NxsTransaction::FLAG_STATE_SENDING         = 0x0004; // begin sending items for outgoing trans
+const uint8_t NxsTransaction::FLAG_STATE_FAILED          = 0x0010;
 const uint8_t NxsTransaction::FLAG_STATE_WAITING_CONFIRM = 0x0020;
+const uint8_t NxsTransaction::FLAG_STATE_COMPLETED       = 0x0080;	// originaly 0x008, but probably a typo, but we cannot change it since it would break backward compatibility.
 
 
 NxsTransaction::NxsTransaction()

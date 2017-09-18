@@ -62,6 +62,7 @@ public:
 
 	void loadRequest(const TokenQueue *queue, const TokenRequest &req);
 
+    void navigate(const RsGxsId& gxs_id) ; // shows the info about this particular ID
 protected:
 	virtual void updateDisplay(bool complete);
 
@@ -92,7 +93,8 @@ private slots:
 	void editIdentity();
 	void chatIdentity();
 	void sendMsg();
-
+	void copyRetroshareLink();
+  void on_closeInfoFrameButton_clicked();
 
 	void updateSelection();
 
@@ -118,6 +120,7 @@ private slots:
 
 private:
 	void processSettings(bool load);
+	QString createUsageString(const RsIdentityUsage& u) const;
 
 	void requestIdDetails();
 	void insertIdDetails(uint32_t token);
@@ -130,6 +133,7 @@ private:
 
 	void requestRepList();
 	void insertRepList(uint32_t token);
+	void handleSerializedGroupData(uint32_t token);
 
 	void requestIdEdit(std::string &id);
 	void showIdEdit(uint32_t token);
@@ -150,6 +154,7 @@ private:
 	std::map<uint32_t, CircleUpdateOrder> mCircleUpdates ;
 
 	RsGxsGroupId mId;
+	RsGxsGroupId mIdToNavigate;
 	int filter;
 
 	/* UI -  Designer */

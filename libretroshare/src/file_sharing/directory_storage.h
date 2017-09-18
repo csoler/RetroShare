@@ -41,7 +41,7 @@ class RsTlvBinaryData ;
 class DirectoryStorage
 {
 	public:
-        DirectoryStorage(const RsPeerId& pid) ;
+        DirectoryStorage(const RsPeerId& pid, const std::string& fname) ;
         virtual ~DirectoryStorage() {}
 
         typedef uint32_t EntryIndex ;
@@ -53,7 +53,6 @@ class DirectoryStorage
 
         virtual int searchTerms(const std::list<std::string>& terms, std::list<EntryIndex> &results) const ;
         virtual int searchBoolExp(RsRegularExpression::Expression * exp, std::list<EntryIndex> &results) const ;
-        virtual int searchHash(const RsFileHash& hash, std::list<EntryIndex> &results) const ;
 
         // gets/sets the various time stamps:
         //
@@ -133,14 +132,9 @@ class DirectoryStorage
         // Sets the subdirectory/subfiles list of entry indx the supplied one, possible adding and removing directories (resp.files). New directories are set empty with
         // just a name and need to be updated later on. New files are returned in a list so that they can be sent to hash cache.
         //
-        bool updateSubDirectoryList(const EntryIndex& indx, const std::map<std::string, time_t> &subdirs) ;
+        bool updateSubDirectoryList(const EntryIndex& indx, const std::set<std::string>& subdirs, const RsFileHash &random_hash_salt) ;
         bool updateSubFilesList(const EntryIndex& indx, const std::map<std::string, FileTS> &subfiles, std::map<std::string, FileTS> &new_files) ;
         bool removeDirectory(const EntryIndex& indx) ;
-
-        // Updates relevant information for the file at the given index.
-
-        bool updateFile(const EntryIndex& index,const RsFileHash& hash, const std::string& fname,  uint64_t size, time_t modf_time) ;
-        bool updateHash(const EntryIndex& index,const RsFileHash& hash);
 
         // Returns the hash of the directory at the given index and reverse. This hash is set as random the first time it is used (when updating directories). It will be
         // used by the sync system to designate the directory without referring to index (index could be used to figure out the existance of hidden directories)
@@ -148,11 +142,23 @@ class DirectoryStorage
         bool getDirHashFromIndex(const EntryIndex& index,RsFileHash& hash) const ;	// constant cost
         bool getIndexFromDirHash(const RsFileHash& hash,EntryIndex& index) const ;	// log cost.
 
+        // gathers statistics from the internal directory structure
+
+        void getStatistics(SharedDirStats& stats) ;
+
         void print();
         void cleanup();
 
+		/*!
+		 * \brief checkSave
+		 * 			Checks the time of last saving, last modification time, and saves if needed.
+		 */
+		void checkSave() ;
+
+		const std::string& filename() const { return mFileName ; }
+
     protected:
-		void load(const std::string& local_file_name) ;
+        bool load(const std::string& local_file_name) ;
 		void save(const std::string& local_file_name) ;
 
     private:
@@ -168,6 +174,10 @@ class DirectoryStorage
         mutable RsMutex mDirStorageMtx ;
 
         InternalFileHierarchyStorage *mFileHierarchy ;
+
+		time_t mLastSavedTime ;
+		bool mChanged ;
+		std::string mFileName;
 };
 
 class RemoteDirectoryStorage: public DirectoryStorage
@@ -188,21 +198,31 @@ public:
     bool deserialiseUpdateDirEntry(const EntryIndex& indx,const RsTlvBinaryData& data) ;
 
     /*!
-     * \brief checkSave
-     * 			Checks the time of last saving, last modification time, and saves if needed.
+     * \brief lastSweepTime
+     * 			returns the last time a sweep has been done over the directory in order to check update TS.
+     * \return
      */
-    void checkSave() ;
+    time_t& lastSweepTime() { return mLastSweepTime ; }
+	
+	/*!
+     * \brief searchHash
+     * 				Looks into local database of shared files for the given hash. 
+     * \param hash			hash to look for
+     * \param results		Entry index of the file that is found
+     * \return
+     * 						true is a file is found
+     * 						false otherwise.
+     */
+    virtual int searchHash(const RsFileHash& hash, EntryIndex& results) const ;
 
 private:
-    time_t mLastSavedTime ;
-    bool mChanged ;
-    std::string mFileName;
+    time_t mLastSweepTime ;
 };
 
 class LocalDirectoryStorage: public DirectoryStorage
 {
 public:
-    LocalDirectoryStorage(const std::string& fname,const RsPeerId& own_id) : DirectoryStorage(own_id),mFileName(fname) {}
+    LocalDirectoryStorage(const std::string& fname,const RsPeerId& own_id);
     virtual ~LocalDirectoryStorage() {}
 
     /*!
@@ -215,6 +235,20 @@ public:
 
     void updateShareFlags(const SharedDirInfo& info) ;
     bool convertSharedFilePath(const std::string& path_with_virtual_name,std::string& fullpath) ;
+
+    virtual bool updateHash(const EntryIndex& index, const RsFileHash& hash, bool update_internal_hierarchy);
+    /*!
+     * \brief searchHash
+     * 				Looks into local database of shared files for the given hash. Also looks for files such that the hash of the hash
+     * 				matches the given hash, and returns the real hash.
+     * \param hash			hash to look for
+     * \param real_hash		hash such that H(real_hash) = hash, or null hash if not found.
+     * \param results		Entry index of the file that is found
+     * \return
+     * 						true is a file is found
+     * 						false otherwise.
+     */
+    virtual int searchHash(const RsFileHash& hash, RsFileHash &real_hash, EntryIndex &results) const ;
 
     /*!
      * \brief updateTimeStamps
@@ -261,16 +295,18 @@ public:
     bool serialiseDirEntry(const EntryIndex& indx, RsTlvBinaryData& bindata, const RsPeerId &client_id) ;
 
 private:
-        std::string locked_getVirtualPath(EntryIndex indx) const ;
-        std::string locked_getVirtualDirName(EntryIndex indx) const ;
+	static RsFileHash makeEncryptedHash(const RsFileHash& hash);
+	bool locked_findRealHash(const RsFileHash& hash, RsFileHash& real_hash) const;
+	std::string locked_getVirtualPath(EntryIndex indx) const ;
+	std::string locked_getVirtualDirName(EntryIndex indx) const ;
 
-        bool locked_getFileSharingPermissions(const EntryIndex& indx, FileStorageFlags &flags, std::list<RsNodeGroupId>& parent_groups);
-        std::string locked_findRealRootFromVirtualFilename(const std::string& virtual_rootdir) const;
+	bool locked_getFileSharingPermissions(const EntryIndex& indx, FileStorageFlags &flags, std::list<RsNodeGroupId>& parent_groups);
+	std::string locked_findRealRootFromVirtualFilename(const std::string& virtual_rootdir) const;
 
-        std::map<std::string,SharedDirInfo> mLocalDirs ;	// map is better for search. it->first=it->second.filename
-        std::string mFileName;
+	std::map<std::string,SharedDirInfo> mLocalDirs ;	// map is better for search. it->first=it->second.filename
+	std::map<RsFileHash,RsFileHash> mEncryptedHashes;	// map such that hash(it->second) = it->first
 
-        bool mTSChanged ;
+	bool mTSChanged ;
 };
 
 

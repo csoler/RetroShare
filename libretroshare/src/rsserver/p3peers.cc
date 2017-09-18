@@ -49,7 +49,7 @@ const std::string CERT_LOCAL_IP = "--LOCAL--";
 const std::string CERT_EXT_IP = "--EXT--";
 const std::string CERT_DYNDNS = "--DYNDNS--";
 
-static const int MAX_TIME_KEEP_LOCATION_WITHOUT_CONTACT = 30*24*3600 ; // 30 days.
+//static const int MAX_TIME_KEEP_LOCATION_WITHOUT_CONTACT = 30*24*3600 ; // 30 days.
 
 
 #include "pqi/authssl.h"
@@ -901,6 +901,12 @@ bool 	p3Peers::setLocalAddress(const RsPeerId &id, const std::string &addr_str, 
         std::cerr << "p3Peers::setLocalAddress() " << id << std::endl;
 #endif
 
+        if(port < 1024)
+        {
+            std::cerr << "(EE) attempt to use a port that is reserved to the system: " << port << std::endl;
+            return false ;
+        }
+
 	struct sockaddr_storage addr;
 	struct sockaddr_in *addrv4p = (struct sockaddr_in *) &addr;
 	addrv4p->sin_family = AF_INET;
@@ -926,6 +932,12 @@ bool 	p3Peers::setExtAddress(const RsPeerId &id, const std::string &addr_str, ui
 #ifdef P3PEERS_DEBUG
         std::cerr << "p3Peers::setExtAddress() " << id << std::endl;
 #endif
+        if(port < 1024)
+        {
+            std::cerr << "(EE) attempt to use a port that is reserved to the system: " << port << std::endl;
+            return false ;
+        }
+
 
 	// NOTE THIS IS IPV4 FOR NOW.
 	struct sockaddr_storage addr;
@@ -1020,6 +1032,14 @@ bool p3Peers::setProxyServer(const uint32_t type, const std::string &addr_str, c
         std::cerr << "p3Peers::setProxyServer() " << std::endl;
     #endif
 
+		if(port < 1024)
+        {
+            std::cerr << "(EE) attempt to set proxy server address to something not allowed: " << addr_str << ":" << port << std::endl;
+            return false ;
+        }
+
+        std::cerr << "Settign proxy server address to " << addr_str << ":" << port << std::endl;
+
 	struct sockaddr_storage addr;
 	struct sockaddr_in *addrv4p = (struct sockaddr_in *) &addr;
 	addrv4p->sin_family = AF_INET;
@@ -1073,6 +1093,8 @@ std::string p3Peers::getPGPKey(const RsPgpId& pgp_id,bool include_signatures)
 
 	RsCertificate cert( Detail,mem_block,mem_block_size ) ;
 
+    delete[] mem_block ;
+
 	return cert.armouredPGPKey() ;
 }
 
@@ -1124,6 +1146,8 @@ std::string p3Peers::GetRetroshareInvite(const RsPeerId& ssl_id,bool include_sig
 		}
 
 		RsCertificate cert( Detail,mem_block,mem_block_size ) ;
+
+        delete[] mem_block ;
 
 		return cert.toStdString() ;
 
@@ -1214,7 +1238,7 @@ bool p3Peers::cleanCertificate(const std::string &certstr, std::string &cleanCer
 {
 	RsCertificate::Format format ;
 
-	return RsCertificate::cleanCertificate(certstr,cleanCert,format,error_code) ;
+	return RsCertificate::cleanCertificate(certstr,cleanCert,format,error_code,true) ;
 }
 
 bool 	p3Peers::saveCertificateToFile(const RsPeerId &id, const std::string &/*fname*/)
@@ -1359,7 +1383,7 @@ FileSearchFlags p3Peers::computePeerPermissionFlags(const RsPeerId& peer_ssl_id,
 	// very simple algorithm.
 	//
 
-	bool found = false ;
+    bool found = directory_parent_groups.empty() ;	// by default, empty list means browsable by everyone.
 	RsPgpId pgp_id = getGPGId(peer_ssl_id) ;
 
     for(std::list<RsNodeGroupId>::const_iterator it(directory_parent_groups.begin());it!=directory_parent_groups.end() && !found;++it)
@@ -1378,13 +1402,15 @@ FileSearchFlags p3Peers::computePeerPermissionFlags(const RsPeerId& peer_ssl_id,
         //		found = true ;
 	}
 
-	bool network_wide = (share_flags & DIR_FLAGS_NETWORK_WIDE_OTHERS) ;//|| ( (share_flags & DIR_FLAGS_NETWORK_WIDE_GROUPS) && found) ;
-	bool browsable    = (share_flags &    DIR_FLAGS_BROWSABLE_OTHERS) || ( (share_flags &    DIR_FLAGS_BROWSABLE_GROUPS) && found) ;
+	bool network_wide = (share_flags & DIR_FLAGS_ANONYMOUS_DOWNLOAD) ;//|| ( (share_flags & DIR_FLAGS_NETWORK_WIDE_GROUPS) && found) ;
+    bool browsable    = (share_flags & DIR_FLAGS_BROWSABLE) && found ;
+    bool searchable   = (share_flags & DIR_FLAGS_ANONYMOUS_SEARCH) ;
 
 	FileSearchFlags final_flags ;
 
 	if(network_wide) final_flags |= RS_FILE_HINTS_NETWORK_WIDE ;
 	if(browsable   ) final_flags |= RS_FILE_HINTS_BROWSABLE ;
+    if(searchable  ) final_flags |= RS_FILE_HINTS_SEARCHABLE ;
 
 	return final_flags ;
 }

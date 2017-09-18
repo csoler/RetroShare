@@ -186,7 +186,7 @@
 #include "util/rsrandom.h"
 #include "util/rsprint.h"
 #include "util/rsmemory.h"
-#include "serialiser/rsconfigitems.h"
+#include "rsitems/rsconfigitems.h"
 #include "services/p3idservice.h"
 #include "turtle/p3turtle.h"
 #include "gxs/rsgixs.h"
@@ -1263,13 +1263,13 @@ bool p3GRouter::locked_sendTransactionData(const RsPeerId& pid,const RsGRouterTr
 #ifdef GROUTER_DEBUG
         std::cerr << "  sending to tunnel vpid " << pid << std::endl;
 #endif
-        uint32_t turtle_data_size = trans_item.serial_size() ;
+        uint32_t turtle_data_size = RsGRouterSerialiser().size(const_cast<RsGRouterTransactionItem*>(&trans_item)) ;
         uint8_t *turtle_data = (uint8_t*)rs_malloc(turtle_data_size) ;
 
         if(turtle_data == NULL)
             return false ;
         
-        if(!trans_item.serialise(turtle_data,turtle_data_size))
+        if(!RsGRouterSerialiser().serialise(const_cast<RsGRouterTransactionItem*>(&trans_item),turtle_data,&turtle_data_size))
         {
             std::cerr << "  ERROR: cannot serialise RsGRouterTransactionChunkItem." << std::endl;
 
@@ -1428,7 +1428,7 @@ bool p3GRouter::sliceDataItem(RsGRouterAbstractMsgItem *item,std::list<RsGRouter
         item->print(std::cerr, 2) ;
 #endif
 
-        uint32_t size = item->serial_size();
+        uint32_t size = RsGRouterSerialiser().size(item);
 
         RsTemporaryMemory data(size) ;	// data will be freed on return, whatever the route taken.
 
@@ -1438,7 +1438,7 @@ bool p3GRouter::sliceDataItem(RsGRouterAbstractMsgItem *item,std::list<RsGRouter
             throw ;
         }
 
-        if(!item->serialise(data,size))
+        if(!RsGRouterSerialiser().serialise(item,data,&size))
         {
             std::cerr << "  ERROR: cannot serialise." << std::endl;
             throw ;
@@ -1555,7 +1555,7 @@ void p3GRouter::handleIncomingReceiptItem(RsGRouterSignedReceiptItem *receipt_it
         
         uint32_t error_status ;
 
-        if(! verifySignedDataItem(receipt_item,error_status))
+        if(! verifySignedDataItem(receipt_item,RsIdentityUsage::GLOBAL_ROUTER_SIGNATURE_CHECK,error_status))
             if( (it->second.routing_flags & GRouterRoutingInfo::ROUTING_FLAGS_IS_ORIGIN) || (error_status !=  RsGixs::RS_GIXS_ERROR_KEY_NOT_AVAILABLE))
 	    {
 		    std::cerr << "  checking receipt signature : FAILED. Receipt is dropped. Error status=" << error_status << std::endl;
@@ -1617,14 +1617,24 @@ void p3GRouter::handleIncomingReceiptItem(RsGRouterSignedReceiptItem *receipt_it
 
 Sha1CheckSum p3GRouter::computeDataItemHash(RsGRouterGenericDataItem *data_item)
 {
-    uint32_t total_size = data_item->signed_data_size() + data_item->signature.TlvSize() ;
+	RsGRouterSerialiser signature_serializer(RsGenericSerializer::SERIALIZATION_FLAG_SIGNATURE | RsGenericSerializer::SERIALIZATION_FLAG_SKIP_HEADER);
+
+    uint32_t signed_data_size = signature_serializer.size(data_item);
+    uint32_t total_size = signed_data_size + data_item->signature.TlvSize() ;
     RsTemporaryMemory mem(total_size) ;
 
     uint32_t offset = 0 ;
-    data_item->serialise_signed_data(mem,total_size) ;
-    offset += data_item->signed_data_size() ;
+    uint32_t tmp_size = total_size ;
+    signature_serializer.serialise(data_item,mem,&tmp_size) ;
+    if(tmp_size != signed_data_size)
+        std::cerr << "(EE) Some error occured in p3GRouter::computeDataItemHash(). Mismatched offset/data size" << std::endl;
+
+    offset += tmp_size ;
 
     data_item->signature.SetTlv(mem, total_size,&offset) ;
+
+    if(offset != total_size)
+        std::cerr << "(EE) Some error occured in p3GRouter::computeDataItemHash(). Mismatched offset/data size" << std::endl;
 
     return RsDirUtil::sha1sum(mem,total_size) ;
 }
@@ -1711,7 +1721,7 @@ void p3GRouter::handleIncomingDataItem(RsGRouterGenericDataItem *data_item)
 #endif
         uint32_t error_status ;
         
-        if(!verifySignedDataItem(data_item,error_status))	// we should get proper flags out of this
+        if(!verifySignedDataItem(data_item,RsIdentityUsage::GLOBAL_ROUTER_SIGNATURE_CHECK,error_status))	// we should get proper flags out of this
         {
             std::cerr << "    verifying item signature: FAILED! Droping that item" ;
             std::cerr << "    You probably received a message from a person you don't have key." << std::endl;
@@ -1892,7 +1902,9 @@ bool p3GRouter::encryptDataItem(RsGRouterGenericDataItem *item,const RsGxsId& de
     uint32_t encrypted_size =0;
     uint32_t error_status ;
 
-    if(!mGixs->encryptData(item->data_bytes,item->data_size,encrypted_data,encrypted_size,destination_key,true,error_status))
+	if(!mGixs->encryptData( item->data_bytes, item->data_size, encrypted_data,
+	                        encrypted_size, destination_key, error_status,
+	                        true ))
     {
         std::cerr << "(EE) Cannot encrypt: " ;
         if(error_status == RsGixs::RS_GIXS_ERROR_KEY_NOT_AVAILABLE) std::cerr << " key not available for ID = " << destination_key << std::endl;
@@ -1926,7 +1938,9 @@ bool p3GRouter::decryptDataItem(RsGRouterGenericDataItem *item)
     uint32_t decrypted_size =0;
     uint32_t error_status ;
 
-    if(!mGixs->decryptData(item->data_bytes,item->data_size,decrypted_data,decrypted_size,item->destination_key,error_status))
+	if(!mGixs->decryptData( item->data_bytes, item->data_size, decrypted_data,
+	                        decrypted_size, item->destination_key, error_status,
+	                        true ))
     {
         if(error_status == RsGixs::RS_GIXS_ERROR_KEY_NOT_AVAILABLE)
             std::cerr << "(EE) Cannot decrypt incoming message. Key " << item->destination_key << " unknown." << std::endl;
@@ -1948,28 +1962,45 @@ bool p3GRouter::signDataItem(RsGRouterAbstractMsgItem *item,const RsGxsId& signi
 {
     try
     {
-#ifdef GROUTER_DEBUG
+//#ifdef GROUTER_DEBUG
         std::cerr << "p3GRouter::signDataItem()" << std::endl;
         std::cerr << "     Key ID = " << signing_id << std::endl;
         std::cerr << "     Getting key material..." << std::endl;
-#endif
-        uint32_t data_size = item->signed_data_size() ;
-    RsTemporaryMemory data(data_size) ;
+//#endif
+        RsGRouterSerialiser signature_serializer(RsGenericSerializer::SERIALIZATION_FLAG_SIGNATURE | RsGenericSerializer::SERIALIZATION_FLAG_SKIP_HEADER) ;
+		uint32_t data_size = signature_serializer.size(item) ;
+		RsTemporaryMemory data(data_size) ;
 
         if(data == NULL)
             throw std::runtime_error("Cannot allocate memory for signing data.") ;
 
-        if(!item->serialise_signed_data(data,data_size))
+        if(!signature_serializer.serialise(item,data,&data_size))
             throw std::runtime_error("Cannot serialise signed data.") ;
 
-    uint32_t error_status ;
+		uint32_t error_status ;
 
-    if(!mGixs->signData(data,data_size,signing_id,item->signature,error_status))
-            throw std::runtime_error("Cannot sign for id " + signing_id.toStdString() + ". Signature call failed.") ;
+        std::cerr << "GRouter::signing data" << std::endl;
+        std::cerr << "   size: " << data_size << std::endl;
+        std::cerr << "   data: " << RsUtil::BinToHex(data,data_size) << std::endl;
 
-#ifdef GROUTER_DEBUG
+		if(!mGixs->signData(data,data_size,signing_id,item->signature,error_status))
+			throw std::runtime_error("Cannot sign for id " + signing_id.toStdString() + ". Signature call failed.") ;
+
+//#ifdef GROUTER_DEBUG
         std::cerr << "Created    signature for data hash: " << RsDirUtil::sha1sum(data,data_size) << " and key id=" << signing_id << std::endl;
-#endif
+//#endif
+        // Check signature
+        RsIdentityUsage::UsageCode info = RsIdentityUsage::GLOBAL_ROUTER_SIGNATURE_CREATION;
+        uint32_t error;
+
+        if(verifySignedDataItem(item,info,error))
+            std::cerr << "Signature checks." << std::endl;
+		else
+        {
+            std::cerr << "(EE) Cannot verify own signed item. Something's wrong." << std::endl;
+            return false ;
+        }
+
         return true ;
     }
     catch(std::exception& e)
@@ -1980,26 +2011,29 @@ bool p3GRouter::signDataItem(RsGRouterAbstractMsgItem *item,const RsGxsId& signi
         return false ;
     }
 }
-bool p3GRouter::verifySignedDataItem(RsGRouterAbstractMsgItem *item,uint32_t& error_status)
+bool p3GRouter::verifySignedDataItem(RsGRouterAbstractMsgItem *item,const RsIdentityUsage::UsageCode& info,uint32_t& error_status)
 {
     try
     {
-        if(rsIdentity->isBanned(item->signature.keyId))
+        if(rsReputations->overallReputationLevel(item->signature.keyId) == RsReputations::REPUTATION_LOCALLY_NEGATIVE)
         {
             std::cerr << "(WW) received global router message from banned identity " << item->signature.keyId << ". Rejecting the message." << std::endl;
             return false ;
         }
+        RsGRouterSerialiser signature_serializer(RsGenericSerializer::SERIALIZATION_FLAG_SIGNATURE | RsGenericSerializer::SERIALIZATION_FLAG_SKIP_HEADER);
 
-        uint32_t data_size = item->signed_data_size() ;
-          RsTemporaryMemory data(data_size) ;
+        uint32_t data_size = signature_serializer.size(item) ;
+		RsTemporaryMemory data(data_size) ;
 
-		  if(data == NULL)
-            throw std::runtime_error("Cannot allocate data.") ;
+		if(data == NULL)
+			throw std::runtime_error("Cannot allocate data.") ;
 
-        if(!item->serialise_signed_data(data,data_size))
-            throw std::runtime_error("Cannot serialise signed data.") ;
+		if(!signature_serializer.serialise(item,data,&data_size))
+			throw std::runtime_error("Cannot serialise signed data.") ;
 
-        if(!mGixs->validateData(data,data_size,item->signature,true,error_status))
+        RsIdentityUsage use(RS_SERVICE_TYPE_GROUTER,info) ;
+
+        if(!mGixs->validateData(data,data_size,item->signature,true,use, error_status))
         {
             switch(error_status)
             {
@@ -2010,7 +2044,7 @@ bool p3GRouter::verifySignedDataItem(RsGRouterAbstractMsgItem *item,uint32_t& er
                                     	
                 			std::cerr << "(EE) Key for GXS Id " << item->signature.keyId << " is not available. Cannot verify. Asking key to peer " << item->PeerId() << std::endl;
                                     
-                			mGixs->requestKey(item->signature.keyId,peer_ids) ;   // request the key around
+                			mGixs->requestKey(item->signature.keyId,peer_ids,use) ;   // request the key around
             			}
                                         break ;
                 case RsGixs::RS_GIXS_ERROR_SIGNATURE_MISMATCH: std::cerr << "(EE) Signature mismatch. Spoofing/Corrupted/MITM?." << std::endl;
@@ -2116,7 +2150,7 @@ bool p3GRouter::sendData(const RsGxsId& destination,const GRouterServiceId& clie
     // Verify the signature. If that fails, there's a bug somewhere!!
 	uint32_t error_status;
             
-    if(!verifySignedDataItem(data_item,error_status))
+    if(!verifySignedDataItem(data_item,RsIdentityUsage::GLOBAL_ROUTER_SIGNATURE_CREATION,error_status))
     {
         std::cerr << "Cannot verify data item that was just signed. Some error occured!" << std::endl;
 	delete data_item;
@@ -2182,26 +2216,6 @@ Sha1CheckSum p3GRouter::makeTunnelHash(const RsGxsId& destination,const GRouterS
 
     return RsDirUtil::sha1sum(bytes,20) ;
 }
-#ifdef TO_REMOVE
-bool p3GRouter::locked_getGxsOwnIdAndClientIdFromHash(const TurtleFileHash& sum,RsGxsId& gxs_id,GRouterServiceId& client_id)
-{
-    assert(       gxs_id.SIZE_IN_BYTES == 16) ;
-    assert(Sha1CheckSum::SIZE_IN_BYTES == 20) ;
-
-    //gxs_id = RsGxsId(sum.toByteArray());// takes the first 16 bytes
-    //client_id = sum.toByteArray()[19] + (sum.toByteArray()[18] << 8) ;
-    
-    std::map<Sha1CheckSum, GRouterPublishedKeyInfo>::const_iterator it = _owned_key_ids.find(sum);
-    
-    if(it == _owned_key_ids.end())
-        return false ;
-    
-    gxs_id = it->second.authentication_key ;
-    client_id = it->second.service_id ;
-    
-    return true ;
-}
-#endif
 bool p3GRouter::loadList(std::list<RsItem*>& items)
 {
     {

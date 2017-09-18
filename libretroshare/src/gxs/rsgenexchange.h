@@ -36,25 +36,16 @@
 #include "rsgxsdataaccess.h"
 #include "rsnxsobserver.h"
 #include "retroshare/rsgxsservice.h"
-#include "serialiser/rsnxsitems.h"
+#include "rsitems/rsnxsitems.h"
 #include "rsgxsutil.h"
-
-#define DEFAULT_MSG_STORE_PERIOD 60*60*24*31*4 // 4 months
 
 template<class GxsItem, typename Identity = std::string>
 class GxsPendingItem
 {
 public:
-	GxsPendingItem(GxsItem item, Identity id) :
-		mItem(item), mId(id), mAttempts(0)
+	GxsPendingItem(GxsItem item, Identity id,time_t ts) :
+		mItem(item), mId(id), mFirstTryTS(ts)
 	{}
-
-	GxsPendingItem(const GxsPendingItem& gpsi)
-	{
-		this->mItem = gpsi.mItem;
-		this->mId = gpsi.mId;
-		this->mAttempts = gpsi.mAttempts;
-	}
 
 	bool operator==(const Identity& id)
 	{
@@ -63,7 +54,7 @@ public:
 
 	GxsItem mItem;
 	Identity mId;
-	uint8_t mAttempts;
+	time_t mFirstTryTS;
 };
 
 class GxsGrpPendingSign
@@ -126,9 +117,7 @@ public:
      * @param gixs This is used for verification of msgs and groups received by Gen Exchange using identities.
      * @param authenPolicy This determines the authentication used for verfying authorship of msgs and groups
      */
-    RsGenExchange(RsGeneralDataService* gds, RsNetworkExchangeService* ns,
-                  RsSerialType* serviceSerialiser, uint16_t mServType, RsGixs* gixs, uint32_t authenPolicy,
-                  uint32_t messageStorePeriod = DEFAULT_MSG_STORE_PERIOD);
+    RsGenExchange(RsGeneralDataService* gds, RsNetworkExchangeService* ns, RsSerialType* serviceSerialiser, uint16_t mServType, RsGixs* gixs, uint32_t authenPolicy);
 
     virtual ~RsGenExchange();
 
@@ -269,6 +258,17 @@ public:
      */
     virtual bool acceptNewGroup(const RsGxsGrpMetaData *grpMeta) ;
 
+	/*!
+     * \brief acceptNewMessage
+     * 		Early checks if the message can be accepted. This is mainly used to check wether the group is for instance overloaded and the service wants
+     * 		to put limitations to it.
+     * 		Returns true unless derived in GXS services.
+     *
+     * \param grpMeta Group metadata to check
+     * \return
+     */
+	virtual bool acceptNewMessage(const RsGxsMsgMetaData *msgMeta, uint32_t size) ;
+
     bool subscribeToGroup(uint32_t& token, const RsGxsGroupId& grpId, bool subscribe);
 
 	/*!
@@ -296,6 +296,22 @@ protected:
      * @param grpItem the items to be retrieved for token are stored here
      */
     bool getGroupData(const uint32_t &token, std::vector<RsGxsGrpItem*>& grpItem);
+
+    /*!
+     * \brief getSerializedGroupData
+     * 			Retrieves the complete group data serialized into a chunk of memory. This can be useful to
+     * 		  transfer a full group from one machine to another.
+     *
+     * \param token		token previously obtained from cache request
+     * \param data		memory chunk allocated (using malloc)
+     * \param size		size of the memory chunk.
+     * \return
+     */
+
+	bool getSerializedGroupData(uint32_t token, RsGxsGroupId &id,
+	                            unsigned char *& data, uint32_t& size);
+	bool deserializeGroupData(unsigned char *data, uint32_t size,
+	                          RsGxsGroupId* gId = nullptr);
 
     template<class GrpType>
     bool getGroupDataT(const uint32_t &token, std::vector<GrpType*>& grpItem)
@@ -333,11 +349,11 @@ public:
      * @param token token to be redeemed for message item retrieval
      * @param msgItems
      */
-    bool getMsgData(const uint32_t &token, GxsMsgDataMap& msgItems);
+	bool getMsgData(uint32_t token, GxsMsgDataMap& msgItems);
 
     template <class MsgType>
-    bool getMsgDataT(const uint32_t &token, std::map<RsGxsGroupId,
-    		std::vector<MsgType*> >& msgItems)
+	bool getMsgDataT( uint32_t token, std::map<RsGxsGroupId,
+	                  std::vector<MsgType*> >& msgItems)
     {
     	GxsMsgDataMap msgData;
     	bool ok = getMsgData(token, msgData);
@@ -374,7 +390,7 @@ public:
      * @param token token to be redeemed for message item retrieval
      * @param msgItems
      */
-    bool getMsgRelatedData(const uint32_t &token, GxsMsgRelatedDataMap& msgItems);
+	bool getMsgRelatedData(uint32_t token, GxsMsgRelatedDataMap& msgItems);
 
 protected:
 
@@ -437,11 +453,10 @@ protected:
 
 public:
     /*!
-     * Assigns a token value to passed integer
-     * The status of the token can still be queried from request status feature
-     * @warning the token space is shared with RsGenExchange backend, so do not
-     * modify tokens except does you have created by calling generatePublicToken()
-     * @return  token
+	 * Generate a new token, the status of the token can be queried from request
+	 * status feature.
+	 * @attention the token space is shared with RsGenExchange backend.
+	 * @return Generated token
      */
     uint32_t generatePublicToken();
 
@@ -495,7 +510,7 @@ public:
 	 * This allows the client service to acknowledge that their grps has \n
 	 * been created/modified and retrieve the create/modified grp ids
 	 * @param token the token related to modification/create request
-	 * @param msgIds vector of ids of groups created/modified
+	 * @param grpId ids of created/modified group
 	 * @return true if token exists false otherwise
 	 */
     bool acknowledgeTokenGrp(const uint32_t& token, RsGxsGroupId& grpId);
@@ -529,7 +544,7 @@ protected:
      * @param token
      * @param grpItem
      */
-    void deleteGroup(uint32_t& token, RsGxsGrpItem* grpItem);
+    void deleteGroup(uint32_t& token, const RsGxsGroupId &grpId);
 
 public:
     /*!
@@ -614,11 +629,6 @@ public:
     void updateGroupLastMsgTimeStamp(uint32_t& token, const RsGxsGroupId& grpId);
 
     /*!
-     * @return storage time of messages in months
-     */
-    int getStoragePeriod(){ return MESSAGE_STORE_PERIOD/(60*60*24*31);}
-
-    /*!
      * sets the msg status flag
      * @param token this is set to token value associated to this request
      * @param grpId Id of group whose subscribe file will be changed
@@ -649,6 +659,24 @@ public:
      */
     bool getGroupServerUpdateTS(const RsGxsGroupId& gid,time_t& grp_server_update_TS,time_t& msg_server_update_TS) ;
 
+    /*!
+     * \brief getDefaultStoragePeriod. All times in seconds.
+     * \return
+     */
+	virtual uint32_t getDefaultStoragePeriod() { return mNetService->getDefaultKeepAge() ; }
+
+    virtual uint32_t getStoragePeriod(const RsGxsGroupId& grpId) ;
+    virtual void     setStoragePeriod(const RsGxsGroupId& grpId,uint32_t age_in_secs) ;
+
+    virtual uint32_t getDefaultSyncPeriod();
+    virtual uint32_t getSyncPeriod(const RsGxsGroupId& grpId) ;
+    virtual void     setSyncPeriod(const RsGxsGroupId& grpId,uint32_t age_in_secs) ;
+	virtual bool     getGroupNetworkStats(const RsGxsGroupId& grpId,RsGroupNetworkStats& stats);
+
+    uint16_t serviceType() const { return mServType ; }
+    uint32_t serviceFullType() const { return ((uint32_t)mServType << 8) + (((uint32_t) RS_PKT_VERSION_SERVICE) << 24); }
+
+    virtual RsReputations::ReputationLevel minReputationForForwardingMessages(uint32_t group_sign_flags,uint32_t identity_flags);
 protected:
 
     /** Notifications **/
@@ -687,6 +715,8 @@ private:
 
     void publishMsgs();
 
+	bool checkGroupMetaConsistency(const RsGroupMetaData& meta);
+
     /*!
      * processes msg local meta changes
      */
@@ -713,18 +743,19 @@ private:
      */
     uint8_t createGroup(RsNxsGrp* grp, RsTlvSecurityKeySet& keySet);
 
+protected:
     /*!
      * This completes the creation of an instance on RsNxsMsg
      * by assigning it a groupId and signature via SHA1 and EVP_sign respectively
      * What signatures are calculated are based on the authentication policy
      * of the service
      * @param msg the Nxs message to create
-     * CREATE_FAIL, CREATE_SUCCESS, CREATE_ID_SIGN_NOT_AVAIL
      * @return CREATE_SUCCESS for success, CREATE_FAIL for fail,
      * 		   CREATE_FAIL_TRY_LATER for Id sign key not avail (but requested)
      */
     int createMessage(RsNxsMsg* msg);
 
+private:
     /*!
      * convenience function to create sign
      * @param signSet signatures are stored here
@@ -819,9 +850,7 @@ private:
      * @param msgs messages to be filtered
      * @param msgIdsNotify message notification map to be filtered
      */
-    void removeDeleteExistingMessages(RsGeneralDataService::MsgStoreMap& msgs, GxsMsgReq& msgIdsNotify);
-
-private:
+    void removeDeleteExistingMessages(std::list<RsNxsMsg*>& msgs, GxsMsgReq& msgIdsNotify);
 
     RsMutex mGenMtx;
     RsGxsDataAccess* mDataAccess;
@@ -834,8 +863,8 @@ private:
 
     std::vector<RsNxsMsg*> mReceivedMsgs;
 
-    typedef std::vector<GxsPendingItem<RsNxsGrp*, RsGxsGroupId> > NxsGrpPendValidVect;
-    NxsGrpPendValidVect mReceivedGrps;
+    typedef std::map<RsGxsGroupId,GxsPendingItem<RsNxsGrp*, RsGxsGroupId> > NxsGrpPendValidVect;
+    NxsGrpPendValidVect mGrpPendingValidate;
 
     std::vector<GxsGrpPendingSign> mGrpsToPublish;
     typedef std::vector<GxsGrpPendingSign> NxsGrpSignPendVect;
@@ -856,14 +885,10 @@ private:
     /// authentication policy
     uint32_t mAuthenPolicy;
 
-    std::map<uint32_t, GxsPendingItem<RsGxsMsgItem*, uint32_t> >
-    	mMsgPendingSign;
+    std::map<uint32_t, GxsPendingItem<RsGxsMsgItem*, uint32_t> > mMsgPendingSign;
 
-    std::vector<GxsPendingItem<RsNxsMsg*, RsGxsGrpMsgIdPair> > mMsgPendingValidate;
-    typedef std::vector<GxsPendingItem<RsNxsMsg*, RsGxsGrpMsgIdPair> > NxsMsgPendingVect;
-
-
-    const uint32_t MESSAGE_STORE_PERIOD;
+    typedef std::map<RsGxsMessageId,GxsPendingItem<RsNxsMsg*, RsGxsGrpMsgIdPair> > NxsMsgPendingVect;
+    NxsMsgPendingVect mMsgPendingValidate;
 
     bool mCleaning;
     time_t mLastClean;
@@ -874,11 +899,12 @@ private:
     time_t mLastCheck;
     RsGxsIntegrityCheck* mIntegrityCheck;
 
-private:
-
-    const uint8_t CREATE_FAIL, CREATE_SUCCESS, CREATE_FAIL_TRY_LATER, SIGN_MAX_ATTEMPTS;
+protected:
+	enum CreateStatus { CREATE_FAIL, CREATE_SUCCESS, CREATE_FAIL_TRY_LATER };
+	const uint8_t SIGN_MAX_WAITING_TIME;
+	// TODO: cleanup this should be an enum!
     const uint8_t SIGN_FAIL, SIGN_SUCCESS, SIGN_FAIL_TRY_LATER;
-    const uint8_t VALIDATE_FAIL, VALIDATE_SUCCESS, VALIDATE_FAIL_TRY_LATER, VALIDATE_MAX_ATTEMPTS;
+    const uint8_t VALIDATE_FAIL, VALIDATE_SUCCESS, VALIDATE_FAIL_TRY_LATER, VALIDATE_MAX_WAITING_TIME;
 
 private:
 

@@ -33,8 +33,8 @@
 #include "rsgds.h"
 #include "rsnxsobserver.h"
 #include "pqi/p3linkmgr.h"
-#include "serialiser/rsnxsitems.h"
-#include "serialiser/rsgxsupdateitems.h"
+#include "rsitems/rsnxsitems.h"
+#include "rsitems/rsgxsupdateitems.h"
 #include "rsgxsnetutils.h"
 #include "pqi/p3cfgmgr.h"
 #include "rsgixs.h"
@@ -71,12 +71,9 @@ class RsGroupNetworkStatsRecord
  * Incoming transaction are in 3 different states
  *   1. START 2. RECEIVING 3. END
  */
-class RsGxsNetService : public RsNetworkExchangeService, public p3ThreadedService,
-    public p3Config
+class RsGxsNetService : public RsNetworkExchangeService, public p3ThreadedService, public p3Config
 {
 public:
-
-	typedef RsSharedPtr<RsGxsNetService> pointer;
 
 	static const uint32_t FRAGMENT_SIZE;
     /*!
@@ -88,26 +85,39 @@ public:
      * arrive
      */
     RsGxsNetService(uint16_t servType, RsGeneralDataService *gds,
-                RsNxsNetMgr *netMgr,
-        RsNxsObserver *nxsObs,  // used to be = NULL.
-        const RsServiceInfo serviceInfo,
-        RsGixsReputation* reputations = NULL, RsGcxs* circles = NULL, RsGixs *gixs=NULL,
-        PgpAuxUtils *pgpUtils = NULL,
-        bool grpAutoSync = true, bool msgAutoSync = true);
+      	          RsNxsNetMgr *netMgr,
+      			  RsNxsObserver *nxsObs,  // used to be = NULL.
+      			  const RsServiceInfo serviceInfo,
+      			  RsGixsReputation* reputations = NULL, RsGcxs* circles = NULL, RsGixs *gixs=NULL,
+      			  PgpAuxUtils *pgpUtils = NULL,
+      			  bool grpAutoSync = true, bool msgAutoSync = true,
+	                uint32_t default_store_period = RS_GXS_DEFAULT_MSG_STORE_PERIOD,
+	                uint32_t default_sync_period = RS_GXS_DEFAULT_MSG_REQ_PERIOD);
 
     virtual ~RsGxsNetService();
 
     virtual RsServiceInfo getServiceInfo() { return mServiceInfo; }
 
+    virtual void getItemNames(std::map<uint8_t,std::string>& names) const ;
+
 public:
 
 
     /*!
-     * Use this to set how far back synchronisation of messages should take place
-     * @param age the max age a sync item can to be allowed in a synchronisation
+     * Use this to set how far back synchronisation and storage of messages should take place
+     * @param age the max age a sync/storage item can to be allowed in a synchronisation
      */
-    // NOT IMPLEMENTED
-    virtual void setSyncAge(uint32_t age);
+    virtual void setSyncAge(const RsGxsGroupId& grpId,uint32_t age_in_secs);
+    virtual void setKeepAge(const RsGxsGroupId& grpId,uint32_t age_in_secs);
+
+    virtual uint32_t getSyncAge(const RsGxsGroupId& id);
+    virtual uint32_t getKeepAge(const RsGxsGroupId& id);
+
+    virtual uint32_t getDefaultSyncAge() { return mDefaultMsgSyncPeriod ; }
+    virtual uint32_t getDefaultKeepAge() { return mDefaultMsgStorePeriod ; }
+
+	virtual void setDefaultKeepAge(uint32_t t) { mDefaultMsgStorePeriod = t ; }
+	virtual void setDefaultSyncAge(uint32_t t) { mDefaultMsgSyncPeriod = t ; }
 
     /*!
      * pauses synchronisation of subscribed groups and request for group id
@@ -156,6 +166,7 @@ public:
     
     virtual bool getGroupServerUpdateTS(const RsGxsGroupId& gid,time_t& grp_server_update_TS,time_t& msg_server_update_TS) ;
     virtual bool stampMsgServerUpdateTS(const RsGxsGroupId& gid) ;
+    virtual bool removeGroups(const std::list<RsGxsGroupId>& groups);
 
     /* p3Config methods */
 public:
@@ -402,9 +413,11 @@ private:
 
     bool locked_CanReceiveUpdate(const RsNxsSyncGrpReqItem *item);
     bool locked_CanReceiveUpdate(RsNxsSyncMsgReqItem *item, bool &grp_is_known);
+	void locked_resetClientTS(const RsGxsGroupId& grpId);
 
     static RsGxsGroupId hashGrpId(const RsGxsGroupId& gid,const RsPeerId& pid) ;
     
+	RsGxsGrpConfig& locked_getGrpConfig(const RsGxsGroupId& grp_id);
 private:
 
     typedef std::vector<RsNxsGrp*> GrpFragments;
@@ -482,6 +495,7 @@ private:
 
 private:
 
+	static void locked_checkDelay(uint32_t& time_in_secs);
 
     /*** transactions ***/
 
@@ -542,25 +556,31 @@ private:
 
 public:
 
-    typedef std::map<RsPeerId, RsGxsMsgUpdateItem*> ClientMsgMap;
-    typedef std::map<RsGxsGroupId, RsGxsServerMsgUpdateItem*> ServerMsgMap;
-    typedef std::map<RsPeerId, RsGxsGrpUpdateItem*> ClientGrpMap;
+    typedef std::map<RsPeerId,     RsGxsMsgUpdate>        ClientMsgMap;
+    typedef std::map<RsGxsGroupId, RsGxsServerMsgUpdate>  ServerMsgMap;
+    typedef std::map<RsPeerId,     RsGxsGrpUpdate>        ClientGrpMap;
+    typedef std::map<RsGxsGroupId, RsGxsGrpConfig>        GrpConfigMap;
 private:
 
     ClientMsgMap mClientMsgUpdateMap;
     ServerMsgMap mServerMsgUpdateMap;
     ClientGrpMap mClientGrpUpdateMap;
+    GrpConfigMap mServerGrpConfigMap;
 
-    std::map<RsGxsGroupId,RsGroupNetworkStatsRecord> mGroupNetworkStats ;
-
-    RsGxsServerGrpUpdateItem* mGrpServerUpdateItem;
+    RsGxsServerGrpUpdate mGrpServerUpdate;
     RsServiceInfo mServiceInfo;
     
     std::map<RsGxsMessageId,time_t> mRejectedMessages;
+
     std::vector<RsNxsGrp*> mNewGroupsToNotify ;
     std::vector<RsNxsMsg*> mNewMessagesToNotify ;
-    
+    std::set<RsGxsGroupId> mNewStatsToNotify ;
+    std::set<RsGxsGroupId> mNewPublishKeysToNotify ;
+
     void debugDump();
+
+	uint32_t mDefaultMsgStorePeriod ;
+	uint32_t mDefaultMsgSyncPeriod ;
 };
 
 #endif // RSGXSNETSERVICE_H

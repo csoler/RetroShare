@@ -33,11 +33,11 @@ GxsPeerNode::GxsPeerNode(const RsPeerId &ownId, const std::list<RsPeerId> &frien
 	mTestNs(NULL)
 { 
 	// extract bits we need.
-	p3PeerMgr *peerMgr = getPeerMgr();
-	p3LinkMgr *linkMgr = getLinkMgr();
-	p3NetMgr  *netMgr = getNetMgr();
+	//p3PeerMgr *peerMgr = getPeerMgr();
+	//p3LinkMgr *linkMgr = getLinkMgr();
+	//p3NetMgr  *netMgr = getNetMgr();
 	RsNxsNetMgr *nxsMgr = getNxsNetMgr();
-	p3ServiceControl *serviceCtrl = getServiceControl();	
+	//p3ServiceControl *serviceCtrl = getServiceControl();
 
 	// Create Service for Testing.
 	// Specific Testing service here.
@@ -67,7 +67,7 @@ GxsPeerNode::GxsPeerNode(const RsPeerId &ownId, const std::list<RsPeerId> &frien
 		mGxsIdNs = new RsGxsNetService(
 				RS_SERVICE_GXS_TYPE_GXSID, mGxsIdDs, nxsMgr,
 				mGxsIdService, mGxsIdService->getServiceInfo(),
-				mGxsIdService, mGxsCircles,mGxsIdService,
+				NULL, mGxsCircles,mGxsIdService,
 				mPgpAuxUtils,
 				false); // don't synchronise group automatic (need explicit group request)
 
@@ -81,7 +81,7 @@ GxsPeerNode::GxsPeerNode(const RsPeerId &ownId, const std::list<RsPeerId> &frien
 #endif
 				(RS_SERVICE_GXS_TYPE_GXSCIRCLE, mGxsCirclesDs, nxsMgr,
 				mGxsCircles, mGxsCircles->getServiceInfo(),
-				mGxsIdService, mGxsCircles,NULL,
+				NULL, mGxsCircles,NULL,
 				mPgpAuxUtils);
 	}
 	else
@@ -107,7 +107,7 @@ GxsPeerNode::GxsPeerNode(const RsPeerId &ownId, const std::list<RsPeerId> &frien
 #endif
 			(RS_SERVICE_GXS_TYPE_TEST, mTestDs, nxsMgr,
 			mTestService, mTestService->getServiceInfo(),
-			mGxsIdService, mGxsCircles,mGxsIdService,
+			NULL, mGxsCircles,mGxsIdService,
 			mPgpAuxUtils);
 
 	if (mUseIdentityService)
@@ -165,7 +165,7 @@ GxsPeerNode::~GxsPeerNode()
 	RsDirUtil::cleanupDirectory(mGxsDir, filesToKeep);
 }
 	
-bool GxsPeerNode::checkTestServiceAllowedGroups(const RsPeerId &peerId)
+bool GxsPeerNode::checkTestServiceAllowedGroups(const RsPeerId &/*peerId*/)
 {
 #ifdef USER_NETSERVICE_WRAPPER
 	std::vector<RsGxsGroupId> groups;
@@ -178,7 +178,7 @@ bool GxsPeerNode::checkTestServiceAllowedGroups(const RsPeerId &peerId)
 }
 
 	
-bool GxsPeerNode::checkCircleServiceAllowedGroups(const RsPeerId &peerId)
+bool GxsPeerNode::checkCircleServiceAllowedGroups(const RsPeerId &/*peerId*/)
 {
 #ifdef USER_NETSERVICE_WRAPPER
 	std::vector<RsGxsGroupId> groups;
@@ -204,7 +204,7 @@ bool GxsPeerNode::createIdentity(const std::string &name,
 	id.mMeta.mGroupName = name;
         if (pgpLinked)
         {
-                id.mMeta.mGroupFlags = RSGXSID_GROUPFLAG_REALID;
+                id.mMeta.mGroupFlags = RSGXSID_GROUPFLAG_REALID_kept_for_compatibility;
         }
         else
         {

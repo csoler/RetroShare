@@ -5,6 +5,7 @@
 #include "libretroshare/gxs/common/data_support.h"
 #include "rsdataservice_test.h"
 #include "gxs/rsgds.h"
+#include "gxs/rsgxsutil.h"
 #include "gxs/rsdataservice.h"
 
 #define DATA_BASE_NAME "msg_grp_Store"
@@ -35,46 +36,38 @@ void test_groupStoreAndRetrieve(){
     setUp();
 
     int nGrp = rand()%32;
-    std::map<RsNxsGrp*, RsGxsGrpMetaData*> grps, grps_copy;
+	RsNxsGrpDataTemporaryList grps, grps_copy;
     RsNxsGrp* grp;
     RsGxsGrpMetaData* grpMeta;
-    for(int i = 0; i < nGrp; i++){
-        std::pair<RsNxsGrp*, RsGxsGrpMetaData*> p;
-       grp = new RsNxsGrp(RS_SERVICE_TYPE_PLUGIN_SIMPLE_FORUM);
-       grpMeta = new RsGxsGrpMetaData();
-       p.first = grp;
-       p.second = grpMeta;
-       init_item(*grp);
-       init_item(grpMeta);
-       grpMeta->mGroupId = grp->grpId;
-       grps.insert(p);
-       RsNxsGrp* grp_copy = new RsNxsGrp(RS_SERVICE_TYPE_PLUGIN_SIMPLE_FORUM);
-       *grp_copy = *grp;
-       RsGxsGrpMetaData* grpMeta_copy = new RsGxsGrpMetaData();
-       *grpMeta_copy = *grpMeta;
-       grps_copy.insert(std::make_pair(grp_copy, grpMeta_copy ));
-       grpMeta = NULL;
-       grp = NULL;
-   }
+
+    for(int i = 0; i < nGrp; i++)
+	{
+		std::pair<RsNxsGrp*, RsGxsGrpMetaData*> p;
+		grp = new RsNxsGrp(RS_SERVICE_TYPE_PLUGIN_SIMPLE_FORUM);
+		grpMeta = new RsGxsGrpMetaData();
+
+		init_item(*grp);
+		init_item(grpMeta);
+
+		grpMeta->mGroupId = grp->grpId;
+		grp->metaData = grpMeta ;
+
+		grps.push_back(grp);
+	}
 
     dStore->storeGroup(grps);
 
-    //use copy, a grps are deleted in store
-    grps.clear();
-    grps = grps_copy;
+    RsNxsGrpDataTemporaryMap gR;
+    RsGxsGrpMetaTemporaryMap grpMetaR;
 
-    std::map<RsGxsGroupId, RsNxsGrp*> gR;
-    std::map<RsGxsGroupId, RsGxsGrpMetaData*> grpMetaR;
     dStore->retrieveNxsGrps(gR, false, false);
     dStore->retrieveGxsGrpMetaData(grpMetaR);
 
-    std::map<RsNxsGrp*, RsGxsGrpMetaData*>::iterator mit = grps.begin();
-
     bool grpMatch = true, grpMetaMatch = true;
 
-    for(; mit != grps.end(); mit++)
+    for( std::list<RsNxsGrp*>::iterator mit = grps.begin(); mit != grps.end(); mit++)
     {
-        const RsGxsGroupId grpId = mit->first->grpId;
+        const RsGxsGroupId grpId = (*mit)->metaData->mGroupId;
 
         // check if it exists
         if(gR.find(grpId) == gR.end()) {
@@ -82,8 +75,8 @@ void test_groupStoreAndRetrieve(){
             break;
         }
 
-        RsNxsGrp *l = mit->first,
-        *r = gR[grpId];
+        RsNxsGrp *l = *mit;
+        RsNxsGrp *r = gR[grpId];
 
         // assign transaction number
         // to right to as tn is not stored
@@ -104,8 +97,13 @@ void test_groupStoreAndRetrieve(){
             break;
         }
 
-        RsGxsGrpMetaData *l_Meta = mit->second,
+        RsGxsGrpMetaData *l_Meta = (*mit)->metaData,
         *r_Meta = grpMetaR[grpId];
+
+        // assign signSet and mGrpSize
+        // to right as these values are not stored in db
+        r_Meta->signSet = l_Meta->signSet;
+        r_Meta->mGrpSize = l_Meta->mGrpSize;
 
         if(!(*l_Meta == *r_Meta))
         {
@@ -113,18 +111,12 @@ void test_groupStoreAndRetrieve(){
             break;
         }
 
-        /* release resources */
-        delete l_Meta;
-        delete r_Meta;
-        delete l;
-        delete r;
-
         remove(grpId.toStdString().c_str());
     }
 
     grpMetaR.clear();
 
-    EXPECT_TRUE(grpMatch);
+    EXPECT_TRUE(grpMatch && grpMetaMatch);
     tearDown();
 }
 
@@ -145,15 +137,18 @@ void test_messageStoresAndRetrieve()
     grpV.push_back(grpId0);
     grpV.push_back(grpId1);
 
-    std::map<RsNxsMsg*, RsGxsMsgMetaData*> msgs;
-    std::map<RsNxsMsg*, RsGxsMsgMetaData*> msgs_copy;
+	RsNxsMsgDataTemporaryList msgs;
     RsNxsMsg* msg = NULL;
     RsGxsMsgMetaData* msgMeta = NULL;
     int nMsgs = rand()%120;
     GxsMsgReq req;
 
-    std::map<RsGxsMessageId, RsNxsMsg*> VergrpId0, VergrpId1;
-    std::map<RsGxsMessageId, RsGxsMsgMetaData*> VerMetagrpId0, VerMetagrpId1;
+	// These ones are not in auto-delete structures because the data is deleted as part of the RsNxsMsg struct in the msgs list.
+	std::map<RsGxsMessageId,RsNxsMsg*> VergrpId0 ;
+	std::map<RsGxsMessageId,RsNxsMsg*> VergrpId1 ;
+
+    std::map<RsGxsMessageId, RsGxsMsgMetaData*> VerMetagrpId0;
+    std::map<RsGxsMessageId, RsGxsMsgMetaData*> VerMetagrpId1;
 
     for(int i=0; i<nMsgs; i++)
     {
@@ -161,6 +156,9 @@ void test_messageStoresAndRetrieve()
         msgMeta = new RsGxsMsgMetaData();
         init_item(*msg);
         init_item(msgMeta);
+
+		msg->metaData = msgMeta ;
+
         std::pair<RsNxsMsg*, RsGxsMsgMetaData*> p(msg, msgMeta);
         int chosen = 0;
         if(rand()%50 > 24){
@@ -176,15 +174,9 @@ void test_messageStoresAndRetrieve()
         msgMeta->mMsgId = msg->msgId;
         msgMeta->mGroupId = msg->grpId = grpId;
 
-        RsNxsMsg* msg_copy = new RsNxsMsg(RS_SERVICE_TYPE_PLUGIN_SIMPLE_FORUM);
-        RsGxsMsgMetaData* msgMeta_copy = new RsGxsMsgMetaData();
-
-        *msg_copy = *msg;
-        *msgMeta_copy = *msgMeta;
-
         // store msgs in map to use for verification
-        std::pair<RsGxsMessageId, RsNxsMsg*> vP(msg->msgId, msg_copy);
-        std::pair<RsGxsMessageId, RsGxsMsgMetaData*> vPmeta(msg->msgId, msgMeta_copy);
+        std::pair<RsGxsMessageId, RsNxsMsg*> vP(msg->msgId, msg);
+        std::pair<RsGxsMessageId, RsGxsMsgMetaData*> vPmeta(msg->msgId, msgMeta);
 
         if(!chosen)
         {
@@ -198,39 +190,32 @@ void test_messageStoresAndRetrieve()
         }
 
 
-
-        msg = NULL;
-        msgMeta = NULL;
-
-        msgs.insert(p);
-        msgs_copy.insert(std::make_pair(msg_copy, msgMeta_copy));
+        msgs.push_back(msg);
     }
 
     req[grpV[0]] = std::vector<RsGxsMessageId>(); // assign empty list for other
 
     dStore->storeMessage(msgs);
-    msgs.clear();
-    msgs = msgs_copy;
 
     // now retrieve msgs for comparison
     // first selective retrieval
 
-    GxsMsgResult msgResult;
-    GxsMsgMetaResult msgMetaResult;
-    dStore->retrieveNxsMsgs(req, msgResult, false);
+	t_RsGxsGenericDataTemporaryMapVector<RsNxsMsg> 	       msgResult ; //GxsMsgResult msgResult;. The temporary version cleans up itself.
+	t_RsGxsGenericDataTemporaryMapVector<RsGxsMsgMetaData> msgMetaResult ;
 
+    dStore->retrieveNxsMsgs(req, msgResult, false);
     dStore->retrieveGxsMsgMetaData(req, msgMetaResult);
 
     // now look at result for grpId 1
     std::vector<RsNxsMsg*>& result0 = msgResult[grpId0];
     std::vector<RsNxsMsg*>& result1 = msgResult[grpId1];
     std::vector<RsGxsMsgMetaData*>& resultMeta0 = msgMetaResult[grpId0];
-    std::vector<RsGxsMsgMetaData*>& resultMeta1 = msgMetaResult[grpId1];
+    //std::vector<RsGxsMsgMetaData*>& resultMeta1 = msgMetaResult[grpId1];
 
 
 
     bool msgGrpId0_Match = true, msgGrpId1_Match = true;
-    bool msgMetaGrpId0_Match = true, msgMetaGrpId1_Match = true;
+    bool msgMetaGrpId0_Match = true/*, msgMetaGrpId1_Match = true*/;
 
     // MSG test, selective retrieval
     for(std::vector<RsNxsMsg*>::size_type i = 0; i < result0.size(); i++)

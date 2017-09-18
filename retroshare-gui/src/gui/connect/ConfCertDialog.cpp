@@ -84,16 +84,8 @@ ConfCertDialog::ConfCertDialog(const RsPeerId& id, const RsPgpId &pgp_id, QWidge
     /* Invoke Qt Designer generated QObject setup routine */
     ui.setupUi(this);
 
-//	 if(id.isNull())
-//		 ui._useOldFormat_CB->setChecked(true) ;
-//	 else
-//	 {
-//		 ui._useOldFormat_CB->setChecked(false) ;
-//		 ui._useOldFormat_CB->setEnabled(false) ;
-//	 }
-
-	ui.headerFrame->setHeaderImage(QPixmap(":/images/user/identityinfo64.png"));
-    ui.headerFrame->setHeaderText(tr("Friend node details"));
+    ui.headerFrame->setHeaderImage(QPixmap(":/images/user/identityinfo64.png"));
+    //ui.headerFrame->setHeaderText(tr("Friend node details"));
 
     //ui._chat_CB->hide() ;
 
@@ -142,16 +134,19 @@ void ConfCertDialog::load()
         return;
     }
 
-    //ui.pgpfingerprint->setText(QString::fromUtf8(detail.name.c_str()));
-    ui.peerid->setText(QString::fromStdString(detail.id.toStdString()));
+      //ui.pgpfingerprint->setText(QString::fromUtf8(detail.name.c_str()));
+      ui.peerid->setText(QString::fromStdString(detail.id.toStdString()));
+      
+      nameAndLocation = QString("%1 (%2)").arg(QString::fromUtf8(detail.name.c_str())).arg(QString::fromUtf8(detail.location.c_str()));
 
-    RetroShareLink link;
-    link.createPerson(detail.gpg_id);
+      ui.headerFrame->setHeaderText(nameAndLocation);
 
-    ui.pgpfingerprint->setText(link.toHtml());
-    ui.pgpfingerprint->setToolTip(link.title());
 
-         ui.avatar->setId(ChatId(peerId));
+	RetroShareLink link = RetroShareLink::createPerson(detail.gpg_id);
+	ui.pgpfingerprint->setText(link.toHtml());
+	ui.pgpfingerprint->setToolTip(link.title());
+
+      ui.avatar->setId(ChatId(peerId));
 
 		 ui.loc->setText(QString::fromUtf8(detail.location.c_str()));
 		 // Dont Show a timestamp in RS calculate the day
@@ -161,6 +156,11 @@ void ConfCertDialog::load()
 		 std::string version;
 		 rsDisc->getPeerVersion(detail.id, version);
 		 ui.version->setText(QString::fromStdString(version));
+		
+		 /* Custom state string */ 
+		 QString statustring =  QString::fromUtf8(rsMsgs->getCustomStateString(detail.id).c_str());
+     	 ui.statusmessage->setText(statustring);
+
 
 		 RsPeerCryptoParams cdet ;
 		 if(RsControl::instance()->getPeerCryptoDetails(detail.id,cdet) && cdet.connexion_state!=0)
@@ -237,9 +237,9 @@ void ConfCertDialog::load()
 		 ui.version->show();
 		 ui.label_version->show();
 
-		 ui.groupBox->show();
+		 //ui.groupBox->show();
 		 ui.groupBox_4->show();
-		 ui.tabWidget->show();
+		 //ui.tabWidget->show();
          //ui.rsid->hide();
          //ui.label_rsid->hide();
 		 ui.pgpfingerprint->show();
@@ -285,7 +285,7 @@ void ConfCertDialog::loadInvitePage()
     //infotext += tr("<p>Use this certificate to make new friends. Send it by email, or give it hand to hand.</p>") ;
     infotext += tr("<p>This certificate contains:") ;
     infotext += "<UL>" ;
-    infotext += "<li> a <b>PGP public key</b>";
+    infotext += "<li> a <b>Profile key</b>";
     infotext += " (" + QString::fromUtf8(detail.name.c_str())  + "@" + detail.gpg_id.toStdString().c_str()+") " ;
     if(ui._shouldAddSignatures_CB->isChecked())
         infotext += tr("with")+" "+QString::number(detail.gpgSigners.size()-1)+" "+tr("external signatures</li>") ;

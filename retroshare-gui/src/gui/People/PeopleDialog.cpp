@@ -557,7 +557,7 @@ void PeopleDialog::addToCircleInt()
 			std::map<RsPgpId,IdentityWidget *>::iterator itIdFound;
 			if((itIdFound=_pgp_identity_widgets.find(pgp_id)) != _pgp_identity_widgets.end()) {
 				IdentityWidget *idWidget = itIdFound->second;
-				dlg.addMember(idWidget->keyId(), idWidget->idtype(), idWidget->nickname());
+				dlg.addMember(idWidget->keyId(), idWidget->idtype(), idWidget->nickname(), QIcon(QPixmap::fromImage(idWidget->avatar())) );
 			}//if((itFound=_pgp_identity_widgets.find(pgp_id)) != _pgp_identity_widgets.end())
 
 			dlg.editExistingId(circle->groupInfo().mGroupId, false,false);
@@ -769,7 +769,7 @@ void PeopleDialog::fl_flowLayoutItemDroppedInt(QList<FlowLayoutItem *>flListItem
 			IdentityWidget* idDest = qobject_cast<IdentityWidget*>(dest);
 			if (idDest) {
 				if (idDest->havePGPDetail()){
-					dlg.addMember(idDest->keyId(), idDest->idtype(), idDest->nickname());
+					dlg.addMember(idDest->keyId(), idDest->idtype(), idDest->nickname(), QIcon(QPixmap::fromImage(idDest->avatar())) );
 
 				}//if (idDest->havePGPDetail())
 			}//if (idDest)
@@ -790,7 +790,7 @@ void PeopleDialog::fl_flowLayoutItemDroppedInt(QList<FlowLayoutItem *>flListItem
 			} else {//if (cirDropped)
 				IdentityWidget* idDropped = qobject_cast<IdentityWidget*>(flCurs);
 				if (idDropped){
-					dlg.addMember(idDropped->keyId(), idDropped->idtype(), idDropped->nickname());
+					dlg.addMember(idDropped->keyId(), idDropped->idtype(), idDropped->nickname(), QIcon(QPixmap::fromImage(idDropped->avatar())) );
 
 				}//if (idDropped)
 			}//else (cirDropped)
@@ -901,7 +901,7 @@ void PeopleDialog::pf_dropEventOccursExt(QDropEvent *event)
 
 		QWidget *wid =
 		    qobject_cast<QWidget *>(event->source());//QT5 return QObject
-		FlowLayout *layout;
+		FlowLayout *layout = NULL;
 		if (wid) layout =
 		    qobject_cast<FlowLayout *>(wid->layout());
 		if (layout) {
@@ -980,7 +980,7 @@ void PeopleDialog::pf_dropEventOccursInt(QDropEvent *event)
 					IdentityWidget* idDropped = qobject_cast<IdentityWidget*>(flCurs);
 					if (idDropped){
 						if (idDropped->havePGPDetail()){
-							dlg.addMember(idDropped->keyId(), idDropped->idtype(), idDropped->nickname());
+							dlg.addMember(idDropped->keyId(), idDropped->idtype(), idDropped->nickname(), QIcon(QPixmap::fromImage(idDropped->avatar())) );
 							atLeastOne = true;
 						}//if (idDropped->havePGPDetail())
 					}//if (idDropped)
@@ -991,7 +991,7 @@ void PeopleDialog::pf_dropEventOccursInt(QDropEvent *event)
 
 		QWidget *wid =
 		    qobject_cast<QWidget *>(event->source());//QT5 return QObject
-		FlowLayout *layout;
+		FlowLayout *layout = NULL;
 		if (wid) layout =
 		    qobject_cast<FlowLayout *>(wid->layout());
 		if (layout) {
@@ -1015,7 +1015,7 @@ void PeopleDialog::pf_dropEventOccursInt(QDropEvent *event)
 							IdentityWidget* idDropped = qobject_cast<IdentityWidget*>(flCurs);
 							if (idDropped){
 								if (idDropped->havePGPDetail()){
-									dlg.addMember(idDropped->keyId(), idDropped->idtype(), idDropped->nickname());
+									dlg.addMember(idDropped->keyId(), idDropped->idtype(), idDropped->nickname(), QIcon(QPixmap::fromImage(idDropped->avatar())) );
 									atLeastOne = true;
 								}//if (idDropped->havePGPDetail())
 	

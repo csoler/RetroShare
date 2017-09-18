@@ -35,12 +35,6 @@ GxsIdRSTreeWidgetItem::GxsIdRSTreeWidgetItem(const RSTreeWidgetItemCompareRole *
 	init();
 }
 
-GxsIdRSTreeWidgetItem::GxsIdRSTreeWidgetItem(const RSTreeWidgetItemCompareRole *compareRole, uint32_t icon_mask,QTreeWidgetItem *parent)
-    : QObject(NULL), RSTreeWidgetItem(compareRole, parent), mColumn(0), mIconTypeMask(icon_mask)
-{
-	init();
-}
-
 void GxsIdRSTreeWidgetItem::init()
 {
 	mIdFound = false;
@@ -99,12 +93,10 @@ void GxsIdRSTreeWidgetItem::setId(const RsGxsId &id, int column, bool retryWhenF
 	//std::cerr << " GxsIdRSTreeWidgetItem::setId(" << id << "," << column << ")";
 	//std::cerr << std::endl;
 
-	if (mIdFound) {
-		if (mColumn == column && mId == id) {
+	if (mIdFound && mColumn == column && mId == id && (mBannedState == rsReputations->isIdentityBanned(mId)))
 			return;
-		}
-	}
 
+	mBannedState = rsReputations->isIdentityBanned(mId);
 	mIdFound = false;
 	mRetryWhenFailed = retryWhenFailed;
 
@@ -116,14 +108,14 @@ void GxsIdRSTreeWidgetItem::setId(const RsGxsId &id, int column, bool retryWhenF
 
 void GxsIdRSTreeWidgetItem::updateBannedState()
 {
-    if(mBannedState != rsIdentity->isBanned(mId))
+    if(mBannedState != rsReputations->isIdentityBanned(mId))
         forceUpdate() ;
 }
 
 void GxsIdRSTreeWidgetItem::forceUpdate()
 {
 	mIdFound = false;
-	mBannedState = rsIdentity->isBanned(mId) ;
+	mBannedState = (rsReputations->isIdentityBanned(mId));
 
 	startProcess();
 }
@@ -169,7 +161,7 @@ QVariant GxsIdRSTreeWidgetItem::data(int column, int role) const
 
 		    if(mId.isNull())
 			    return RSTreeWidgetItem::data(column, role);
-		    else if(rsIdentity->isBanned(mId))
+		    else if(rsReputations->overallReputationLevel(mId) == RsReputations::REPUTATION_LOCALLY_NEGATIVE)
 			    pix = QImage(BANNED_IMAGE) ;
 		    else if (mAvatar.mSize == 0 || !pix.loadFromData(mAvatar.mData, mAvatar.mSize, "PNG")) 
 			    pix = GxsIdDetails::makeDefaultIcon(mId);

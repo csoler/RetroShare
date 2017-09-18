@@ -33,7 +33,7 @@
 #include "retroshare/rsinit.h"
 #include "plugins/pluginmanager.h"
 #include "util/rsdebug.h"
-const int p3facemsgzone = 11453;
+//const int p3facemsgzone = 11453;
 
 #include <sys/time.h>
 #include <time.h>
@@ -44,6 +44,8 @@ const int p3facemsgzone = 11453;
 
 // TO SHUTDOWN THREADS.
 #ifdef RS_ENABLE_GXS
+
+#include "services/autoproxy/rsautoproxymonitor.h"
 
 #include "services/p3idservice.h"
 #include "services/p3gxscircles.h"
@@ -60,14 +62,16 @@ const int p3facemsgzone = 11453;
 /* RsIface Config */
 /* Config */
 
-void    RsServer::ConfigFinalSave()
+void RsServer::ConfigFinalSave()
 {
-	/* force saving of transfers TODO */
+	//TODO: force saving of transfers
 	//ftserver->saveFileTransferStatus();
-	if(!RsInit::getAutoLogin())
-		RsInit::RsClearAutoLogin();
 
-        //AuthSSL::getAuthSSL()->FinalSaveCertificates();
+#ifdef RS_AUTOLOGIN
+	if(!RsInit::getAutoLogin()) RsInit::RsClearAutoLogin();
+#endif // RS_AUTOLOGIN
+
+	//AuthSSL::getAuthSSL()->FinalSaveCertificates();
 	mConfigMgr->completeConfiguration();
 }
 
@@ -86,6 +90,8 @@ void RsServer::rsGlobalShutDown()
 	mPluginsManager->stopPlugins(pqih);
 
 	mNetMgr->shutdown(); /* Handles UPnP */
+
+	rsAutoProxyMonitor::instance()->stopAllRSShutdown();
 
     fullstop() ;
 

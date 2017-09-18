@@ -39,14 +39,16 @@ public:
 	QString getGXSNickname() {return mGXSNickname;}
 private slots:
 	void genPerson();
-	void importIdentity();
+	bool importIdentity();
 	void exportIdentity();
-	void newGPGKeyGenUiSetup();
+	void setupState();
+    void switchReuseExistingNode();
 	void grabMouse();
-    void updateUiSetup();
+	void updateCheckLabels();
+	void useBobChecked(bool checked);
 
 private:
-	void init();
+	void initKeyList();
 
 	/** Qt Designer generated object */
 	Ui::GenCertDialog ui;
@@ -54,6 +56,8 @@ private:
 	bool genNewGPGKey;
 	bool haveGPGKeys;
 	bool mOnlyGenerateIdentity;
+    bool mAllFieldsOk ;
+    bool mEntropyOk ;
 	QString mGXSNickname;
 
 	QTimer *entropy_timer ;

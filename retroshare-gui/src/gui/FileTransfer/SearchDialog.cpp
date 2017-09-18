@@ -407,6 +407,13 @@ void SearchDialog::download()
 				for(std::list<RsPeerId>::const_iterator it(srcIds.begin()); it!=srcIds.end(); ++it) {
 					std::cout << *it << "-" << std::endl;
 				}//for(std::list<RsPeerId>::const_iterator
+				//QColor foreground = QColor(0, 128, 0); // green
+				QColor foreground = textColorDownloading();
+				QBrush brush(foreground);
+				for (int i = 0; i < item->columnCount(); ++i)
+				{
+					item->setForeground(i, brush);
+				}
 			}//if(!rsFiles -> FileRequest(
 		}//if (item->text(SR_HASH_COL).isEmpty())
 	}//for (int i = 0
@@ -705,8 +712,8 @@ void SearchDialog::copySearchLink()
     std::cerr << "SearchDialog::copySearchLink(): keywords: " << keywords.toStdString();
     std::cerr << std::endl;
 
-    RetroShareLink link;
-    if (link.createSearch(keywords)) {
+    RetroShareLink link = RetroShareLink::createSearch(keywords);
+    if (link.valid()) {
         QList<RetroShareLink> urls;
         urls.push_back(link);
         RSLinkClipboard::copyLinks(urls);
@@ -968,8 +975,8 @@ void SearchDialog::insertDirectory(const QString &txt, qulonglong searchId, cons
         child->setText(SR_HASH_COL, QString::fromStdString(dir.hash.toStdString()));
 		child->setText(SR_SIZE_COL, QString::number(dir.count));
 		child->setData(SR_SIZE_COL, ROLE_SORT, (qulonglong) dir.count);
-		child->setText(SR_AGE_COL, QString::number(dir.age));
-		child->setData(SR_AGE_COL, ROLE_SORT, dir.age);
+		child->setText(SR_AGE_COL, QString::number(dir.mtime));
+		child->setData(SR_AGE_COL, ROLE_SORT, dir.mtime);
 		child->setTextAlignment( SR_SIZE_COL, Qt::AlignRight );
 
 		child->setText(SR_SOURCES_COL, QString::number(1));
@@ -994,8 +1001,8 @@ void SearchDialog::insertDirectory(const QString &txt, qulonglong searchId, cons
         child->setText(SR_HASH_COL, QString::fromStdString(dir.hash.toStdString()));
 		child->setText(SR_SIZE_COL, QString::number(dir.count));
 		child->setData(SR_SIZE_COL, ROLE_SORT, (qulonglong) dir.count);
-		child->setText(SR_AGE_COL, QString::number(dir.age));
-		child->setData(SR_AGE_COL, ROLE_SORT, dir.age);
+		child->setText(SR_AGE_COL, QString::number(dir.mtime));
+		child->setData(SR_AGE_COL, ROLE_SORT, dir.mtime);
 		child->setTextAlignment( SR_SIZE_COL, Qt::AlignRight );
 		child->setText(SR_SOURCES_COL, QString::number(1));
 		child->setData(SR_SOURCES_COL, ROLE_SORT, 1);
@@ -1063,8 +1070,8 @@ void SearchDialog::insertDirectory(const QString &txt, qulonglong searchId, cons
     child->setText(SR_HASH_COL, QString::fromStdString(dir.hash.toStdString()));
     child->setText(SR_SIZE_COL, QString::number(dir.count));
     child->setData(SR_SIZE_COL, ROLE_SORT, (qulonglong) dir.count);
-    child->setText(SR_AGE_COL, QString::number(dir.min_age));
-    child->setData(SR_AGE_COL, ROLE_SORT, dir.min_age);
+    child->setText(SR_AGE_COL, QString::number(dir.max_mtime));
+    child->setData(SR_AGE_COL, ROLE_SORT, dir.max_mtime);
     child->setTextAlignment( SR_SIZE_COL, Qt::AlignRight );
     child->setText(SR_SOURCES_COL, QString::number(1));
     child->setData(SR_SOURCES_COL, ROLE_SORT, 1);
@@ -1189,6 +1196,11 @@ void SearchDialog::insertFile(qulonglong searchId, const FileDetail& file, int s
 			found = true ;
 
 			if (!item->data(SR_DATA_COL, SR_ROLE_LOCAL).toBool()) {
+			
+				FileInfo fi;
+				if (rsFiles->FileDetails(file.hash, RS_FILE_HINTS_DOWNLOAD, fi))
+					break;
+				
 				QColor foreground;
 
 				int sources = friendSource + anonymousSource ;
@@ -1281,6 +1293,12 @@ void SearchDialog::insertFile(qulonglong searchId, const FileDetail& file, int s
 				setForeground = true;
 			}
 		}
+		if (rsFiles->FileDetails(file.hash, RS_FILE_HINTS_DOWNLOAD, fi))
+		{
+			//foreground = QColor(0, 128, 0); // green
+			foreground = textColorDownloading();
+			setForeground = true;
+		}
 
 		if (setForeground) {
 			QBrush brush(foreground);
@@ -1320,7 +1338,7 @@ void SearchDialog::resultsToTree(const QString& txt,qulonglong searchId, const s
 			fd.hash = it->hash;
 			fd.path = it->path;
 			fd.size = it->count;
-			fd.age 	= it->age;
+			fd.age 	= it->mtime;
 			fd.rank = 0;
 
 			insertFile(searchId,fd, FRIEND_SEARCH);
@@ -1425,11 +1443,11 @@ void SearchDialog::copyResultLink()
 			 qulonglong fsize = item->text(SR_SIZE_COL).toULongLong();
 			 QString fname = item->text(SR_NAME_COL);
 
-			 RetroShareLink link;
-			 if (link.createFile(fname, fsize, fhash)) {
-				 std::cerr << "new link added to clipboard: " << link.toString().toStdString() << std::endl ;
-				 urls.push_back(link) ;
-			 }
+			RetroShareLink link = RetroShareLink::createFile(fname, fsize, fhash);
+			if (link.valid()) {
+				std::cerr << "new link added to clipboard: " << link.toString().toStdString() << std::endl ;
+				urls.push_back(link) ;
+			}
 		 } 
 	 }
 	 RSLinkClipboard::copyLinks(urls) ;

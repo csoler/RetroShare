@@ -160,7 +160,7 @@ static void loadPrivateIdsCallback(GxsIdDetailsType type, const RsIdentityDetail
 		break;
 
 	case GXS_ID_DETAILS_TYPE_DONE:
-		GxsIdDetails::getIcons(details, icons);
+		GxsIdDetails::getIcons(details, icons, GxsIdDetails::ICON_TYPE_AVATAR);
 		break;
         
 	case GXS_ID_DETAILS_TYPE_BANNED:
@@ -195,7 +195,7 @@ bool GxsIdChooser::isInConstraintSet(const RsGxsId& id) const
             
             return mConstraintIdsSet.find(id) != mConstraintIdsSet.end() ;
 }
-void GxsIdChooser::setEntryEnabled(int indx,bool enabled)
+void GxsIdChooser::setEntryEnabled(int indx,bool /*enabled*/)
 {
     removeItem(indx) ;
     

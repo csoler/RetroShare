@@ -41,7 +41,14 @@ namespace RsRegularExpression { class Expression; }
 /* These are used mainly by ftController at the moment */
 const uint32_t RS_FILE_CTRL_PAUSE	 		= 0x00000100;
 const uint32_t RS_FILE_CTRL_START	 		= 0x00000200;
-const uint32_t RS_FILE_CTRL_FORCE_CHECK	= 0x00000400;
+const uint32_t RS_FILE_CTRL_FORCE_CHECK	    = 0x00000400;
+
+const uint32_t RS_FILE_CTRL_ENCRYPTION_POLICY_STRICT     = 0x00000001 ;
+const uint32_t RS_FILE_CTRL_ENCRYPTION_POLICY_PERMISSIVE = 0x00000002 ;
+
+const uint32_t RS_FILE_PERM_DIRECT_DL_YES      = 0x00000001 ;
+const uint32_t RS_FILE_PERM_DIRECT_DL_NO       = 0x00000002 ;
+const uint32_t RS_FILE_PERM_DIRECT_DL_PER_USER = 0x00000003 ;
 
 const uint32_t RS_FILE_RATE_TRICKLE	 = 0x00000001;
 const uint32_t RS_FILE_RATE_SLOW	 = 0x00000002;
@@ -53,6 +60,9 @@ const uint32_t RS_FILE_RATE_STREAM_VIDEO = 0x00000006;
 const uint32_t RS_FILE_PEER_ONLINE 	 = 0x00001000;
 const uint32_t RS_FILE_PEER_OFFLINE 	 = 0x00002000;
 
+const uint32_t RS_FILE_SHARE_FLAGS_IGNORE_PREFIXES = 0x0001 ;
+const uint32_t RS_FILE_SHARE_FLAGS_IGNORE_SUFFIXES = 0x0002 ;
+
 /************************************
  * Used To indicate where to search.
  *
@@ -63,29 +73,32 @@ const uint32_t RS_FILE_PEER_OFFLINE 	 = 0x00002000;
 
 // Flags used when requesting info about transfers, mostly to filter out the result.
 //
-const FileSearchFlags RS_FILE_HINTS_CACHE_deprecated	    	 ( 0x00000001 );
-const FileSearchFlags RS_FILE_HINTS_EXTRA	 		    	 ( 0x00000002 );
-const FileSearchFlags RS_FILE_HINTS_LOCAL	 		    	 ( 0x00000004 );
-const FileSearchFlags RS_FILE_HINTS_REMOTE	 		     ( 0x00000008 );
-const FileSearchFlags RS_FILE_HINTS_DOWNLOAD		       	 ( 0x00000010 );
-const FileSearchFlags RS_FILE_HINTS_UPLOAD	 		     ( 0x00000020 );
-const FileSearchFlags RS_FILE_HINTS_SPEC_ONLY	         ( 0x01000000 );
+const FileSearchFlags RS_FILE_HINTS_CACHE_deprecated       ( 0x00000001 );
+const FileSearchFlags RS_FILE_HINTS_EXTRA                  ( 0x00000002 );
+const FileSearchFlags RS_FILE_HINTS_LOCAL                  ( 0x00000004 );
+const FileSearchFlags RS_FILE_HINTS_REMOTE                 ( 0x00000008 );
+const FileSearchFlags RS_FILE_HINTS_DOWNLOAD               ( 0x00000010 );
+const FileSearchFlags RS_FILE_HINTS_UPLOAD                 ( 0x00000020 );
+const FileSearchFlags RS_FILE_HINTS_SPEC_ONLY              ( 0x01000000 );
 
-const FileSearchFlags RS_FILE_HINTS_NETWORK_WIDE          ( 0x00000080 );// anonymously shared over network
-const FileSearchFlags RS_FILE_HINTS_BROWSABLE             ( 0x00000100 );// browsable by friends
-const FileSearchFlags RS_FILE_HINTS_PERMISSION_MASK       ( 0x00000180 );// OR of the last two flags. Used to filter out.
+const FileSearchFlags RS_FILE_HINTS_NETWORK_WIDE           ( 0x00000080 );// can be downloaded anonymously 
+const FileSearchFlags RS_FILE_HINTS_BROWSABLE              ( 0x00000100 );// browsable by friends
+const FileSearchFlags RS_FILE_HINTS_SEARCHABLE             ( 0x00000200 );// can be searched anonymously
+const FileSearchFlags RS_FILE_HINTS_PERMISSION_MASK        ( 0x00000380 );// OR of the last tree flags. Used to filter out.
 
 // Flags used when requesting a transfer
 //
 const TransferRequestFlags RS_FILE_REQ_ANONYMOUS_ROUTING   ( 0x00000040 ); // Use to ask turtle router to download the file.
+const TransferRequestFlags RS_FILE_REQ_ENCRYPTED           ( 0x00000080 ); // Asks for end-to-end encryption of file at the level of ftServer
+const TransferRequestFlags RS_FILE_REQ_UNENCRYPTED         ( 0x00000100 ); // Asks for no end-to-end encryption of file at the level of ftServer
 const TransferRequestFlags RS_FILE_REQ_ASSUME_AVAILABILITY ( 0x00000200 ); // Assume full source availability. Used for cache files.
-const TransferRequestFlags RS_FILE_REQ_CACHE_deprecated    ( 0x00000400 ); // Assume full source availability. Used for cache files.
+const TransferRequestFlags RS_FILE_REQ_CACHE_deprecated    ( 0x00000400 ); // Old stuff used for cache files. Not used anymore.
 const TransferRequestFlags RS_FILE_REQ_EXTRA               ( 0x00000800 );
-const TransferRequestFlags RS_FILE_REQ_MEDIA	              ( 0x00001000 );
-const TransferRequestFlags RS_FILE_REQ_BACKGROUND	          ( 0x00002000 ); // To download slowly.
+const TransferRequestFlags RS_FILE_REQ_MEDIA               ( 0x00001000 );
+const TransferRequestFlags RS_FILE_REQ_BACKGROUND          ( 0x00002000 ); // To download slowly.
 const TransferRequestFlags RS_FILE_REQ_NO_SEARCH           ( 0x02000000 );	// disable searching for potential direct sources.
 
-// const uint32_t RS_FILE_HINTS_SHARE_FLAGS_MASK	 = 	RS_FILE_HINTS_NETWORK_WIDE_OTHERS | RS_FILE_HINTS_BROWSABLE_OTHERS 
+// const uint32_t RS_FILE_HINTS_SHARE_FLAGS_MASK	 = 	RS_FILE_HINTS_NETWORK_WIDE_OTHERS | RS_FILE_HINTS_BROWSABLE_OTHERS
 // 																	 | RS_FILE_HINTS_NETWORK_WIDE_GROUPS | RS_FILE_HINTS_BROWSABLE_GROUPS ;
 
 /* Callback Codes */
@@ -94,10 +107,28 @@ const uint32_t RS_FILE_EXTRA_DELETE	 = 0x0010;
 
 struct SharedDirInfo
 {
+	static bool sameLists(const std::list<RsNodeGroupId>& l1,const std::list<RsNodeGroupId>& l2)
+	{
+		std::list<RsNodeGroupId>::const_iterator it1(l1.begin()) ;
+		std::list<RsNodeGroupId>::const_iterator it2(l2.begin()) ;
+
+		for(; (it1!=l1.end() && it2!=l2.end());++it1,++it2)
+			if(*it1 != *it2)
+				return false ;
+
+		return it1 == l1.end() && it2 == l2.end() ;
+	}
+
 	std::string filename ;
 	std::string virtualname ;
-	FileStorageFlags shareflags ;		// DIR_FLAGS_NETWORK_WIDE_OTHERS | DIR_FLAGS_BROWSABLE_GROUPS | ...
+    FileStorageFlags shareflags ;		// combnation of DIR_FLAGS_ANONYMOUS_DOWNLOAD | DIR_FLAGS_BROWSABLE | ...
     std::list<RsNodeGroupId> parent_groups ;
+};
+
+struct SharedDirStats
+{
+    uint32_t total_number_of_files ;
+    uint64_t total_shared_size ;
 };
 
 class RsFiles
@@ -141,6 +172,12 @@ class RsFiles
 		virtual void setFreeDiskSpaceLimit(uint32_t size_in_mb) =0;
 		virtual bool FileControl(const RsFileHash& hash, uint32_t flags) = 0;
 		virtual bool FileClearCompleted() = 0;
+		virtual void setDefaultEncryptionPolicy(uint32_t policy)=0;	// RS_FILE_CTRL_ENCRYPTION_POLICY_STRICT/PERMISSIVE
+		virtual uint32_t defaultEncryptionPolicy()=0;
+		virtual void setMaxUploadSlotsPerFriend(uint32_t n)=0;
+		virtual uint32_t getMaxUploadSlotsPerFriend()=0;
+		virtual void setFilePermDirectDL(uint32_t perm)=0;
+		virtual uint32_t filePermDirectDL()=0;
 
 		/***
 		 * Control of Downloads Priority.
@@ -159,6 +196,7 @@ class RsFiles
         virtual void FileDownloads(std::list<RsFileHash> &hashs) = 0;
 		virtual bool FileUploads(std::list<RsFileHash> &hashs) = 0;
 		virtual bool FileDetails(const RsFileHash &hash, FileSearchFlags hintflags, FileInfo &info) = 0;
+        virtual bool isEncryptedSource(const RsPeerId& virtual_peer_id) =0;
 
 		/// Gives chunk details about the downloaded file with given hash.
 		virtual bool FileDownloadChunksDetails(const RsFileHash& hash,FileChunksInfo& info) = 0 ;
@@ -189,6 +227,7 @@ class RsFiles
 		virtual int SearchKeywords(std::list<std::string> keywords, std::list<DirDetails> &results,FileSearchFlags flags,const RsPeerId& peer_id) = 0;
         virtual int SearchBoolExp(RsRegularExpression::Expression * exp, std::list<DirDetails> &results,FileSearchFlags flags) = 0;
         virtual int SearchBoolExp(RsRegularExpression::Expression * exp, std::list<DirDetails> &results,FileSearchFlags flags,const RsPeerId& peer_id) = 0;
+		virtual int getSharedDirStatistics(const RsPeerId& pid, SharedDirStats& stats) =0;
 
 		/***
 		 * Utility Functions.
@@ -209,15 +248,23 @@ class RsFiles
 		virtual std::string getDownloadDirectory() = 0;
 		virtual std::string getPartialsDirectory() = 0;
 
-		virtual bool    getSharedDirectories(std::list<SharedDirInfo> &dirs) = 0;
-		virtual bool    addSharedDirectory(const SharedDirInfo& dir) = 0;
+        virtual bool    getSharedDirectories(std::list<SharedDirInfo>& dirs) = 0;
+        virtual bool    setSharedDirectories(const std::list<SharedDirInfo>& dirs) = 0;
+        virtual bool    addSharedDirectory(const SharedDirInfo& dir) = 0;
 		virtual bool    updateShareFlags(const SharedDirInfo& dir) = 0;	// updates the flags. The directory should already exist !
 		virtual bool    removeSharedDirectory(std::string dir) = 0;
 
+		virtual bool getIgnoreLists(std::list<std::string>& ignored_prefixes, std::list<std::string>& ignored_suffixes,uint32_t& flags) =0;
+		virtual void setIgnoreLists(const std::list<std::string>& ignored_prefixes, const std::list<std::string>& ignored_suffixes,uint32_t flags) =0;
+
         virtual void setWatchPeriod(int minutes) =0;
         virtual void setWatchEnabled(bool b) =0;
-        virtual int watchPeriod() const =0;
+        virtual int  watchPeriod() const =0;
         virtual bool watchEnabled() =0;
+        virtual bool followSymLinks() const=0;
+        virtual void setFollowSymLinks(bool b)=0 ;
+		virtual void togglePauseHashingProcess() =0;		// pauses/resumes the hashing process.
+		virtual bool hashingProcessPaused() =0;
 
 		virtual bool	getShareDownloadDirectory() = 0;
 		virtual bool 	shareDownloadDirectory(bool share) = 0;

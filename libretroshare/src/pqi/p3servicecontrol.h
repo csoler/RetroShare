@@ -89,6 +89,7 @@ public:
      */
 
     virtual bool getOwnServices(RsPeerServiceInfo &info);
+	 virtual std::string getServiceName(uint32_t service_id) ;
 
     // This is what is passed to peers, can be displayed by GUI too.
     virtual bool getServicesAllowed(const RsPeerId &peerId, RsPeerServiceInfo &info);
@@ -104,9 +105,12 @@ public:
     virtual void getPeersConnected(const uint32_t serviceId, std::set<RsPeerId> &peerSet);
     virtual bool isPeerConnected(const uint32_t serviceId, const RsPeerId &peerId);
 
-    /**
-     * Registration for all Services.
-     */
+    // Gets the list of items used by that service
+	 virtual bool getServiceItemNames(uint32_t serviceId,std::map<uint8_t,std::string>& names) ;
+
+	/**
+	 * Registration for all Services.
+	 */
 
     virtual	bool registerService(const RsServiceInfo &info, bool defaultOn);
     virtual	bool deregisterService(uint32_t serviceId);
@@ -136,6 +140,7 @@ public:
     virtual void    statusChange(const std::list<pqipeer> &plist);
 
     void setServiceServer(p3ServiceServer *s) ;
+
 protected:
     // configuration.
     virtual bool saveList(bool &cleanup, std::list<RsItem *>&);
@@ -201,6 +206,7 @@ private:
     // Below here is saved in Configuration.
     std::map<uint32_t, RsServicePermissions> mServicePermissionMap;
 
+    p3ServiceServer *mServiceServer ;
 };
 
 

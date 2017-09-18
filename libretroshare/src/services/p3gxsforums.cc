@@ -24,7 +24,7 @@
  */
 
 #include "services/p3gxsforums.h"
-#include "serialiser/rsgxsforumitems.h"
+#include "rsitems/rsgxsforumitems.h"
 
 #include <retroshare/rsidentity.h>
 
@@ -44,8 +44,6 @@
 
 RsGxsForums *rsGxsForums = NULL;
 
-const uint32_t GXSFORUMS_MSG_STORE_PERIOD = 60*60*24*31*12; // 12 months / 1 year
-
 #define FORUM_TESTEVENT_DUMMYDATA	0x0001
 #define DUMMYDATA_PERIOD		60	// long enough for some RsIdentities to be generated.
 
@@ -53,17 +51,14 @@ const uint32_t GXSFORUMS_MSG_STORE_PERIOD = 60*60*24*31*12; // 12 months / 1 yea
 /******************* Startup / Tick    ******************************************/
 /********************************************************************************/
 
-p3GxsForums::p3GxsForums(RsGeneralDataService *gds, RsNetworkExchangeService *nes, RsGixs* gixs)
-    : RsGenExchange(gds, nes, new RsGxsForumSerialiser(), RS_SERVICE_GXS_TYPE_FORUMS, gixs, forumsAuthenPolicy(), GXSFORUMS_MSG_STORE_PERIOD), RsGxsForums(this)
+p3GxsForums::p3GxsForums( RsGeneralDataService *gds,
+                          RsNetworkExchangeService *nes, RsGixs* gixs ) :
+    RsGenExchange( gds, nes, new RsGxsForumSerialiser(),
+                   RS_SERVICE_GXS_TYPE_FORUMS, gixs, forumsAuthenPolicy()),
+    RsGxsForums(this), mGenToken(0), mGenActive(false), mGenCount(0)
 {
-	// For Dummy Msgs.
-	mGenActive = false;
-    mGenCount = 0;
-    mGenToken = 0;
-
 	// Test Data disabled in Repo.
 	//RsTickEvent::schedule_in(FORUM_TESTEVENT_DUMMYDATA, DUMMYDATA_PERIOD);
-
 }
 
 
@@ -144,9 +139,16 @@ void p3GxsForums::notifyChanges(std::vector<RsGxsNotify *> &changes)
 							/* group received */
 							std::list<RsGxsGroupId> &grpList = grpChange->mGrpIdList;
 							std::list<RsGxsGroupId>::iterator git;
+
 							for (git = grpList.begin(); git != grpList.end(); ++git)
 							{
-								notify->AddFeedItem(RS_FEED_ITEM_FORUM_NEW, git->toStdString());
+                                if(mKnownForums.find(*git) == mKnownForums.end())
+                                {
+									notify->AddFeedItem(RS_FEED_ITEM_FORUM_NEW, git->toStdString());
+                                    mKnownForums.insert(*git) ;
+                                }
+                                else
+                                    std::cerr << "(II) Not notifying already known forum " << *git << std::endl;
 							}
 							break;
 						}

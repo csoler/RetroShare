@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>691</width>
-    <height>644</height>
+    <width>760</width>
+    <height>538</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -27,7 +27,7 @@
    <attribute name="pageId">
     <string notr="true">ConnectFriendWizard::Page_Intro</string>
    </attribute>
-   <layout class="QVBoxLayout" name="verticalLayout">
+   <layout class="QVBoxLayout" name="IntroPageVLayout">
     <item>
      <widget class="QRadioButton" name="textRadioButton">
       <property name="text">
@@ -67,7 +67,7 @@
      <widget class="QRadioButton" name="emailRadioButton">
       <property name="text">
        <string>&amp;Send an Invitation by Email 
- (Your friend will receive an email with instructions how to to download RetroShare)</string>
+ (Your friend will receive an email with instructions how to download RetroShare)</string>
       </property>
      </widget>
     </item>
@@ -82,287 +82,307 @@
   </widget>
   <widget class="ConnectFriendPage" name="TextPage">
    <property name="title">
-    <string>Text certificate</string>
+    <string>RetroShare certificate</string>
    </property>
    <property name="subTitle">
-    <string>Use text representation of the PGP certificates.</string>
+    <string>Please paste below your friend's Retroshare certificate</string>
    </property>
    <attribute name="pageId">
     <string notr="true">ConnectFriendWizard::Page_Text</string>
    </attribute>
-   <layout class="QVBoxLayout" name="verticalLayout_4">
+   <layout class="QVBoxLayout" name="TextPageVLayout">
     <item>
-     <widget class="QLabel" name="userCertLabel">
-      <property name="text">
-       <string>The text below is your Retroshare certificate. You have to provide it to your friend</string>
-      </property>
+     <widget class="QFrame" name="userFrame">
+      <layout class="QGridLayout" name="userFrameGLayout">
+       <item row="1" column="1">
+        <layout class="QVBoxLayout" name="userCertButtonVLayout">
+         <item>
+          <widget class="QToolButton" name="userCertHelpButton">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>20</horstretch>
+             <verstretch>20</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
+           <property name="icon">
+            <iconset resource="../images.qrc">
+             <normaloff>:/images/info16.png</normaloff>:/images/info16.png</iconset>
+           </property>
+           <property name="autoRaise">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="userCertIncludeSignaturesButton">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>20</horstretch>
+             <verstretch>20</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
+           <property name="toolTip">
+            <string>Include signatures</string>
+           </property>
+           <property name="icon">
+            <iconset resource="../images.qrc">
+             <normaloff>:/images/gpgp_key_generate.png</normaloff>:/images/gpgp_key_generate.png</iconset>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+           <property name="autoRaise">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="userCertCopyButton">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>20</horstretch>
+             <verstretch>20</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
+           <property name="toolTip">
+            <string>Copy your Cert to Clipboard</string>
+           </property>
+           <property name="icon">
+            <iconset resource="../images.qrc">
+             <normaloff>:/images/copyrslink.png</normaloff>:/images/copyrslink.png</iconset>
+           </property>
+           <property name="autoRaise">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="userCertSaveButton">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>20</horstretch>
+             <verstretch>20</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
+           <property name="toolTip">
+            <string>Save your Cert into a File</string>
+           </property>
+           <property name="icon">
+            <iconset resource="../images.qrc">
+             <normaloff>:/images/document_save.png</normaloff>:/images/document_save.png</iconset>
+           </property>
+           <property name="autoRaise">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="userCertMailButton">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>20</horstretch>
+             <verstretch>20</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
+           <property name="toolTip">
+            <string>Run Email program</string>
+           </property>
+           <property name="icon">
+            <iconset resource="../images.qrc">
+             <normaloff>:/images/mail_send.png</normaloff>:/images/mail_send.png</iconset>
+           </property>
+           <property name="autoRaise">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="userCertOldFormatButton">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>20</horstretch>
+             <verstretch>20</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
+           <property name="icon">
+            <iconset resource="../images.qrc">
+             <normaloff>:/images/ledon1.png</normaloff>:/images/ledon1.png</iconset>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+           <property name="autoRaise">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="userCertButtonVSpacer">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>40</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item row="1" column="0">
+        <widget class="QPlainTextEdit" name="userCertEdit">
+         <property name="font">
+          <font>
+           <family>Courier New</family>
+          </font>
+         </property>
+         <property name="lineWrapMode">
+          <enum>QPlainTextEdit::NoWrap</enum>
+         </property>
+         <property name="readOnly">
+          <bool>true</bool>
+         </property>
+         <property name="tabStopWidth">
+          <number>80</number>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="userCertLabel">
+         <property name="text">
+          <string>The text below is your Retroshare certificate. You have to provide it to your friend</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </widget>
     </item>
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout">
-      <item>
-       <widget class="QPlainTextEdit" name="userCertEdit">
-        <property name="font">
-         <font>
-          <family>Courier New</family>
-         </font>
-        </property>
-        <property name="lineWrapMode">
-         <enum>QPlainTextEdit::NoWrap</enum>
-        </property>
-        <property name="readOnly">
-         <bool>true</bool>
-        </property>
-        <property name="tabStopWidth">
-         <number>80</number>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <layout class="QVBoxLayout" name="verticalLayout_2">
-        <item>
-         <widget class="QToolButton" name="userCertHelpButton">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>20</horstretch>
-            <verstretch>20</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="focusPolicy">
-           <enum>Qt::NoFocus</enum>
-          </property>
-          <property name="icon">
-           <iconset resource="../images.qrc">
-            <normaloff>:/images/info16.png</normaloff>:/images/info16.png</iconset>
-          </property>
-          <property name="autoRaise">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QToolButton" name="userCertIncludeSignaturesButton">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>20</horstretch>
-            <verstretch>20</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="focusPolicy">
-           <enum>Qt::NoFocus</enum>
-          </property>
-          <property name="toolTip">
-           <string>Include signatures</string>
-          </property>
-          <property name="icon">
-           <iconset resource="../images.qrc">
-            <normaloff>:/images/gpgp_key_generate.png</normaloff>:/images/gpgp_key_generate.png</iconset>
-          </property>
-          <property name="checkable">
-           <bool>true</bool>
-          </property>
-          <property name="autoRaise">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QToolButton" name="userCertCopyButton">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>20</horstretch>
-            <verstretch>20</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="focusPolicy">
-           <enum>Qt::NoFocus</enum>
-          </property>
-          <property name="toolTip">
-           <string>Copy your Cert to Clipboard</string>
-          </property>
-          <property name="icon">
-           <iconset resource="../images.qrc">
-            <normaloff>:/images/copyrslink.png</normaloff>:/images/copyrslink.png</iconset>
-          </property>
-          <property name="autoRaise">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QToolButton" name="userCertSaveButton">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>20</horstretch>
-            <verstretch>20</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="focusPolicy">
-           <enum>Qt::NoFocus</enum>
-          </property>
-          <property name="toolTip">
-           <string>Save your Cert into a File</string>
-          </property>
-          <property name="icon">
-           <iconset resource="../images.qrc">
-            <normaloff>:/images/document_save.png</normaloff>:/images/document_save.png</iconset>
-          </property>
-          <property name="autoRaise">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QToolButton" name="userCertMailButton">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>20</horstretch>
-            <verstretch>20</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="focusPolicy">
-           <enum>Qt::NoFocus</enum>
-          </property>
-          <property name="toolTip">
-           <string>Run Email program</string>
-          </property>
-          <property name="icon">
-           <iconset resource="../images.qrc">
-            <normaloff>:/images/mail_send.png</normaloff>:/images/mail_send.png</iconset>
-          </property>
-          <property name="autoRaise">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QToolButton" name="userCertOldFormatButton">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>20</horstretch>
-            <verstretch>20</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="focusPolicy">
-           <enum>Qt::NoFocus</enum>
-          </property>
-          <property name="icon">
-           <iconset resource="../images.qrc">
-            <normaloff>:/images/ledon1.png</normaloff>:/images/ledon1.png</iconset>
-          </property>
-          <property name="checkable">
-           <bool>true</bool>
-          </property>
-          <property name="autoRaise">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="verticalSpacer_2">
-          <property name="orientation">
-           <enum>Qt::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>40</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-     </layout>
-    </item>
-    <item>
-     <widget class="QLabel" name="friendCertLabel">
-      <property name="text">
-       <string>Please, paste your friend's Retroshare certificate into the box below</string>
-      </property>
+     <widget class="QFrame" name="friendFrame">
+      <layout class="QGridLayout" name="friendFrameGLayout">
+       <item row="0" column="0">
+        <widget class="QToolButton" name="userCertPasteButton">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>20</horstretch>
+           <verstretch>20</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="focusPolicy">
+          <enum>Qt::NoFocus</enum>
+         </property>
+         <property name="toolTip">
+          <string>Paste Cert of your friend from Clipboard</string>
+         </property>
+         <property name="text">
+          <string>Paste certificate</string>
+         </property>
+         <property name="icon">
+          <iconset resource="../icons.qrc">
+           <normaloff>:/icons/svg/paste.svg</normaloff>:/icons/svg/paste.svg</iconset>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>24</width>
+           <height>24</height>
+          </size>
+         </property>
+         <property name="toolButtonStyle">
+          <enum>Qt::ToolButtonTextBesideIcon</enum>
+         </property>
+         <property name="autoRaise">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QToolButton" name="userCertOpenButton">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>20</horstretch>
+           <verstretch>20</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="focusPolicy">
+          <enum>Qt::NoFocus</enum>
+         </property>
+         <property name="toolTip">
+          <string>Open Cert of your friend from File</string>
+         </property>
+         <property name="text">
+          <string>Open certificate</string>
+         </property>
+         <property name="icon">
+          <iconset resource="../icons.qrc">
+           <normaloff>:/icons/svg/filesharing.svg</normaloff>:/icons/svg/filesharing.svg</iconset>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>24</width>
+           <height>24</height>
+          </size>
+         </property>
+         <property name="toolButtonStyle">
+          <enum>Qt::ToolButtonTextBesideIcon</enum>
+         </property>
+         <property name="autoRaise">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="2">
+        <widget class="QLabel" name="friendCertCleanLabel">
+         <property name="pixmap">
+          <pixmap resource="../images.qrc">:/images/accepted16.png</pixmap>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0" colspan="3">
+        <widget class="RSPlainTextEdit" name="friendCertEdit">
+         <property name="font">
+          <font>
+           <family>Courier New</family>
+          </font>
+         </property>
+         <property name="toolTip">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This box expects your friend's Retroshare certificate. WARNING: this is different from your friend's profile key. Do not paste your friend's profile key here (not even a part of it). It's not going to work.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="styleSheet">
+          <string notr="true"/>
+         </property>
+         <property name="lineWrapMode">
+          <enum>QPlainTextEdit::NoWrap</enum>
+         </property>
+         <property name="placeholderText">
+          <string>Please, paste your friend's Retroshare certificate into the box below</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </widget>
-    </item>
-    <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_2">
-      <item>
-       <widget class="QPlainTextEdit" name="friendCertEdit">
-        <property name="font">
-         <font>
-          <family>Courier New</family>
-         </font>
-        </property>
-        <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This box expects your friend's Retroshare certificate. WARNING: this is different from your friend's PGP key. Do not paste your friend's PGP key here (not even a part of it). It's not going to work.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-        <property name="lineWrapMode">
-         <enum>QPlainTextEdit::NoWrap</enum>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <layout class="QVBoxLayout" name="verticalLayout_3">
-        <item>
-         <spacer name="verticalSpacer_3">
-          <property name="orientation">
-           <enum>Qt::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>40</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="QToolButton" name="userCertPasteButton">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>20</horstretch>
-            <verstretch>20</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="focusPolicy">
-           <enum>Qt::NoFocus</enum>
-          </property>
-          <property name="toolTip">
-           <string>Paste Cert of your friend from Clipboard</string>
-          </property>
-          <property name="icon">
-           <iconset resource="../images.qrc">
-            <normaloff>:/images/copyrslink.png</normaloff>:/images/copyrslink.png</iconset>
-          </property>
-          <property name="autoRaise">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="friendCertCleanLabel">
-          <property name="pixmap">
-           <pixmap resource="../images.qrc">:/images/accepted16.png</pixmap>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignCenter</set>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="verticalSpacer">
-          <property name="orientation">
-           <enum>Qt::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>40</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-     </layout>
     </item>
    </layout>
   </widget>
@@ -376,7 +396,7 @@
    <attribute name="pageId">
     <string notr="true">ConnectFriendWizard::Page_Cert</string>
    </attribute>
-   <layout class="QVBoxLayout" name="verticalLayout_5">
+   <layout class="QVBoxLayout" name="CertificatePageVLayout">
     <item>
      <widget class="QGroupBox" name="userFileFrame">
       <property name="title">
@@ -385,7 +405,7 @@
       <property name="flat">
        <bool>true</bool>
       </property>
-      <layout class="QHBoxLayout" name="horizontalLayout_4">
+      <layout class="QHBoxLayout" name="userFileFrameHLayout">
        <item>
         <widget class="QLabel" name="userFileLabel">
          <property name="text">
@@ -414,7 +434,7 @@
      </widget>
     </item>
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_3">
+     <layout class="QHBoxLayout" name="friendFileNameHLayout">
       <item>
        <widget class="DropLineEdit" name="friendFileNameEdit"/>
       </item>
@@ -439,9 +459,9 @@
    <attribute name="pageId">
     <string notr="true">ConnectFriendWizard::Page_Foff</string>
    </attribute>
-   <layout class="QVBoxLayout" name="verticalLayout_11">
+   <layout class="QVBoxLayout" name="FofPageVLayout">
     <item>
-     <widget class="QLabel" name="userFileLabel_2">
+     <widget class="QLabel" name="userSelectionLabel">
       <property name="text">
        <string>Show me:</string>
       </property>
@@ -486,7 +506,7 @@
    <attribute name="pageId">
     <string notr="true">ConnectFriendWizard::Page_Rsid</string>
    </attribute>
-   <layout class="QVBoxLayout" name="verticalLayout_7">
+   <layout class="QVBoxLayout" name="RsidPageVLayout">
     <item>
      <widget class="QGroupBox" name="userRsidFrame">
       <property name="title">
@@ -495,7 +515,7 @@
       <property name="flat">
        <bool>true</bool>
       </property>
-      <layout class="QVBoxLayout" name="verticalLayout_8"/>
+      <layout class="QVBoxLayout" name="userRsidFrameVLayout"/>
      </widget>
     </item>
     <item>
@@ -514,7 +534,7 @@
     </item>
    </layout>
   </widget>
-  <widget class="QWizardPage" name="WebmalPage">
+  <widget class="QWizardPage" name="WebmailPage">
    <property name="title">
     <string>RetroShare is better with Friends </string>
    </property>
@@ -524,14 +544,23 @@
    <attribute name="pageId">
     <string notr="true">ConnectFriendWizard::Page_WebMail</string>
    </attribute>
-   <layout class="QGridLayout" name="gridLayout">
+   <layout class="QGridLayout" name="WebmalPageGLayout">
     <item row="0" column="0">
-     <layout class="QHBoxLayout" name="horizontalLayout_10">
-      <property name="margin">
+     <layout class="QHBoxLayout" name="webMailButtonHLayout">
+      <property name="leftMargin">
+       <number>9</number>
+      </property>
+      <property name="topMargin">
+       <number>9</number>
+      </property>
+      <property name="rightMargin">
+       <number>9</number>
+      </property>
+      <property name="bottomMargin">
        <number>9</number>
       </property>
       <item>
-       <spacer name="horizontalSpacer_2">
+       <spacer name="webMailButtonLHSpacer">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
         </property>
@@ -664,7 +693,7 @@
        </widget>
       </item>
       <item>
-       <spacer name="horizontalSpacer">
+       <spacer name="webMailButtonRHSpacer">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
         </property>
@@ -682,37 +711,7 @@
      </layout>
     </item>
     <item row="1" column="0">
-     <layout class="QHBoxLayout" name="horizontalLayout_12">
-      <item>
-       <spacer name="horizontalSpacer_3">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item>
-       <spacer name="horizontalSpacer_4">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-     </layout>
-    </item>
-    <item row="2" column="0">
-     <spacer name="verticalSpacer_6">
+     <spacer name="WebmailPageVSpacer">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
       </property>
@@ -736,9 +735,9 @@
    <attribute name="pageId">
     <string notr="true">ConnectFriendWizard::Page_Email</string>
    </attribute>
-   <layout class="QVBoxLayout" name="verticalLayout_9">
+   <layout class="QVBoxLayout" name="EmailPageVLayout">
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_5">
+     <layout class="QHBoxLayout" name="addressHLayout">
       <item>
        <widget class="QLabel" name="addressLabel">
         <property name="text">
@@ -756,7 +755,7 @@
      </layout>
     </item>
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_6">
+     <layout class="QHBoxLayout" name="subjectHLayout">
       <item>
        <widget class="QLabel" name="subjectLabel">
         <property name="text">
@@ -788,7 +787,7 @@
    <attribute name="pageId">
     <string notr="true">ConnectFriendWizard::Page_FriendRequest</string>
    </attribute>
-   <layout class="QVBoxLayout" name="verticalLayout_15">
+   <layout class="QVBoxLayout" name="FriendRequestPageVLayout">
     <property name="leftMargin">
      <number>6</number>
     </property>
@@ -796,10 +795,10 @@
      <number>6</number>
     </property>
     <item>
-     <widget class="QFrame" name="frame">
-      <layout class="QVBoxLayout" name="verticalLayout_13">
+     <widget class="QFrame" name="fr_Frame">
+      <layout class="QVBoxLayout" name="fr_FrameVLayout">
        <item>
-        <widget class="StyledLabel" name="fr_label_3">
+        <widget class="StyledLabel" name="fr_InfoTopLabel">
          <property name="text">
           <string notr="true">You have a friend request from</string>
          </property>
@@ -828,7 +827,7 @@
            <property name="title">
             <string>Peer details</string>
            </property>
-           <layout class="QFormLayout" name="formLayout_3">
+           <layout class="QFormLayout" name="fr_peerDetailsFrameGLayout">
             <property name="fieldGrowthPolicy">
              <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
             </property>
@@ -880,15 +879,15 @@
         </layout>
        </item>
        <item>
-        <layout class="QHBoxLayout" name="fr_optionslLayout">
+        <layout class="QHBoxLayout" name="fr_optionsHLayout">
          <item>
           <widget class="QGroupBox" name="fr_optionsFrame">
            <property name="title">
             <string>Options</string>
            </property>
-           <layout class="QVBoxLayout" name="verticalLayout_14">
+           <layout class="QVBoxLayout" name="fr_optionsFrameVLayout">
             <item>
-             <layout class="QHBoxLayout" name="fr_groupLayout">
+             <layout class="QHBoxLayout" name="fr_groupHLayout">
               <item>
                <widget class="QLabel" name="fr_groupLabel">
                 <property name="sizePolicy">
@@ -932,11 +931,11 @@
           </widget>
          </item>
          <item>
-          <widget class="QGroupBox" name="groupBox">
+          <widget class="QGroupBox" name="fr_RVBox">
            <property name="title">
             <string>Options</string>
            </property>
-           <layout class="QVBoxLayout" name="verticalLayout_12">
+           <layout class="QVBoxLayout" name="fr_RVBoxVLayout">
             <item>
              <widget class="QCheckBox" name="_direct_transfer_CB">
               <property name="text">
@@ -959,7 +958,7 @@
              </widget>
             </item>
             <item>
-             <spacer name="verticalSpacer_5">
+             <spacer name="fr_RVBoxVSpacer">
               <property name="orientation">
                <enum>Qt::Vertical</enum>
               </property>
@@ -980,14 +979,14 @@
      </widget>
     </item>
     <item>
-     <widget class="StyledLabel" name="requestinfolabel_3">
+     <widget class="StyledLabel" name="fr_InfoBottomLabel">
       <property name="text">
        <string>To accept the Friend Request, click the Finish button.</string>
       </property>
      </widget>
     </item>
     <item>
-     <spacer name="fr_verticalSpacer">
+     <spacer name="fr_VSpacer">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
       </property>
@@ -1011,7 +1010,7 @@
    <attribute name="pageId">
     <string notr="true">ConnectFriendWizard::Page_ErrorMessage</string>
    </attribute>
-   <layout class="QVBoxLayout" name="verticalLayout_6">
+   <layout class="QVBoxLayout" name="ErrorMessagePageVLayout">
     <item>
      <widget class="QLabel" name="messageLabel">
       <property name="text">
@@ -1031,7 +1030,7 @@
    <attribute name="pageId">
     <string notr="true">ConnectFriendWizard::Page_Conclusion</string>
    </attribute>
-   <layout class="QVBoxLayout" name="verticalLayout_17">
+   <layout class="QVBoxLayout" name="ConclusionPageVLayout">
     <item>
      <widget class="StyledLabel" name="makefriend_infolabel">
       <property name="palette">
@@ -1114,7 +1113,7 @@ resources.</string>
      </widget>
     </item>
     <item>
-     <widget class="StyledLabel" name="fr_label">
+     <widget class="StyledLabel" name="cp_Label">
       <property name="palette">
        <palette>
         <active>
@@ -1201,7 +1200,7 @@ resources.</string>
       <property name="title">
        <string>Peer details</string>
       </property>
-      <layout class="QFormLayout" name="formLayout">
+      <layout class="QFormLayout" name="peerDetailsFrameGLayout">
        <property name="fieldGrowthPolicy">
         <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
        </property>
@@ -1270,6 +1269,9 @@ resources.</string>
        </item>
        <item row="6" column="1">
         <widget class="QPlainTextEdit" name="signersEdit">
+         <property name="toolTip">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:10pt;&quot;&gt;Signing a friend's key is a way to express your trust into this friend, to your other friends. The signatures below cryptographically attest that owners of the listed keys recognise the current PGP key as authentic.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
          <property name="readOnly">
           <bool>true</bool>
          </property>
@@ -1303,108 +1305,132 @@ resources.</string>
      </widget>
     </item>
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_7">
-      <item>
-       <layout class="QVBoxLayout" name="verticalLayout_18">
-        <item>
-         <widget class="QCheckBox" name="addKeyToKeyring_CB">
-          <property name="text">
-           <string>Add key to keyring</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="signGPGCheckBox">
-          <property name="text">
-           <string>Authenticate friend (Sign PGP Key)</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="acceptNoSignGPGCheckBox">
-          <property name="text">
-           <string>Add as friend to connect with</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_11">
-          <item>
-           <widget class="QCheckBox" name="_addIPToWhiteList_CB_2">
-            <property name="text">
-             <string>Add IP to whitelist</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QComboBox" name="_addIPToWhiteList_ComboBox_2"/>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_9">
-          <item>
-           <widget class="QLabel" name="groupLabel">
-            <property name="text">
-             <string>Add friend to group:</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QComboBox" name="groupComboBox"/>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <layout class="QVBoxLayout" name="verticalLayout_19">
-        <item>
-         <widget class="QGroupBox" name="_options_GB">
-          <property name="title">
-           <string>Options</string>
-          </property>
-          <layout class="QVBoxLayout" name="verticalLayout_10">
+     <widget class="QPushButton" name="toggleadvancedButton">
+      <property name="text">
+       <string>Show Advanced options</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QFrame" name="cp_Frame">
+      <layout class="QHBoxLayout" name="cp_FrameHLayout">
+       <property name="spacing">
+        <number>6</number>
+       </property>
+       <item>
+        <layout class="QVBoxLayout" name="cp_KeyVLayout">
+         <item>
+          <widget class="QCheckBox" name="addKeyToKeyring_CB">
+           <property name="text">
+            <string>Add key to keyring</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="signGPGCheckBox">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:10pt;&quot;&gt;Signing a friend's key is a way to express your trust into this friend, to your other friends. It helps them to decide whether to allow connections from that key based on your own trust. Signing a key is absolutely optional and cannot be undone, so do it wisely.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="text">
+            <string>Authenticate friend (Sign PGP Key)</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="acceptNoSignGPGCheckBox">
+           <property name="text">
+            <string>Add as friend to connect with</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="cp_AddIPHLayout">
            <item>
-            <widget class="QCheckBox" name="_direct_transfer_CB_2">
+            <widget class="QCheckBox" name="_addIPToWhiteList_CB_2">
              <property name="text">
-              <string>Can be used as direct source</string>
+              <string>Add IP to whitelist</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QCheckBox" name="_allow_push_CB_2">
-             <property name="text">
-              <string>Auto-download recommended files</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QCheckBox" name="_require_WL_CB_2">
-             <property name="text">
-              <string>Require whitelist clearance to connect</string>
-             </property>
-            </widget>
+            <widget class="QComboBox" name="_addIPToWhiteList_ComboBox_2"/>
            </item>
           </layout>
-         </widget>
-        </item>
-        <item>
-         <spacer name="verticalSpacer_4">
-          <property name="orientation">
-           <enum>Qt::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>38</width>
-            <height>38</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-     </layout>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="cp_GroupHLayout">
+           <item>
+            <widget class="QLabel" name="groupLabel">
+             <property name="text">
+              <string>Add friend to group:</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QComboBox" name="groupComboBox"/>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QVBoxLayout" name="cp_OptionVLayout">
+         <item>
+          <widget class="QGroupBox" name="_options_GB">
+           <property name="title">
+            <string>Options</string>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_10">
+            <item>
+             <widget class="QCheckBox" name="_direct_transfer_CB_2">
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;justify&quot;&gt;Retroshare periodically checks your friend lists for browsable files matching your transfers, to establish a direct transfer. In this case, your friend knows you're downloading the file.&lt;/p&gt;&lt;p align=&quot;justify&quot;&gt;To prevent this behavior for this friend only, uncheck this box. You can still perform a direct transfer if you explicitly ask for it, by e.g. downloading from your friend's file list. This setting is applied to all locations of the same node.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+              <property name="text">
+               <string>Can be used as direct source</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="_allow_push_CB_2">
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This option allows you to automatically download a file that is recommended in an message coming from this node. This can be used for instance to send files between your own nodes. Applied to all locations of the same node.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+              <property name="text">
+               <string>Auto-download recommended files</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="_require_WL_CB_2">
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Peers that have this option cannot connect if their connection address is not in the whitelist. This protects you from traffic forwarding attacks. When used, rejected peers will be reported by &amp;quot;security feed items&amp;quot; in the News Feed section. From there, you can whitelist/blacklist their IP. Applies to all locations of the same node.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+              <property name="text">
+               <string>Require whitelist clearance to connect</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <spacer name="cp_OptionVSpacer">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>38</width>
+             <height>38</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
     </item>
     <item>
      <widget class="StyledLabel" name="requestinfolabel">
@@ -1486,6 +1512,19 @@ resources.</string>
       </property>
      </widget>
     </item>
+    <item>
+     <spacer name="ConclusionPageVSpacer">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
    </layout>
   </widget>
   <widget class="QWizardPage" name="FriendRecommendationsPage">
@@ -1498,9 +1537,9 @@ resources.</string>
    <attribute name="pageId">
     <string notr="true">ConnectFriendWizard::Page_FriendRecommendations</string>
    </attribute>
-   <layout class="QVBoxLayout" name="verticalLayout_16">
+   <layout class="QVBoxLayout" name="FriendRecommendationsPageVLayout">
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_8">
+     <layout class="QHBoxLayout" name="frec_HLayout">
       <item>
        <widget class="FriendSelectionWidget" name="frec_recommendList" native="true">
         <property name="sizePolicy">
@@ -1545,12 +1584,6 @@ resources.</string>
  </widget>
  <customwidgets>
   <customwidget>
-   <class>AvatarWidget</class>
-   <extends>QLabel</extends>
-   <header>gui/common/AvatarWidget.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
    <class>StyledLabel</class>
    <extends>QLabel</extends>
    <header>gui/common/StyledLabel.h</header>
@@ -1559,6 +1592,12 @@ resources.</string>
    <class>FriendSelectionWidget</class>
    <extends>QWidget</extends>
    <header>gui/common/FriendSelectionWidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>AvatarWidget</class>
+   <extends>QLabel</extends>
+   <header>gui/common/AvatarWidget.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
@@ -1572,10 +1611,15 @@ resources.</string>
    <header>gui/connect/ConnectFriendWizard.h</header>
    <container>1</container>
   </customwidget>
+  <customwidget>
+   <class>RSPlainTextEdit</class>
+   <extends>QPlainTextEdit</extends>
+   <header>gui/common/RSPlainTextEdit.h</header>
+  </customwidget>
  </customwidgets>
  <resources>
-  <include location="../images.qrc"/>
   <include location="../icons.qrc"/>
+  <include location="../images.qrc"/>
  </resources>
  <connections/>
 </ui>

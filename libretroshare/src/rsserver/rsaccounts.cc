@@ -65,14 +65,8 @@ AccountDetails::AccountDetails()
 	return;
 }
 
-RsAccountsDetail::RsAccountsDetail()
-:mAccountsLocked(false), mPreferredId(""), mBaseDirectory("")
-{
-	mAccounts.clear();
-	mUnsupportedKeys.clear();
-	return;
-}
-
+RsAccountsDetail::RsAccountsDetail() : mAccountsLocked(false), mPreferredId("")
+{}
 
 bool RsAccountsDetail::loadAccounts()
 {
@@ -115,6 +109,8 @@ bool RsAccountsDetail::checkAccountDirectory()
 	return setupAccount(PathAccountDirectory());
 }
 
+#warning we need to clean that up. Login should only ask for a SSL id, instead of a std::string.
+
 bool RsAccountsDetail::selectAccountByString(const std::string &prefUserString)
 {
 	if (mAccountsLocked)
@@ -131,7 +127,7 @@ bool RsAccountsDetail::selectAccountByString(const std::string &prefUserString)
 
 	std::cerr << "RsAccountsDetail::selectAccountByString(" << prefUserString << ")" << std::endl;
 	
-	bool pgpNameFound = false;
+	//bool pgpNameFound = false;
 	std::map<RsPeerId, AccountDetails>::const_iterator it;
 	for(it = mAccounts.begin() ; it!= mAccounts.end() ; ++it)
 	{
@@ -142,10 +138,15 @@ bool RsAccountsDetail::selectAccountByString(const std::string &prefUserString)
 		if(prefUserString == it->second.mPgpName || pgp_id == it->second.mPgpId || ssl_id == it->second.mSslId)
 		{
 			mPreferredId = it->second.mSslId;
-			pgpNameFound = true;
+			//pgpNameFound = true;
+
+			std::cerr << "Account selected: " << ssl_id << std::endl;
+
+			return true;
 		}
 	}
-	return pgpNameFound;
+	std::cerr << "No suitable candidate found." << std::endl;
+	return false;
 }
 
 
@@ -214,6 +215,7 @@ std::string RsAccountsDetail::PathPGPDirectory()
 
 std::string RsAccountsDetail::PathBaseDirectory()
 {
+	if(mBaseDirectory.empty()) defaultBaseDirectory();
 	return mBaseDirectory;
 }
 
@@ -326,8 +328,6 @@ bool RsAccountsDetail::setupBaseDirectory(std::string alt_basedir)
 }
 
 
-
-
 bool RsAccountsDetail::defaultBaseDirectory()
 {
 	std::string basedir;
@@ -339,8 +339,8 @@ bool RsAccountsDetail::defaultBaseDirectory()
 	char *h = getenv("HOME");
 	if (h == NULL)
 	{
-		std::cerr << "defaultBaseDirectory() Error: ";
-		std::cerr << "cannot determine $HOME dir" <<std::endl;
+		std::cerr << "defaultBaseDirectory() Error: cannot determine $HOME dir"
+		          << std::endl;
 		return false ;
 	}
 
@@ -460,15 +460,19 @@ bool     RsAccountsDetail::getPreferredAccountId(RsPeerId &id)
 bool     RsAccountsDetail::getAccountIds(std::list<RsPeerId> &ids)
 {
 	std::map<RsPeerId, AccountDetails>::iterator it;
+#ifdef DEBUG_ACCOUNTS
 	std::cerr << "getAccountIds:" << std::endl;
+#endif
 
 	for(it = mAccounts.begin(); it != mAccounts.end(); ++it)
 	{
+#ifdef DEBUG_ACCOUNTS
 		std::cerr << "SSL Id: " << it->second.mSslId << " PGP Id " << it->second.mPgpId;
 		std::cerr << " PGP Name: " << it->second.mPgpName;
 		std::cerr << " PGP Email: " << it->second.mPgpEmail;
 		std::cerr << " Location: " << it->second.mLocation;
 		std::cerr << std::endl;
+#endif
 
 		ids.push_back(it->first);
 	}
@@ -524,7 +528,8 @@ bool RsAccountsDetail::getAvailableAccounts(std::map<RsPeerId, AccountDetails> &
 	 */
 
 	/* check for the dir existance */
-	librs::util::FolderIterator dirIt(mBaseDirectory);
+	librs::util::FolderIterator dirIt(mBaseDirectory,false);
+
 	if (!dirIt.isValid())
 	{
 		std::cerr << "Cannot Open Base Dir - No Available Accounts" << std::endl;
@@ -536,8 +541,7 @@ bool RsAccountsDetail::getAvailableAccounts(std::map<RsPeerId, AccountDetails> &
     for(;dirIt.isValid();dirIt.next())
 	{
 		/* check entry type */
-		std::string fname;
-		dirIt.d_name(fname);
+        std::string fname = dirIt.file_name();
 		std::string fullname = mBaseDirectory + "/" + fname;
 #ifdef FIM_DEBUG
 		std::cerr << "calling stats on " << fullname <<std::endl;
@@ -750,10 +754,7 @@ static bool checkAccount(std::string accountdir, AccountDetails &account,std::ma
 {
 	std::string dataDirectory;
 
-/******************************** WINDOWS/UNIX SPECIFIC PART ******************/
-#ifndef WINDOWS_SYS
-
-  #ifdef __APPLE__
+#ifdef __APPLE__
 	/* NOTE: OSX also qualifies as BSD... so this #ifdef must be before the BSD check. */
 
 	/* For OSX, applications are Bundled in a directory...
@@ -774,7 +775,7 @@ static bool checkAccount(std::string accountdir, AccountDetails &account,std::ma
     	dataDirectory += "/Contents/Resources";
 	std::cerr << "getRetroshareDataDirectory() OSX: " << dataDirectory;
 
-  #elif (defined(BSD) && (BSD >= 199103))
+#elif (defined(BSD) && (BSD >= 199103))
 	/* For BSD, the default is LOCALBASE which will be set
 	 * before compilation via the ports/pkg-src mechanisms.
 	 * For compilation without ports/pkg-src it is set to
@@ -782,17 +783,7 @@ static bool checkAccount(std::string accountdir, AccountDetails &account,std::ma
 	 */
 	dataDirectory = "/usr/local/share/retroshare";
 	std::cerr << "getRetroshareDataDirectory() BSD: " << dataDirectory;
-
-  #else
-	/* For Linux, the data directory is set in libretroshare.pro  */
-	#ifndef DATA_DIR
-		#error DATA_DIR variable not set. Cannot compile.
-	#endif
-	dataDirectory = DATA_DIR;
-	std::cerr << "getRetroshareDataDirectory() Linux: " << dataDirectory << std::endl;
-
-  #endif
-#else
+#elif defined(WINDOWS_SYS)
 //	if (RsInitConfig::portable)
 //	{
 //		/* For Windows Portable, files must be in the data directory */
@@ -812,21 +803,29 @@ static bool checkAccount(std::string accountdir, AccountDetails &account,std::ma
 
 	/* Use RetroShare's exe dir */
 	dataDirectory = ".";
+
+#elif defined(DATA_DIR)
+	dataDirectory = DATA_DIR;
+	// For all other OS the data directory must be set in libretroshare.pro
+#else
+#	error "For your target OS automatic data dir discovery is not supported, cannot compile if DATA_DIR variable not set."
 #endif
-/******************************** WINDOWS/UNIX SPECIFIC PART ******************/
 
 	if (!check)
+	{
+		std::cerr << "getRetroshareDataDirectory() unckecked: " << dataDirectory << std::endl;
 		return dataDirectory;
+	}
 
 	/* Make sure the directory exists, else return emptyString */
 	if (!RsDirUtil::checkDirectory(dataDirectory))
 	{
-		std::cerr << "Data Directory not Found: " << dataDirectory << std::endl;
+		std::cerr << "getRetroshareDataDirectory() not found: " << dataDirectory << std::endl;
 		dataDirectory = "";
 	}
 	else
 	{
-		std::cerr << "Data Directory Found: " << dataDirectory << std::endl;
+		std::cerr << "getRetroshareDataDirectory() found: " << dataDirectory << std::endl;
 	}
 
 	return dataDirectory;
@@ -880,12 +879,16 @@ bool RsAccountsDetail::SelectPGPAccount(const RsPgpId& pgpId)
 	if (0 < AuthGPG::getAuthGPG() -> GPGInit(pgpId))
 	{
 		retVal = true;
+#ifdef DEBUG_ACCOUNTS
 		std::cerr << "PGP Auth Success!";
+#endif
 	}
 	else
 		std::cerr << "PGP Auth Failed!";
 
+#ifdef DEBUG_ACCOUNTS
 	std::cerr << " ID: " << pgpId << std::endl;
+#endif
 
 	return retVal;
 }
@@ -1060,7 +1063,7 @@ bool     RsAccountsDetail::GenerateSSLCertificate(const RsPgpId& pgp_id, const s
 
 		X509_print_ex(bio_out, x509, nmflag, reqflag);
 
-		BIO_flush(bio_out);
+		(void) BIO_flush(bio_out);
 		BIO_free(bio_out);
 
 		/* Save cert to file */
@@ -1254,7 +1257,7 @@ bool     RsInit::LoadPassword(const std::string& id, const std::string& inPwd)
  ********************************************************************************/
 
         // Directories.
-std::string RsAccounts::ConfigDirectory() { return rsAccounts->PathBaseDirectory(); }
+std::string RsAccounts::ConfigDirectory() { return RsAccountsDetail::PathBaseDirectory(); }
 std::string RsAccounts::DataDirectory(bool check) { return RsAccountsDetail::PathDataDirectory(check); }
 std::string RsAccounts::PGPDirectory() { return rsAccounts->PathPGPDirectory(); }
 std::string RsAccounts::AccountDirectory() { return rsAccounts->PathAccountDirectory(); }
@@ -1333,3 +1336,4 @@ bool    RsAccounts::GenerateSSLCertificate(const RsPgpId& pgp_id, const std::str
  * END OF: PUBLIC INTERFACE FUNCTIONS 
  ********************************************************************************/
 
+std::string RsAccountsDetail::mBaseDirectory;

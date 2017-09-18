@@ -98,7 +98,7 @@ void init_item(RsGxsGrpMetaData* metaGrp)
     randString(SHORT_STR, metaGrp->mGroupName);
     randString(SHORT_STR, metaGrp->mServiceString);
 
-    init_item(metaGrp->signSet);
+    init_item(metaGrp->signSet);// This is not stored in db.
     init_item(metaGrp->keys);
 
     metaGrp->mPublishTs = rand()%3452;
@@ -115,9 +115,10 @@ void init_item(RsGxsGrpMetaData* metaGrp)
     metaGrp->mGroupStatus = rand()%313;
     metaGrp->mRecvTS = rand()%313;
 
-	 metaGrp->mOriginator = RsPeerId::random() ;
-	 metaGrp->mInternalCircle = RsGxsCircleId::random() ;
-	 metaGrp->mHash = RsFileHash::random() ;
+    metaGrp->mOriginator = RsPeerId::random();
+    metaGrp->mInternalCircle = RsGxsCircleId::random();
+    metaGrp->mHash = RsFileHash::random();
+    metaGrp->mGrpSize = 0;// This was calculated on db read.
 }
 
 void init_item(RsGxsMsgMetaData* metaMsg)
@@ -150,7 +151,7 @@ void init_item(RsGxsMsgMetaData* metaMsg)
 
 
 
-RsSerialType* init_item(RsNxsGrp& nxg)
+void init_item(RsNxsGrp& nxg,RsSerialType **ser)
 {
     nxg.clear();
 
@@ -159,11 +160,12 @@ RsSerialType* init_item(RsNxsGrp& nxg)
     init_item(nxg.grp);
     init_item(nxg.meta);
 
-    return new RsNxsSerialiser(RS_SERVICE_TYPE_PLUGIN_SIMPLE_FORUM);
+    if(ser)
+    *ser = new RsNxsSerialiser(RS_SERVICE_TYPE_PLUGIN_SIMPLE_FORUM);
 }
 
 
-RsSerialType* init_item(RsNxsMsg& nxm)
+void init_item(RsNxsMsg& nxm,RsSerialType **ser)
 {
     nxm.clear();
 
@@ -173,33 +175,36 @@ RsSerialType* init_item(RsNxsMsg& nxm)
     init_item(nxm.meta);
     nxm.transactionNumber = rand()%23;
 
-    return new RsNxsSerialiser(RS_SERVICE_TYPE_PLUGIN_SIMPLE_FORUM);
+    if(ser)
+    *ser = new RsNxsSerialiser(RS_SERVICE_TYPE_PLUGIN_SIMPLE_FORUM);
 }
 
-RsSerialType* init_item(RsNxsSyncGrpReqItem& rsg)
+void init_item(RsNxsSyncGrpReqItem& rsg,RsSerialType **ser)
 {
     rsg.clear();
     rsg.flag = RsNxsSyncGrpItem::FLAG_USE_SYNC_HASH;
     rsg.createdSince = rand()%2423;
     randString(3124,rsg.syncHash);
 
-    return new RsNxsSerialiser(RS_SERVICE_TYPE_PLUGIN_SIMPLE_FORUM);
+    if(ser)
+    *ser = new RsNxsSerialiser(RS_SERVICE_TYPE_PLUGIN_SIMPLE_FORUM);
 }
 
-RsSerialType* init_item(RsNxsSyncMsgReqItem& rsgm)
+void init_item(RsNxsSyncMsgReqItem& rsgm,RsSerialType **ser)
 {
     rsgm.clear();
 
     rsgm.flag = RsNxsSyncMsgItem::FLAG_USE_SYNC_HASH;
-    rsgm.createdSince = rand()%24232;
+    rsgm.createdSinceTS = rand()%24232;
     rsgm.transactionNumber = rand()%23;
     init_random(rsgm.grpId) ;
     randString(SHORT_STR, rsgm.syncHash);
 
-    return new RsNxsSerialiser(RS_SERVICE_TYPE_PLUGIN_SIMPLE_FORUM);
+    if(ser)
+    *ser = new RsNxsSerialiser(RS_SERVICE_TYPE_PLUGIN_SIMPLE_FORUM);
 }
 
-RsSerialType* init_item(RsNxsSyncGrpItem& rsgl)
+void init_item(RsNxsSyncGrpItem& rsgl,RsSerialType **ser)
 {
     rsgl.clear();
 
@@ -208,10 +213,11 @@ RsSerialType* init_item(RsNxsSyncGrpItem& rsgl)
     rsgl.publishTs = rand()%23;
     init_random(rsgl.grpId) ;
 
-    return new RsNxsSerialiser(RS_SERVICE_TYPE_PLUGIN_SIMPLE_FORUM);
+    if(ser)
+    *ser = new RsNxsSerialiser(RS_SERVICE_TYPE_PLUGIN_SIMPLE_FORUM);
 }
 
-RsSerialType* init_item(RsNxsSyncMsgItem& rsgml)
+void init_item(RsNxsSyncMsgItem& rsgml,RsSerialType **ser)
 {
     rsgml.clear();
 
@@ -220,11 +226,12 @@ RsSerialType* init_item(RsNxsSyncMsgItem& rsgml)
     init_random(rsgml.grpId) ;
     init_random(rsgml.msgId) ;
 
-    return new RsNxsSerialiser(RS_SERVICE_TYPE_PLUGIN_SIMPLE_FORUM);
+    if(ser)
+		*ser = new RsNxsSerialiser(RS_SERVICE_TYPE_PLUGIN_SIMPLE_FORUM);
 }
 
-RsSerialType* init_item(RsNxsTransacItem &rstx){
-
+void init_item(RsNxsTransacItem &rstx,RsSerialType **ser)
+{
     rstx.clear();
 
     rstx.timestamp = rand()%14141;
@@ -232,7 +239,8 @@ RsSerialType* init_item(RsNxsTransacItem &rstx){
     rstx.nItems = rand()%33132;
     rstx.transactionNumber = rand()%242112;
 
-    return new RsNxsSerialiser(RS_SERVICE_TYPE_PLUGIN_SIMPLE_FORUM);
+	if(ser)
+		*ser = new RsNxsSerialiser(RS_SERVICE_TYPE_PLUGIN_SIMPLE_FORUM);
 }
 
 
@@ -251,7 +259,7 @@ bool operator==(const RsNxsSyncMsgReqItem& l, const RsNxsSyncMsgReqItem& r)
 {
 
     if(l.flag != r.flag) return false;
-    if(l.createdSince != r.createdSince) return false;
+    if(l.createdSinceTS != r.createdSinceTS) return false;
     if(l.syncHash != r.syncHash) return false;
     if(l.grpId != r.grpId) return false;
     if(l.transactionNumber != r.transactionNumber) return false;

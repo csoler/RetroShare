@@ -14,6 +14,7 @@
 #include <inttypes.h>
 
 #include <retroshare/rstypes.h>
+#include <retroshare/rsids.h>
 
 typedef GXSGroupId   RsGxsGroupId;
 typedef Sha1CheckSum RsGxsMessageId;
@@ -25,7 +26,7 @@ typedef std::pair<RsGxsGroupId, RsGxsMessageId> RsGxsGrpMsgIdPair;
 typedef std::map<RsGxsGrpMsgIdPair, std::vector<RsGxsMessageId> > MsgRelatedIdResult;
 typedef std::map<RsGxsGroupId, std::vector<RsGxsMessageId> > GxsMsgReq;
 
-class RsMsgMetaData;
+struct RsMsgMetaData;
 
 typedef std::map<RsGxsGroupId, std::vector<RsMsgMetaData> > MsgMetaResult;
 
@@ -33,33 +34,20 @@ typedef std::map<RsGxsGroupId, std::vector<RsMsgMetaData> > MsgMetaResult;
 class RsGxsGrpMetaData;
 class RsGxsMsgMetaData;
 
-
-class RsGroupMetaData
+struct RsGroupMetaData
 {
-public:
+	// (csoler) The correct default value to be used in mCircleType is GXS_CIRCLE_TYPE_PUBLIC, which is defined in rsgxscircles.h,
+    // but because of a loop in the includes, I cannot include it here. So I replaced with its current value 0x0001.
 
-    RsGroupMetaData()
-    {
-            mGroupFlags = 0;
-            mSignFlags = 0;
-            mSubscribeFlags = 0;
-
-            mPop = 0;
-            mVisibleMsgCount = 0;
-            mLastPost = 0;
-
-            mGroupStatus = 0;
-            mCircleType = 0;
-            mAuthenFlags = 0;
-
-            mPublishTs = 0;
-    }
+	RsGroupMetaData() : mGroupFlags(0), mSignFlags(0), mPublishTs(0),
+	    mCircleType(0x0001), mAuthenFlags(0), mSubscribeFlags(0), mPop(0),
+	    mVisibleMsgCount(0), mLastPost(0), mGroupStatus(0) {}
 
     void operator =(const RsGxsGrpMetaData& rGxsMeta);
 
     RsGxsGroupId mGroupId;
     std::string mGroupName;
-    uint32_t    mGroupFlags;
+	uint32_t    mGroupFlags;  // Combination of FLAG_PRIVACY_PRIVATE | FLAG_PRIVACY_RESTRICTED | FLAG_PRIVACY_PUBLIC
     uint32_t    mSignFlags;   // Combination of RSGXS_GROUP_SIGN_PUBLISH_MASK & RSGXS_GROUP_SIGN_AUTHOR_MASK.
 
     time_t      mPublishTs; // Mandatory.
@@ -90,19 +78,9 @@ public:
 
 
 
-class RsMsgMetaData
+struct RsMsgMetaData
 {
-
-public:
-
-    RsMsgMetaData()
-    {
-            mPublishTs = 0;
-            mMsgFlags = 0;
-
-            mMsgStatus = 0;
-            mChildTs = 0;
-    }
+	RsMsgMetaData() : mPublishTs(0), mMsgFlags(0), mMsgStatus(0), mChildTs(0) {}
 
     void operator =(const RsGxsMsgMetaData& rGxsMeta);
 

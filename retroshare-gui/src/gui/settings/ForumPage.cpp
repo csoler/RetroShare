@@ -20,6 +20,7 @@
  ****************************************************************/
 
 #include "ForumPage.h"
+#include "util/misc.h"
 #include "rsharesettings.h"
 
 ForumPage::ForumPage(QWidget * parent, Qt::WindowFlags flags)
@@ -30,30 +31,31 @@ ForumPage::ForumPage(QWidget * parent, Qt::WindowFlags flags)
 
 	/* Initialize GroupFrameSettingsWidget */
 	ui.groupFrameSettingsWidget->setOpenAllInNewTabText(tr("Open each forum in a new tab"));
+
+    connect(ui.setMsgToReadOnActivate,SIGNAL(toggled(bool)),this,SLOT(updateMsgReadOnActivate())) ;
+	connect(ui.expandNewMessages  , SIGNAL(toggled(bool)), this, SLOT( updateExpandNewMessages()));
+	connect(ui.loadEmbeddedImages , SIGNAL(toggled(bool)), this, SLOT(updateLoadEmbeddedImage() ));
+	connect(ui.loadEmoticons      , SIGNAL(toggled(bool)), this, SLOT(   updateLoadEmoticons()	 ));
+
+    ui.groupFrameSettingsWidget->setType(GroupFrameSettings::Forum) ;
 }
 
 ForumPage::~ForumPage()
 {
 }
 
-/** Saves the changes on this page */
-bool ForumPage::save(QString &/*errmsg*/)
-{
-	Settings->setForumMsgSetToReadOnActivate(ui.setMsgToReadOnActivate->isChecked());
-	Settings->setForumExpandNewMessages(ui.expandNewMessages->isChecked());
-	Settings->setForumLoadEmbeddedImages(ui.loadEmbeddedImages->isChecked());
-
-	ui.groupFrameSettingsWidget->saveSettings(GroupFrameSettings::Forum);
-
-	return true;
-}
+void ForumPage::updateMsgReadOnActivate()   { Settings->setForumMsgSetToReadOnActivate(ui.setMsgToReadOnActivate->isChecked()); }
+void ForumPage::updateExpandNewMessages()	{ Settings->setForumExpandNewMessages(     ui.expandNewMessages     ->isChecked());}
+void ForumPage::updateLoadEmbeddedImages()	{ Settings->setForumLoadEmbeddedImages(    ui.loadEmbeddedImages    ->isChecked());}
+void ForumPage::updateLoadEmoticons()		{ Settings->setForumLoadEmoticons(         ui.loadEmoticons         ->isChecked()); }
 
 /** Loads the settings for this page */
 void ForumPage::load()
 {
-	ui.setMsgToReadOnActivate->setChecked(Settings->getForumMsgSetToReadOnActivate());
-	ui.expandNewMessages->setChecked(Settings->getForumExpandNewMessages());
-	ui.loadEmbeddedImages->setChecked(Settings->getForumLoadEmbeddedImages());
+	whileBlocking(ui.setMsgToReadOnActivate)->setChecked(Settings->getForumMsgSetToReadOnActivate());
+	whileBlocking(ui.expandNewMessages)->setChecked(Settings->getForumExpandNewMessages());
+	whileBlocking(ui.loadEmbeddedImages)->setChecked(Settings->getForumLoadEmbeddedImages());
+	whileBlocking(ui.loadEmoticons)->setChecked(Settings->getForumLoadEmoticons());
 
 	ui.groupFrameSettingsWidget->loadSettings(GroupFrameSettings::Forum);
 }

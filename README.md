@@ -12,11 +12,15 @@ Build Status
 
 Compilation on Windows
 ----------------------------
-Follow this file : [WindowsMSys2_InstallGuide.txt](https://github.com/RetroShare/RetroShare/blob/master/WindowsMSys2_InstallGuide.txt)
+Follow this file : [WindowsMSys2_InstallGuide.md](https://github.com/RetroShare/RetroShare/blob/master/WindowsMSys2_InstallGuide.md)
 
 Compilation on MacOSX
 ----------------------------
-Follow this file : [MacOS_X_InstallGuide.txt](https://github.com/RetroShare/RetroShare/blob/master/MacOS_X_InstallGuide.txt)
+Follow this file : [MacOS_X_InstallGuide](https://github.com/RetroShare/RetroShare/blob/master/MacOS_X_InstallGuide.md)
+
+Compilation for Android
+---------------------------
+Follow this file : [README-Android](https://github.com/RetroShare/RetroShare/blob/master/README-Android.asciidoc)
 
 Compilation on Linux
 ----------------------------
@@ -40,7 +44,7 @@ Compilation on Linux
    * Arch Linux
    ```bash
    pacman -S base-devel libgnome-keyring libmicrohttpd libupnp libxslt \
-       libxss opencv qt4 speex sqlcipher
+       libxss opencv qt4 speex speexdsp sqlcipher
    ```
 
 2. Checkout the source code
@@ -64,8 +68,13 @@ Compilation on Linux
 
    The executables produced will be:
 
-         /usr/bin/RetroShare06
-         /usr/bin/RetroShare06-nogui
+         /usr/bin/retroshare
+         /usr/bin/retroshare-nogui
+
+5. Uninstall:
+   ```bash
+   sudo make uninstall
+   ```
 
 Compile only retroshare-nogui
 -----------------------------
@@ -115,7 +124,7 @@ Using retroshare-nogui & webUI
 The webUI needs to be enabled as a parameter option in retroshare-nogui:
 
 ```bash
-./retroshare-nogui --webinterface 9090 --docroot /usr/share/RetroShare06/webui/
+./retroshare-nogui --webinterface 9090 --docroot /usr/share/retroshare/webui/
 ```
 
 The webUI is only accessible on localhost:9090. It is advised to keep it that way so that your RS

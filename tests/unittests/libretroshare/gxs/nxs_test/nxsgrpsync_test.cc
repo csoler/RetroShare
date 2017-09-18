@@ -82,8 +82,8 @@ NxsGrpSync::NxsGrpSync(RsGcxs* circle, RsGixsReputation* reputation):
 
 		RsGxsGroupId grpId = grp->grpId;
 
-		RsGeneralDataService::GrpStoreMap gsp;
-		gsp.insert(std::make_pair(grp, meta));
+		RsNxsGrpDataTemporaryList gsp;
+		gsp.push_back(grp);
 		mit->second->storeGroup(gsp);
 
 		// the expected result is that each peer has the group of the others
@@ -114,12 +114,12 @@ RsNxsNetMgr* NxsGrpSync::getDummyNetManager(const RsPeerId& peerId)
 	return mNxsNetMgrs[peerId];
 }
 
-RsGcxs* NxsGrpSync::getDummyCircles(const RsPeerId& peerId)
+RsGcxs* NxsGrpSync::getDummyCircles(const RsPeerId& /*peerId*/)
 {
 	return mCircles;
 }
 
-RsGixsReputation* NxsGrpSync::getDummyReputations(const RsPeerId& peerId)
+RsGixsReputation* NxsGrpSync::getDummyReputations(const RsPeerId& /*peerId*/)
 {
 	return mRep;
 }

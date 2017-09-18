@@ -165,7 +165,7 @@
          </font>
         </property>
         <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Install RetroShare with a package installer to get&lt;/p&gt;&lt;p&gt;/usr/share/applications/retroshare06.desktop&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Install RetroShare with a package installer to get&lt;/p&gt;&lt;p&gt;/usr/share/applications/retroshare.desktop&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="text">
          <string>!!!The RetroShare's desktop file is missing or wrong!!!</string>
@@ -216,17 +216,6 @@
       </size>
      </property>
     </spacer>
-   </item>
-   <item>
-    <widget class="QPushButton" name="runStartWizard_PB">
-     <property name="text">
-      <string>Launch startup wizard</string>
-     </property>
-     <property name="icon">
-      <iconset resource="../images.qrc">
-       <normaloff>:/images/tools_wizard.png</normaloff>:/images/tools_wizard.png</iconset>
-     </property>
-    </widget>
    </item>
   </layout>
  </widget>

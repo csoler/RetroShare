@@ -32,7 +32,7 @@
 #include "gxs/rsgixs.h"			// Internal Interfaces.
 
 #include "gxs/gxstokenqueue.h"		
-#include "serialiser/rsgxsiditems.h"		
+#include "rsitems/rsgxsiditems.h"
 
 #include <map>
 #include <string>
@@ -43,7 +43,7 @@
 
 #include "pqi/authgpg.h"
 
-#include "serialiser/rsgxsrecognitems.h"
+#include "rsitems/rsgxsrecognitems.h"
 
 class PgpAuxUtils;
 
@@ -212,6 +212,12 @@ private:
     void init(const RsGxsIdGroupItem *item, const RsTlvPublicRSAKey& in_pub_key, const RsTlvPrivateRSAKey& in_priv_key,const std::list<RsRecognTag> &tagList);
 };
 
+struct SerialisedIdentityStruct
+{
+    unsigned char *mMem ;
+    uint32_t mSize ;
+    time_t mLastUsageTS;
+};
 
 // Not sure exactly what should be inherited here?
 // Chris - please correct as necessary.
@@ -239,6 +245,8 @@ public:
 
 	// These are exposed via RsIdentity.
 	virtual bool getGroupData(const uint32_t &token, std::vector<RsGxsIdGroup> &groups);
+	virtual bool getGroupSerializedData(const uint32_t &token, std::map<RsGxsId,std::string>& serialized_groups);
+
 	//virtual bool getMsgData(const uint32_t &token, std::vector<RsGxsIdOpinion> &opinions);
 
 	// These are local - and not exposed via RsIdentity.
@@ -267,6 +275,9 @@ public:
 	virtual bool updateIdentity(uint32_t& token, RsGxsIdGroup &group);
 	virtual bool deleteIdentity(uint32_t& token, RsGxsIdGroup &group);
 
+    virtual void setDeleteBannedNodesThreshold(uint32_t days) ;
+    virtual uint32_t deleteBannedNodesThreshold() ;
+
 	virtual bool parseRecognTag(const RsGxsId &id, const std::string &nickname,
 	                            const std::string &tag, RsRecognTagDetails &details);
 	virtual bool getRecognTagRequest(const RsGxsId &id, const std::string &comment, 
@@ -274,7 +285,6 @@ public:
 
 	virtual bool setAsRegularContact(const RsGxsId& id,bool is_a_contact) ;
 	virtual bool isARegularContact(const RsGxsId& id) ;
-	virtual bool isBanned(const RsGxsId& id) ;
 	virtual time_t getLastUsageTS(const RsGxsId &id) ;
 
 	/**************** RsGixs Implementation ***************/
@@ -286,11 +296,48 @@ public:
 
 	virtual bool isOwnId(const RsGxsId& key_id) ;
 
-	virtual bool signData(const uint8_t *data,uint32_t data_size,const RsGxsId& signer_id,RsTlvKeySignature& signature,uint32_t& signing_error) ;
-	virtual bool validateData(const uint8_t *data,uint32_t data_size,const RsTlvKeySignature& signature,bool force_load,uint32_t& signing_error) ;
+	virtual bool signData( const uint8_t* data,
+	                       uint32_t data_size,
+	                       const RsGxsId& signer_id,
+	                       RsTlvKeySignature& signature,
+	                       uint32_t& signing_error);
 
-	virtual bool encryptData(const uint8_t *decrypted_data,uint32_t decrypted_data_size,uint8_t *& encrypted_data,uint32_t& encrypted_data_size,const RsGxsId& encryption_key_id,bool force_load,uint32_t& encryption_error) ;
-	virtual bool decryptData(const uint8_t *encrypted_data,uint32_t encrypted_data_size,uint8_t *& decrypted_data,uint32_t& decrypted_data_size,const RsGxsId& encryption_key_id,uint32_t& encryption_error) ;
+	virtual bool validateData( const uint8_t *data, uint32_t data_size,
+	                           const RsTlvKeySignature& signature,
+	                           bool force_load, const RsIdentityUsage &info,
+	                           uint32_t& signing_error );
+
+	virtual bool encryptData( const uint8_t* decrypted_data,
+	                          uint32_t decrypted_data_size,
+	                          uint8_t*& encrypted_data,
+	                          uint32_t& encrypted_data_size,
+	                          const RsGxsId& encryption_key_id,
+	                          uint32_t& error_status,
+	                          bool force_load = true );
+
+	bool encryptData( const uint8_t* decrypted_data,
+	                  uint32_t decrypted_data_size,
+	                  uint8_t*& encrypted_data,
+	                  uint32_t& encrypted_data_size,
+	                  const std::set<RsGxsId>& encrypt_ids,
+	                  uint32_t& error_status, bool force_loa = true );
+
+	virtual bool decryptData( const uint8_t* encrypted_data,
+	                          uint32_t encrypted_data_size,
+	                          uint8_t*& decrypted_data,
+	                          uint32_t& decrypted_data_size,
+	                          const RsGxsId& decryption_key_id,
+	                          uint32_t& error_status,
+	                          bool force_load = true );
+
+	virtual bool decryptData(const uint8_t* encrypted_data,
+	                          uint32_t encrypted_data_size,
+	                          uint8_t*& decrypted_data,
+	                          uint32_t& decrypted_data_size,
+	                          const std::set<RsGxsId>& decrypt_ids,
+	                          uint32_t& error_status,
+	                          bool force_load = true );
+
 
 	virtual bool haveKey(const RsGxsId &id);
 	virtual bool havePrivateKey(const RsGxsId &id);
@@ -298,16 +345,24 @@ public:
 	virtual bool getKey(const RsGxsId &id, RsTlvPublicRSAKey &key);
 	virtual bool getPrivateKey(const RsGxsId &id, RsTlvPrivateRSAKey &key);
 
-    virtual bool requestKey(const RsGxsId &id, const std::list<RsPeerId> &peers);
+	virtual bool requestKey( const RsGxsId &id,
+	                         const std::list<RsPeerId> &peers,
+	                         const RsIdentityUsage &use_info );
 	virtual bool requestPrivateKey(const RsGxsId &id);
 
+	virtual bool serialiseIdentityToMemory(const RsGxsId& id,
+	                                       std::string& radix_string);
+	virtual bool deserialiseIdentityFromMemory(const std::string& radix_string,
+	                                           RsGxsId* id = nullptr);
 
 	/**************** RsGixsReputation Implementation ****************/
 
 	// get Reputation.
+#ifdef TO_BE_REMOVED
 	virtual bool haveReputation(const RsGxsId &id);
 	virtual bool loadReputation(const RsGxsId &id, const std::list<RsPeerId>& peers);
 	virtual bool getReputation(const RsGxsId &id, GixsReputation &rep);
+#endif
 
 
 protected:
@@ -391,6 +446,12 @@ private:
 	bool mBgSchedule_Active;
 	uint32_t mBgSchedule_Mode;
 
+    /***********************************8
+     * Fonction to receive and handle group serialisation to memory
+     */
+
+	virtual void handle_get_serialized_grp(uint32_t token);
+
 	/************************************************************************
  * pgphash processing.
  *
@@ -467,7 +528,7 @@ private:
 	void cleanUnusedKeys() ;
 	void slowIndicateConfigChanged() ;
 
-	virtual void timeStampKey(const RsGxsId& id) ;
+	virtual void timeStampKey(const RsGxsId& id, const RsIdentityUsage& reason) ;
 	time_t locked_getLastUsageTS(const RsGxsId& gxs_id);
 
 	std::string genRandomId(int len = 20);
@@ -507,10 +568,21 @@ private:
 
 private:
 
+    struct keyTSInfo
+    {
+        keyTSInfo() : TS(0) {}
+
+        time_t TS ;
+        std::map<RsIdentityUsage,time_t> usage_map ;
+    };
+	friend class IdCacheEntryCleaner;
+
 	std::map<uint32_t, std::set<RsGxsGroupId> > mIdsPendingCache;
 	std::map<uint32_t, std::list<RsGxsGroupId> > mGroupNotPresent;
 	std::map<RsGxsId, std::list<RsPeerId> > mIdsNotPresent;
-	std::map<RsGxsId,time_t> mKeysTS ;
+	std::map<RsGxsId,keyTSInfo> mKeysTS ;
+
+    std::map<RsGxsId,SerialisedIdentityStruct> mSerialisedIdentities ;
 
 	// keep a list of regular contacts. This is useful to sort IDs, and allow some services to priviledged ids only.
 	std::set<RsGxsId> mContacts;
@@ -527,6 +599,7 @@ private:
 	time_t mLastConfigUpdate ;
 
 	bool mOwnIdsLoaded ;
+    uint32_t mMaxKeepKeysBanned ;
 };
 
 #endif // P3_IDENTITY_SERVICE_HEADER

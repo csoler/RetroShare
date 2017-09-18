@@ -23,6 +23,7 @@
 #define _CHATPAGE_H
 
 #include <retroshare-gui/configpage.h>
+#include "gui/chat/ChatStyle.h"
 #include "ui_ChatPage.h"
 
 class ChatPage : public ConfigPage
@@ -35,13 +36,11 @@ class ChatPage : public ConfigPage
       /** Default Destructor */
       ~ChatPage() {}
 
-      /** Saves the changes on this page */
-      virtual bool save(QString &errmsg);
       /** Loads the settings for this page */
       virtual void load();
 
 		virtual QPixmap iconPixmap() const { return QPixmap(":/icons/settings/chat.svg") ; }
-		virtual QString pageName() const { return tr("Chat") ; }
+		virtual QString pageName() const { return tr("Chats") ; }
 		virtual QString helpText() const { return ""; }
 
   private slots:
@@ -58,10 +57,22 @@ class ChatPage : public ConfigPage
  
     void distantChatComboBoxChanged(int);
   
+    void updateFontsAndEmotes();
+    void updateChatParams();
+    void updateChatSearchParams();
+    void updateDefaultLobbyIdentity() ;
+    void updateHistoryParams();
+    void updatePublicStyle() ;
+    void updatePrivateStyle() ;
+    void updateHistoryStyle() ;
+    void updateHistoryStorage();
+    void updateChatFlags();
+    void updateChatLobbyFlags();
 
   private:
       void setPreviewMessages(QString &stylePath, QString styleVariant, QTextBrowser *textBrowser);
-      void fillPreview(QListWidget *listWidget, QComboBox *comboBox, QTextBrowser *textBrowser);
+      void fillPreview(QComboBox *listWidget, QComboBox *comboBox, QTextBrowser *textBrowser);
+	  QString loadStyleInfo(ChatStyle::enumStyleType type, QComboBox *style_CB, QComboBox *comboBox, QString &styleVariant);
 
       QFont fontTempChat;
 

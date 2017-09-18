@@ -30,7 +30,17 @@
 #include <iostream>
 #include <time.h>
 
+#ifdef __APPLE__
+int __attribute__((weak)) pthread_setname_np(const char *__buf) ;
+int RS_pthread_setname_np(pthread_t /*__target_thread*/, const char *__buf) {
+	return pthread_setname_np(__buf);
+}
+#else
 int __attribute__((weak)) pthread_setname_np(pthread_t __target_thread, const char *__buf) ;
+int RS_pthread_setname_np(pthread_t __target_thread, const char *__buf) {
+	return pthread_setname_np(__target_thread, __buf);
+}
+#endif
 
 #ifdef RSMUTEX_DEBUG
 #include <stdio.h>
@@ -51,6 +61,16 @@ int __attribute__((weak)) pthread_setname_np(pthread_t __target_thread, const ch
 	#include <iostream>
 #endif
 
+void RsThread::go()
+{
+    mShouldStopSemaphore.set(0) ;
+    mHasStoppedSemaphore.set(0) ;
+
+    runloop();
+
+    mHasStoppedSemaphore.set(1);
+    mShouldStopSemaphore.set(0);
+}
 void *RsThread::rsthread_init(void* p)
 {
   RsThread *thread = (RsThread *) p;
@@ -66,7 +86,7 @@ void *RsThread::rsthread_init(void* p)
     std::cerr << "[Thread ID:" << std::hex << pthread_self() << std::dec << "] thread is started. Calling runloop()..." << std::endl;
 #endif
     
-  thread -> runloop();
+  thread->go();
   return NULL;
 }
 RsThread::RsThread() 
@@ -147,6 +167,11 @@ void RsTickingThread::fullstop()
 
 void RsThread::start(const std::string &threadName)
 {
+    if(isRunning())
+    {
+        std::cerr << "(EE) RsThread \"" << threadName << "\" is already running. Will not start twice!" << std::endl;
+        return ;
+    }
     pthread_t tid;
     void  *data = (void *)this ;
 
@@ -154,6 +179,7 @@ void RsThread::start(const std::string &threadName)
     THREAD_DEBUG << "pqithreadstreamer::start() initing should_stop=0" << std::endl;
 #endif
     mShouldStopSemaphore.set(0) ;
+	mHasStoppedSemaphore.set(0) ;
 
     int err ;
 
@@ -167,19 +193,21 @@ void RsThread::start(const std::string &threadName)
         // set name
 
         if(pthread_setname_np)
-		if(!threadName.empty()) 
-		{
-			// thread names are restricted to 16 characters including the terminating null byte
-			if(threadName.length() > 15)
-			{
+        {
+            if(!threadName.empty())
+            {
+                // thread names are restricted to 16 characters including the terminating null byte
+                if(threadName.length() > 15)
+                {
 #ifdef DEBUG_THREADS
-				THREAD_DEBUG << "RsThread::start called with to long name '" << name << "' truncating..." << std::endl;
+                    THREAD_DEBUG << "RsThread::start called with to long name '" << name << "' truncating..." << std::endl;
 #endif
-				pthread_setname_np(mTid, threadName.substr(0, 15).c_str());
-			} else {
-				pthread_setname_np(mTid, threadName.c_str());
-			}
-		}
+                    RS_pthread_setname_np(mTid, threadName.substr(0, 15).c_str());
+                } else {
+                    RS_pthread_setname_np(mTid, threadName.c_str());
+                }
+            }
+        }
     }
     else
     {
@@ -199,14 +227,11 @@ RsTickingThread::RsTickingThread()
 
 void RsSingleJobThread::runloop()
 {
-    mHasStoppedSemaphore.set(0) ;
     run() ;
 }
 
 void RsTickingThread::runloop()
 {
-    mHasStoppedSemaphore.set(0) ;	// first time we are 100% the thread is actually running.
-
 #ifdef DEBUG_THREADS
     THREAD_DEBUG << "RsTickingThread::runloop(). Setting stopped=0" << std::endl;
 #endif
@@ -218,7 +243,6 @@ void RsTickingThread::runloop()
 #ifdef DEBUG_THREADS
             THREAD_DEBUG << "pqithreadstreamer::runloop(): asked to stop. setting hasStopped=1, and returning. Thread ends." << std::endl;
 #endif
-            mHasStoppedSemaphore.set(1);
             return ;
         }
 

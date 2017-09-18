@@ -164,7 +164,7 @@ void QuickStartWizard::on_pushButtonConnectionNext_clicked()
 
 void QuickStartWizard::on_pushButtonConnectionExit_clicked()
 {
-        on_pushButtonConnectionNext_clicked();
+        //on_pushButtonConnectionNext_clicked();
         close();
 }
 
@@ -235,7 +235,7 @@ void QuickStartWizard::on_pushButtonSharesAdd_clicked()
 	{
 		SharedDirInfo sdi ;
 		sdi.filename = dir ;
-		sdi.shareflags = DIR_FLAGS_BROWSABLE_OTHERS | DIR_FLAGS_NETWORK_WIDE_OTHERS ;
+        sdi.shareflags = DIR_FLAGS_BROWSABLE | DIR_FLAGS_ANONYMOUS_DOWNLOAD ;
 
 		rsFiles->addSharedDirectory(sdi);
 
@@ -331,8 +331,8 @@ void QuickStartWizard::loadShare()
 		QCheckBox *cb1 = new QCheckBox ;
 		QCheckBox *cb2 = new QCheckBox ;
 
-		cb1->setChecked( (*it).shareflags & DIR_FLAGS_NETWORK_WIDE_OTHERS ) ;
-		cb2->setChecked( (*it).shareflags & DIR_FLAGS_BROWSABLE_OTHERS ) ;
+		cb1->setChecked( (*it).shareflags & DIR_FLAGS_ANONYMOUS_DOWNLOAD ) ;
+        cb2->setChecked( (*it).shareflags & DIR_FLAGS_BROWSABLE ) ;
 
 		cb1->setToolTip(tr("If checked, the share is anonymously shared to anybody.")) ;
 		cb2->setToolTip(tr("If checked, the share is browsable by your friends.")) ;
@@ -364,8 +364,8 @@ void QuickStartWizard::updateFlags(bool b)
 	{
 		std::cerr << "Looking for row=" << row << ", file=" << (*it).filename << ", flags=" << (*it).shareflags << std::endl ;
 		FileStorageFlags current_flags(0u) ;
-		current_flags |= (dynamic_cast<QCheckBox*>(ui.shareddirList->cellWidget(row,1)))->isChecked()? DIR_FLAGS_NETWORK_WIDE_OTHERS:(FileStorageFlags)0u ;
-		current_flags |= (dynamic_cast<QCheckBox*>(ui.shareddirList->cellWidget(row,2)))->isChecked()? DIR_FLAGS_BROWSABLE_OTHERS   :(FileStorageFlags)0u ;
+		current_flags |= (dynamic_cast<QCheckBox*>(ui.shareddirList->cellWidget(row,1)))->isChecked()? DIR_FLAGS_ANONYMOUS_DOWNLOAD:(FileStorageFlags)0u ;
+        current_flags |= (dynamic_cast<QCheckBox*>(ui.shareddirList->cellWidget(row,2)))->isChecked()? DIR_FLAGS_BROWSABLE   :(FileStorageFlags)0u ;
 
 		if( ((*it).shareflags ^ current_flags).toUInt32() )
 		{
@@ -442,6 +442,8 @@ void QuickStartWizard::loadNetwork()
             ui.netModeComboBox->hide();
             ui.discoveryLabel->hide();
             ui.discoveryComboBox->hide();
+            ui.netModeComboBox->insertItem(3,"Hidden Node");
+            netIndex = 3;
             break;
 		default:
 		case RS_NETMODE_UPNP:
@@ -514,6 +516,9 @@ void QuickStartWizard::saveChanges()
         std::cerr << "ui.netModeComboBox->currentIndex()" << ui.netModeComboBox->currentIndex() << std::endl;
         switch(netIndex)
 	{
+		case 3:
+			netMode = RS_NETMODE_HIDDEN;
+			break;
 		case 2:
 			netMode = RS_NETMODE_EXT;
 			break;

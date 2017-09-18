@@ -28,6 +28,7 @@
 #include "util/rsrecogn.h"
 #include "util/radix64.h"
 #include "util/rsstring.h"
+#include "util/rsdir.h"
 
 #include "gxs/gxssecurity.h"
 
@@ -327,7 +328,7 @@ bool rsa_sanity_check(RSA *rsa)
 }
 
 		
-#warning this code should be using GxsSecurity signature code. Not some own made signature call.
+#warning csoler: this code should be using GxsSecurity signature code. Not some own made signature call.
 
 bool	RsRecogn::signTag(EVP_PKEY *signKey, RsGxsRecognTagItem *item)
 {
@@ -375,7 +376,7 @@ bool	RsRecogn::signTag(EVP_PKEY *signKey, RsGxsRecognTagItem *item)
 	return true;
 }
 
-#warning this code should be using GxsSecurity signature code. Not some own made signature call.
+#warning csoler: this code should be using GxsSecurity signature code. Not some own made signature call.
 
 bool	RsRecogn::signSigner(EVP_PKEY *signKey, RsGxsRecognSignerItem *item)
 {
@@ -432,7 +433,7 @@ bool	RsRecogn::signSigner(EVP_PKEY *signKey, RsGxsRecognSignerItem *item)
 	return true;
 }
 
-#warning this code should be using GxsSecurity signature code. Not some own made signature call.
+#warning csoler: this code should be using GxsSecurity signature code. Not some own made signature call.
 
 bool	RsRecogn::signTagRequest(EVP_PKEY *signKey, RsGxsRecognReqItem *item)
 {
@@ -507,9 +508,23 @@ bool	RsRecogn::itemToRadix64(RsItem *item, std::string &radstr)
 
 std::string RsRecogn::getRsaKeyId(RSA *pubkey)
 {
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
 	int len = BN_num_bytes(pubkey -> n);
 	unsigned char tmp[len];
 	BN_bn2bin(pubkey -> n, tmp);
+#else
+    const BIGNUM *nn=NULL ;
+    RSA_get0_key(pubkey,&nn,NULL,NULL) ;
+
+	int len = BN_num_bytes(nn);
+	unsigned char tmp[len];
+	BN_bn2bin(nn, tmp);
+#endif
+
+    return RsDirUtil::sha1sum(tmp,len).toStdString();
+
+#ifdef OLD_VERSION_REMOVED
+    // (cyril) I removed this because this is cryptographically insane, as it allows to easily forge a RSA key with the same ID.
 
 	// copy first CERTSIGNLEN bytes...
 	if (len > CERTSIGNLEN)
@@ -524,6 +539,7 @@ std::string RsRecogn::getRsaKeyId(RSA *pubkey)
 	}
 
 	return id;
+#endif
 }
 
 
@@ -535,6 +551,9 @@ RsGxsRecognTagItem *RsRecogn::extractTag(const std::string &encoded)
 
     std::vector<uint8_t> buffer = Radix64::decode(encoded);
     pktsize = buffer.size();
+
+	if( buffer.empty() )
+		return NULL;
 
 	RsGxsRecognSerialiser serialiser;
     RsItem *item = serialiser.deserialise(buffer.data(), &pktsize);

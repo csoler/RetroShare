@@ -155,12 +155,13 @@ const FileStorageFlags DIR_FLAGS_PARENT                 	( 0x0001 );
 const FileStorageFlags DIR_FLAGS_DETAILS                	( 0x0002 );	// apparently unused
 const FileStorageFlags DIR_FLAGS_CHILDREN               	( 0x0004 );	// apparently unused
 
-const FileStorageFlags DIR_FLAGS_NETWORK_WIDE_OTHERS  	( 0x0080 ); // Flags for directory sharing permissions. The last
-const FileStorageFlags DIR_FLAGS_BROWSABLE_OTHERS     	( 0x0100 ); // one should be the OR of the all four flags.
-const FileStorageFlags DIR_FLAGS_NETWORK_WIDE_GROUPS  	( 0x0200 );
-const FileStorageFlags DIR_FLAGS_BROWSABLE_GROUPS     	( 0x0400 );
-const FileStorageFlags DIR_FLAGS_PERMISSIONS_MASK     	( DIR_FLAGS_NETWORK_WIDE_OTHERS | DIR_FLAGS_BROWSABLE_OTHERS 
-                                                        | DIR_FLAGS_NETWORK_WIDE_GROUPS | DIR_FLAGS_BROWSABLE_GROUPS );
+const FileStorageFlags DIR_FLAGS_ANONYMOUS_DOWNLOAD  	( 0x0080 ); // Flags for directory sharing permissions. The last
+//const FileStorageFlags DIR_FLAGS_BROWSABLE_OTHERS     	( 0x0100 ); // one should be the OR of the all four flags.
+//const FileStorageFlags DIR_FLAGS_NETWORK_WIDE_GROUPS  	( 0x0200 );
+const FileStorageFlags DIR_FLAGS_BROWSABLE     	        ( 0x0400 );
+const FileStorageFlags DIR_FLAGS_ANONYMOUS_SEARCH       ( 0x0800 );
+const FileStorageFlags DIR_FLAGS_PERMISSIONS_MASK     	( DIR_FLAGS_ANONYMOUS_DOWNLOAD | /*DIR_FLAGS_BROWSABLE_OTHERS
+                                                          DIR_FLAGS_NETWORK_WIDE_GROUPS*/   DIR_FLAGS_BROWSABLE | DIR_FLAGS_ANONYMOUS_SEARCH);
 
 const FileStorageFlags DIR_FLAGS_LOCAL                  	( 0x1000 );
 const FileStorageFlags DIR_FLAGS_REMOTE                 	( 0x2000 );
@@ -238,9 +239,9 @@ public:
     RsFileHash hash;
     std::string path;		// full path of the parent directory, when it is a file; full path of the dir otherwise.
 	uint64_t count;
-	uint32_t age;
+	uint32_t mtime;			// file/directory modification time, according to what the system reports
 	FileStorageFlags flags;
-	uint32_t min_age ;	// minimum age of files in this subtree
+	uint32_t max_mtime ;	// maximum modification time of the whole hierarchy below.
 
     std::vector<DirStub> children;
     std::list<RsNodeGroupId> parent_groups;	// parent groups for the shared directory

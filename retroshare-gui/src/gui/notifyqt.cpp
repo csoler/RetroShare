@@ -269,7 +269,7 @@ bool NotifyQt::askForPassword(const std::string& title, const std::string& key_d
 
 	QInputDialog dialog;
 	if (title == "") {
-		dialog.setWindowTitle(tr("PGP key passphrase"));
+		dialog.setWindowTitle(tr("Passphrase required"));
 	} else if (title == "AuthSSLimpl::SignX509ReqWithGPG()") {
 		dialog.setWindowTitle(tr("You need to sign your node's certificate."));
 	} else if (title == "p3IdService::service_CreateGroup()") {
@@ -278,7 +278,7 @@ bool NotifyQt::askForPassword(const std::string& title, const std::string& key_d
 		dialog.setWindowTitle(QString::fromStdString(title));
 	}
 
-	dialog.setLabelText((prev_is_bad ? QString("%1\n\n").arg(tr("Wrong password !")) : QString()) + QString("%1:\n    %2").arg(tr("Please enter your PGP password for key"), QString::fromUtf8(key_details.c_str())));
+	dialog.setLabelText((prev_is_bad ? QString("%1<br/><br/>").arg(tr("Wrong password !")) : QString()) + QString("<b>%1</b><br/>Profile: <i>%2</i>\n").arg(tr("Please enter your Retroshare passphrase"), QString::fromUtf8(key_details.c_str())));
 	dialog.setTextEchoMode(QLineEdit::Password);
 	dialog.setModal(true);
 
@@ -301,8 +301,13 @@ bool NotifyQt::askForPassword(const std::string& title, const std::string& key_d
 
 	return false;
 }
-bool NotifyQt::askForPluginConfirmation(const std::string& plugin_file_name, const std::string& plugin_file_hash)
+bool NotifyQt::askForPluginConfirmation(const std::string& plugin_file_name, const std::string& plugin_file_hash, bool first_time)
 {
+	// By default, when no information is known about plugins, just dont load them. They will be enabled from the GUI by the user.
+
+	if(first_time)
+		return false ;
+
 	RsAutoUpdatePage::lockAllEvents() ;
 
 	QMessageBox dialog;
@@ -485,6 +490,20 @@ void NotifyQt::notifyChatLobbyTimeShift(int shift)
 	std::cerr << "notifyQt: Received chat lobby time shift message: shift = " << shift << std::endl;
 #endif
 	emit chatLobbyTimeShift(shift) ;
+}
+
+void NotifyQt::notifyConnectionWithoutCert()
+{
+	{
+		QMutexLocker m(&_mutex) ;
+		if(!_enabled)
+			return ;
+	}
+
+#ifdef NOTIFY_DEBUG
+	std::cerr << "notifyQt: Received notifyConnectionWithoutCert" << std::endl;
+#endif
+	emit connectionWithoutCert();
 }
 
 void NotifyQt::handleChatLobbyTimeShift(int /*shift*/)
@@ -770,6 +789,13 @@ void NotifyQt::notifyListPreChange(int list, int /*type*/)
 	 *
 	 * uses Flags, to detect changes
 	 */
+
+void NotifyQt::resetCachedPassphrases()
+{
+	std::cerr << "Clearing PGP passphrase." << std::endl;
+
+	rsNotify->clearPgpPassphrase() ;
+}
 
 void NotifyQt::enable()
 {

@@ -52,7 +52,9 @@ ElidedLabel::ElidedLabel(const QString &text, QWidget *parent)
   , mElided(false)
   , mOnlyPlainText(false)
   , mContent(text)
+  , mTextColor(QColor())
 {
+	setStyleSheet("background-color: rgba(0,0,0,0%)");
 	mRectElision = QRect();
 	setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 }
@@ -62,7 +64,9 @@ ElidedLabel::ElidedLabel(QWidget *parent)
   , mElided(false)
   , mOnlyPlainText(false)
   , mContent("")
+  , mTextColor(QColor())
 {
+	setStyleSheet("background-color: rgba(0,0,0,0%)");
 	mRectElision = QRect();
 	setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 }
@@ -94,7 +98,7 @@ void ElidedLabel::paintEvent(QPaintEvent *event)
 	QFontMetrics fontMetrics = painter.fontMetrics();
 	QRect cr = contentsRect();
 	cr.adjust(margin(), margin(), -margin(), -margin());
-	
+
 	bool didElide = false;
 	QChar ellipsisChar(0x2026);//= "…"
 	int lineSpacing = fontMetrics.lineSpacing();
@@ -175,7 +179,7 @@ void ElidedLabel::paintEvent(QPaintEvent *event)
 	QPoint lastPos(-1,-1);
 	//Now we know how many lines to redraw at good position
 	foreach (pair, lLines){
-		lastPos = pair.second + QPoint(0, iTransY);
+		lastPos = pair.second + QPoint(0+ cr.left(), iTransY + cr.top());
 		pair.first.draw(&painter, lastPos);
 	}
 
@@ -199,10 +203,10 @@ void ElidedLabel::paintEvent(QPaintEvent *event)
 				iTransX = 0;
 		}
 
-		painter.drawText(QPoint(iTransX, y + fontMetrics.ascent()), elidedLastLine);
+		painter.drawText(QPoint(iTransX + cr.left(), y + fontMetrics.ascent() + cr.top()), elidedLastLine);
 		//Draw button to get ToolTip
-		mRectElision = QRect(iTransX + width - fontMetrics.width(ellipsisChar)
-		                     , y
+		mRectElision = QRect(iTransX + width - fontMetrics.width(ellipsisChar) + cr.left()
+		                     , y + cr.top()
 		                     , fontMetrics.width(ellipsisChar)
 		                     , fontMetrics.height() - 1);
 		painter.drawRoundRect(mRectElision);
@@ -224,4 +228,12 @@ void ElidedLabel::mousePressEvent(QMouseEvent *ev)
 		return; // eat event
 	}
 	QLabel::mousePressEvent(ev);
+}
+
+void ElidedLabel::setTextColor(const QColor &color)
+{
+	QPalette tmpPalette = palette();
+	tmpPalette.setColor(foregroundRole(), color);
+	setPalette(tmpPalette);
+	mTextColor = color;
 }

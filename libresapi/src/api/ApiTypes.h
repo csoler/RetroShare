@@ -6,6 +6,8 @@
 #include <stdint.h>
 #include <ostream>
 
+#include "util/rsdeprecate.h"
+
 namespace resource_api
 {
 // things to clean up:
@@ -181,60 +183,50 @@ private:
 class Request
 {
 public:
-    Request(StreamBase& stream): mStream(stream), mMethod(GET){}
+	Request(StreamBase& stream) : mStream(stream), mMethod(GET){}
 
-    bool isGet(){ return mMethod == GET;}
-    bool isPut(){ return mMethod == PUT;}
-    bool isDelete(){ return mMethod == DELETE_AA;}
-    bool isExec(){ return mMethod == EXEC;}
+	RS_DEPRECATED bool isGet(){ return mMethod == GET;}
+	RS_DEPRECATED bool isPut(){ return mMethod == PUT;}
+	RS_DEPRECATED bool isDelete(){ return mMethod == DELETE_AA;}
+	RS_DEPRECATED bool isExec(){ return mMethod == EXEC;}
 
-    // path is the adress to the resource
-    // if the path has multiple parts which get handled by different handlers,
-    // then each handler should pop the top element
-    std::stack<std::string> mPath;
-    std::string mFullPath;
-	bool setPath(std::string reqPath)
+	/**
+	 * Path is the adress to the resource if the path has multiple parts which
+	 * get handled by different handlers, then each handler should pop the top
+	 * element
+	 */
+	std::stack<std::string> mPath;
+	std::string mFullPath;
+	bool setPath(const std::string &reqPath)
 	{
 		std::string str;
-		for(std::string::reverse_iterator sit = reqPath.rbegin(); sit != reqPath.rend(); sit++)
+		std::string::const_reverse_iterator sit;
+		for( sit = reqPath.rbegin(); sit != reqPath.rend(); ++sit )
 		{
-			if((*sit) != '/')
+			// add to front because we are traveling in reverse order
+			if((*sit) != '/') str = *sit + str;
+			else if(!str.empty())
 			{
-				// add to front because we are traveling in reverse order
-				str = *sit + str;
-			}
-			else
-			{
-				if(str != "")
-				{
-					mPath.push(str);
-					str.clear();
-				}
+				mPath.push(str);
+				str.clear();
 			}
 		}
-		if(str != "")
-		{
-			mPath.push(str);
-		}
+		if(!str.empty()) mPath.push(str);
 		mFullPath = reqPath;
 
 		return true;
 	}
 
-    // parameters should be used to influence the result
-    // for example include or exclude some information
-    // question: when to use parameters, and when to use the data field?
-    // it would be easier to have only one thing...
-    // UNUSED: was never implemented
-    //std::vector<std::pair<std::string, std::string> > mParameters;
+	/// Contains data for new resources
+	StreamBase& mStream;
 
-    // contains data for new resources
-    StreamBase& mStream;
-
-    // use the is*() methods to query the method type
-//private:
-    enum Method { GET, PUT, DELETE_AA, EXEC};// something is wrong with DELETE, it won't compile with it
-    Method mMethod;
+	/**
+	 * @deprecated
+	 * Method and derivated stuff usage is deprecated as it make implementation
+	 * more complex and less readable without advantage
+	 */
+	enum Method { GET, PUT, DELETE_AA, EXEC};
+	RS_DEPRECATED Method mMethod;
 };
 
 // new notes on responses
@@ -259,6 +251,9 @@ public:
     ReturnCode mReturnCode;
 
     StateToken mStateToken;
+
+	//Just for GUI benefit
+	std::string mCallbackName;
 
     // the result
     StreamBase& mDataStream;

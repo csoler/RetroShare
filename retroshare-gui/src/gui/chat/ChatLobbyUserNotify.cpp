@@ -21,19 +21,23 @@
 
 #include <QTime>
 #include <QMenu>
+
 #include "ChatLobbyUserNotify.h"
-#include "gui/notifyqt.h"
-#include "gui/MainWindow.h"
+
 #include "gui/ChatLobbyWidget.h"
+#include "gui/MainWindow.h"
+#include "gui/notifyqt.h"
+#include "gui/SoundManager.h"
 #include "gui/settings/rsharesettings.h"
 #include "util/DateTime.h"
-#include <retroshare/rsidentity.h>
 #include <util/HandleRichText.h>
+
+#include <retroshare/rsidentity.h>
 
 ChatLobbyUserNotify::ChatLobbyUserNotify(QObject *parent) :
     UserNotify(parent)
 {
-	_name = tr("Chat Lobbies");
+	_name = tr("Chats");
 	_group = "ChatLobby";
 
 	_bCheckForNickName = Settings->valueFromGroup(_group, "CheckForNickName", true).toBool();
@@ -273,8 +277,9 @@ void ChatLobbyUserNotify::chatLobbyNewMessage(ChatLobbyId lobby_id, QDateTime ti
 
 		_listMsg[lobby_id][strAnchor]=msgData;
 		emit countChanged(lobby_id, _listMsg[lobby_id].size());
-	updateIcon();
-}
+		updateIcon();
+		SoundManager::play(SOUND_NEW_LOBBY_MESSAGE);
+	}
 }
 
 bool ChatLobbyUserNotify::checkWord(QString message, QString word)

@@ -30,7 +30,7 @@
 
 #include "util/rsdir.h"
 #include "util/rsdebug.h"
-const int p3facemsgzone = 11453;
+//const int p3facemsgzone = 11453;
 
 #include <sys/time.h>
 #include <time.h>
@@ -79,22 +79,21 @@ ChatId::ChatId(ChatLobbyId id):
     lobby_id = id;
 }
 
-ChatId::ChatId(std::string str):
-    lobby_id(0)
+ChatId::ChatId(std::string str) : lobby_id(0)
 {
-    type = TYPE_NOT_SET;
-    if(str.empty())
-        return;
+	type = TYPE_NOT_SET;
+	if(str.empty()) return;
+
     if(str[0] == 'P')
     {
         type = TYPE_PRIVATE;
         peer_id = RsPeerId(str.substr(1));
-    }
-    else if(str[0] == 'D')
-    {
-        type = TYPE_PRIVATE_DISTANT;
-        distant_chat_id == DistantChatPeerId(str.substr(1));
-    }
+	}
+	else if(str[0] == 'D')
+	{
+		type = TYPE_PRIVATE_DISTANT;
+		distant_chat_id = DistantChatPeerId(str.substr(1));
+	}
     else if(str[0] == 'L')
     {
         if(sizeof(ChatLobbyId) != 8)
@@ -401,7 +400,7 @@ bool    p3Msgs::resetMessageStandardTagTypes(MsgTagType& tags)
 /****************************************/
 bool p3Msgs::sendChat(ChatId destination, std::string msg)
 {
-    return mChatSrv->sendChat(destination, msg);
+	return mChatSrv->sendChat(destination, msg);
 }
 
 uint32_t p3Msgs::getMaxMessageSecuritySize(int type)
@@ -521,9 +520,12 @@ void p3Msgs::getPendingChatLobbyInvites(std::list<ChatLobbyInvite>& invites)
 {
 	mChatSrv->getPendingChatLobbyInvites(invites) ;
 }
-bool p3Msgs::initiateDistantChatConnexion(const RsGxsId& to_gxs_id,const RsGxsId& from_gxs_id,DistantChatPeerId& pid,uint32_t& error_code)
+bool p3Msgs::initiateDistantChatConnexion(
+        const RsGxsId& to_gxs_id, const RsGxsId& from_gxs_id,
+        DistantChatPeerId& pid, uint32_t& error_code, bool notify )
 {
-    return mChatSrv->initiateDistantChatConnexion(to_gxs_id,from_gxs_id,pid,error_code) ;
+	return mChatSrv->initiateDistantChatConnexion( to_gxs_id, from_gxs_id,
+	                                               pid, error_code, notify );
 }
 bool p3Msgs::getDistantChatStatus(const DistantChatPeerId& pid,DistantChatPeerInfo& info)
 {

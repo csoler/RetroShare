@@ -47,7 +47,14 @@
             <item>
              <widget class="QCheckBox" name="notify_Peers">
               <property name="text">
-               <string>Friend Connect</string>
+               <string>Friend Connected</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="notify_Circles">
+              <property name="text">
+               <string>Circles</string>
               </property>
              </widget>
             </item>
@@ -68,7 +75,7 @@
             <item>
              <widget class="QCheckBox" name="notify_Posted">
               <property name="text">
-               <string>Posted</string>
+               <string>Links</string>
               </property>
              </widget>
             </item>
@@ -82,14 +89,14 @@
             <item>
              <widget class="QCheckBox" name="notify_Messages">
               <property name="text">
-               <string>Messages</string>
+               <string>Mails</string>
               </property>
              </widget>
             </item>
             <item>
              <widget class="QCheckBox" name="notify_Chat">
               <property name="text">
-               <string>Chat</string>
+               <string>Chats</string>
               </property>
              </widget>
             </item>
@@ -242,7 +249,7 @@
               <item>
                <widget class="QCheckBox" name="popup_ChatLobby">
                 <property name="text">
-                 <string>Chat Lobby</string>
+                 <string>Chat Room</string>
                 </property>
                </widget>
               </item>
@@ -414,7 +421,7 @@
           <item>
            <widget class="QCheckBox" name="systray_ChatLobby">
             <property name="text">
-             <string>Chat lobbies</string>
+             <string>Chat rooms</string>
             </property>
            </widget>
           </item>
@@ -438,7 +445,7 @@
      </widget>
      <widget class="QWidget" name="tabChatLobbies">
       <attribute name="title">
-       <string>Chat Lobbies</string>
+       <string>Chat Rooms</string>
       </attribute>
       <layout class="QVBoxLayout" name="tabChatLobbiesVLayout">
        <item>
@@ -451,14 +458,14 @@
        <item>
         <widget class="QCheckBox" name="chatLobbies_CheckNickName">
          <property name="text">
-          <string>Count occurences of my current identity</string>
+          <string>Count occurrences of my current identity</string>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QCheckBox" name="chatLobbies_CountFollowingText">
          <property name="text">
-          <string>Count occurences of any of the following texts (separate by newlines):</string>
+          <string>Count occurrences of any of the following texts (separate by newlines):</string>
          </property>
         </widget>
        </item>
@@ -468,7 +475,7 @@
        <item>
         <widget class="QCheckBox" name="chatLobbies_TextCaseSensitive">
          <property name="toolTip">
-          <string>Checked, if the identity and the text above occurences must be in the same case to trigger count.</string>
+          <string>Checked, if the identity and the text above occurrences must be in the same case to trigger count.</string>
          </property>
          <property name="text">
           <string>Case sensitive</string>

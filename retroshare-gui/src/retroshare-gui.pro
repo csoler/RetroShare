@@ -4,8 +4,8 @@ TEMPLATE = app
 QT     += network xml
 CONFIG += qt gui uic qrc resources idle bitdht
 CONFIG += link_prl
-TARGET = RetroShare06
-DEFINES += TARGET=\\\"$TARGET\\\"
+TARGET = retroshare
+DEFINES += TARGET=\\\"$${TARGET}\\\"
 
 # Plz never commit the .pro with these flags enabled.
 # Use this flag when developping new features only.
@@ -70,7 +70,8 @@ INCLUDEPATH *= retroshare-gui
 ################################# Linux ##########################################
 # Put lib dir in QMAKE_LFLAGS so it appears before -L/usr/lib
 linux-* {
-	CONFIG += link_pkgconfig
+    CONFIG += link_pkgconfig
+
 	#CONFIG += version_detail_bash_script
 	QMAKE_CXXFLAGS *= -D_FILE_OFFSET_BITS=64
 
@@ -78,7 +79,6 @@ linux-* {
 
 	LIBS *= -rdynamic 
 	DEFINES *= HAVE_XSS # for idle time, libx screensaver extensions
-	DEFINES *= HAS_GNOME_KEYRING
 }
 
 unix {
@@ -101,11 +101,11 @@ unix {
 	INSTALLS += icon_files
 
 	desktop_files.path = "$${PREFIX}/share/applications"
-	desktop_files.files = ../../data/retroshare06.desktop
+	desktop_files.files = ../../data/retroshare.desktop
 	INSTALLS += desktop_files
 
 	pixmap_files.path = "$${PREFIX}/share/pixmaps"
-	pixmap_files.files = ../../data/retroshare06.xpm
+	pixmap_files.files = ../../data/retroshare.xpm
 	INSTALLS += pixmap_files
 
 }
@@ -234,6 +234,9 @@ macx {
 	mac_icon.files = $$files($$PWD/rsMacIcon.icns)
 	mac_icon.path = Contents/Resources
 	QMAKE_BUNDLE_DATA += mac_icon
+	mac_webui.files = $$files($$PWD/../../libresapi/src/webui)
+	mac_webui.path = Contents/Resources
+	QMAKE_BUNDLE_DATA += mac_webui
 
 	CONFIG += version_detail_bash_script
         LIBS += -lssl -lcrypto -lz 
@@ -332,6 +335,7 @@ HEADERS +=  rshare.h \
             control/eventtype.h \
             gui/QuickStartWizard.h \
             gui/StartDialog.h \
+            gui/HomePage.h\
             gui/NetworkDialog.h \
             gui/GenCertDialog.h \
             gui/linetypes.h \
@@ -339,6 +343,7 @@ HEADERS +=  rshare.h \
             gui/MainWindow.h \
             gui/RSHumanReadableDelegate.h \
             gui/AboutDialog.h \
+            gui/AboutWidget.h \
             gui/NetworkView.h \
             gui/MessengerWindow.h \
             gui/FriendsDialog.h \
@@ -346,15 +351,15 @@ HEADERS +=  rshare.h \
             gui/RemoteDirModel.h \
             gui/RetroShareLink.h \
             gui/SearchTreeWidget.h \
-            gui/SharedFilesDialog.h \
             gui/ShareManager.h \
-            gui/ShareDialog.h \
+#            gui/ShareDialog.h \
 #            gui/SFListDelegate.h \
             gui/SoundManager.h \
             gui/HelpDialog.h \
             gui/LogoBar.h \
             gui/common/AvatarDialog.h \
             gui/FileTransfer/SearchDialog.h \
+            gui/FileTransfer/SharedFilesDialog.h \
             gui/FileTransfer/xprogressbar.h \
             gui/FileTransfer/DetailsDialog.h \
             gui/FileTransfer/FileTransferInfoWidget.h \
@@ -369,6 +374,7 @@ HEADERS +=  rshare.h \
             gui/statistics/BandwidthStatsWidget.h \
             gui/statistics/DhtWindow.h \
             gui/statistics/GlobalRouterStatistics.h \
+            gui/statistics/GxsTransportStatistics.h \
             gui/statistics/StatisticsWindow.h \
             gui/statistics/BwCtrlWindow.h \
             gui/statistics/RttStatistics.h \
@@ -421,6 +427,7 @@ HEADERS +=  rshare.h \
             gui/chat/ChatLobbyUserNotify.h \
             gui/connect/ConfCertDialog.h \
             gui/connect/PGPKeyDialog.h \
+            gui/connect/FriendRecommendDialog.h \
             gui/msgs/MessageInterface.h \
             gui/msgs/MessageComposer.h \
             gui/msgs/MessageWindow.h \
@@ -436,7 +443,7 @@ HEADERS +=  rshare.h \
             gui/settings/rsettingswin.h \
             gui/settings/GeneralPage.h \
             gui/settings/PeoplePage.h \
-            gui/settings/DirectoriesPage.h \
+            gui/settings/AboutPage.h \
             gui/settings/ServerPage.h \
             gui/settings/NetworkPage.h \
             gui/settings/NotifyPage.h \
@@ -453,7 +460,6 @@ HEADERS +=  rshare.h \
             gui/settings/ChatPage.h \
             gui/settings/ChannelPage.h \
             gui/settings/PostedPage.h \
-            gui/settings/RelayPage.h \
             gui/settings/ServicePermissionsPage.h \
             gui/settings/AddFileAssociationDialog.h \
             gui/settings/GroupFrameSettingsWidget.h \
@@ -489,6 +495,7 @@ HEADERS +=  rshare.h \
             gui/common/RSTreeWidgetItem.h \
             gui/common/RSFeedWidget.h \
             gui/common/RSTabWidget.h \
+            gui/common/RSElidedItemDelegate.h \
             gui/common/RSItemDelegate.h \
             gui/common/PeerDefs.h \
             gui/common/FilesDefs.h \
@@ -543,6 +550,7 @@ HEADERS +=  rshare.h \
             gui/NewsFeed.h \
             gui/feeds/FeedItem.h \
             gui/feeds/FeedHolder.h \
+            gui/feeds/GxsCircleItem.h \
             gui/feeds/PeerItem.h \
             gui/feeds/MsgItem.h \
             gui/feeds/ChatMsgItem.h \
@@ -577,21 +585,23 @@ HEADERS +=  rshare.h \
 #            gui/channels/ChannelUserNotify.h \
 
 FORMS +=    gui/StartDialog.ui \
+            gui/HomePage.ui\
             gui/GenCertDialog.ui \
             gui/AboutDialog.ui \
+            gui/AboutWidget.ui \
             gui/QuickStartWizard.ui \
             gui/NetworkDialog.ui \
             gui/common/AvatarDialog.ui \
             gui/FileTransfer/TransfersDialog.ui \
             gui/FileTransfer/DetailsDialog.ui \
             gui/FileTransfer/SearchDialog.ui \
+            gui/FileTransfer/SharedFilesDialog.ui \
             gui/MainWindow.ui \
             gui/NetworkView.ui \
             gui/MessengerWindow.ui \
             gui/FriendsDialog.ui \
-            gui/SharedFilesDialog.ui \
             gui/ShareManager.ui \
-            gui/ShareDialog.ui \
+#            gui/ShareDialog.ui \
             gui/MessagesDialog.ui \
             gui/help/browser/helpbrowser.ui \
             gui/HelpDialog.ui \
@@ -610,12 +620,12 @@ FORMS +=    gui/StartDialog.ui \
             gui/connect/PGPKeyDialog.ui \
             gui/connect/ConnectFriendWizard.ui \
             gui/connect/ConnectProgressDialog.ui \
+            gui/connect/FriendRecommendDialog.ui \
             gui/msgs/MessageComposer.ui \
             gui/msgs/MessageWindow.ui\
             gui/msgs/MessageWidget.ui\
-            gui/settings/settings.ui \
+            gui/settings/settingsw.ui \
             gui/settings/GeneralPage.ui \
-            gui/settings/DirectoriesPage.ui \
             gui/settings/ServerPage.ui \
             gui/settings/NetworkPage.ui \
             gui/settings/NotifyPage.ui \
@@ -624,6 +634,7 @@ FORMS +=    gui/StartDialog.ui \
             gui/settings/MessagePage.ui \
             gui/settings/NewTag.ui \
             gui/settings/ForumPage.ui \
+            gui/settings/AboutPage.ui \
             gui/settings/PluginsPage.ui \
             gui/settings/AppearancePage.ui \
             gui/settings/TransferPage.ui \
@@ -631,7 +642,6 @@ FORMS +=    gui/StartDialog.ui \
             gui/settings/ChatPage.ui \
             gui/settings/ChannelPage.ui \
             gui/settings/PostedPage.ui \
-            gui/settings/RelayPage.ui \
             gui/settings/ServicePermissionsPage.ui \
             gui/settings/PluginItem.ui \
             gui/settings/GroupFrameSettingsWidget.ui \
@@ -645,6 +655,7 @@ FORMS +=    gui/StartDialog.ui \
             gui/advsearch/AdvancedSearchDialog.ui \
             gui/advsearch/expressionwidget.ui \
             gui/NewsFeed.ui \
+            gui/feeds/GxsCircleItem.ui \
             gui/feeds/PeerItem.ui \
             gui/feeds/MsgItem.ui \
             gui/feeds/ChatMsgItem.ui \
@@ -670,10 +681,11 @@ FORMS +=    gui/StartDialog.ui \
             gui/statistics/TurtleRouterDialog.ui \
             gui/statistics/TurtleRouterStatistics.ui \
             gui/statistics/GlobalRouterStatistics.ui \
+            gui/statistics/GxsTransportStatistics.ui \
             gui/statistics/StatisticsWindow.ui \
             gui/statistics/BwCtrlWindow.ui \
             gui/statistics/RttStatistics.ui \
-            gui/GetStartedDialog.ui \
+            gui/GetStartedDialog.ui
 
 
 #            gui/ForumsDialog.ui \
@@ -695,8 +707,10 @@ SOURCES +=  main.cpp \
             rshare.cpp \
             gui/notifyqt.cpp \
             gui/AboutDialog.cpp \
+            gui/AboutWidget.cpp \
             gui/QuickStartWizard.cpp \
             gui/StartDialog.cpp \
+            gui/HomePage.cpp\
             gui/GenCertDialog.cpp \
             gui/NetworkDialog.cpp \
             gui/mainpagestack.cpp \
@@ -709,9 +723,8 @@ SOURCES +=  main.cpp \
             gui/RsAutoUpdatePage.cpp \
             gui/RetroShareLink.cpp \
             gui/SearchTreeWidget.cpp \
-            gui/SharedFilesDialog.cpp \
             gui/ShareManager.cpp \
-            gui/ShareDialog.cpp \
+#            gui/ShareDialog.cpp \
 #            gui/SFListDelegate.cpp \
             gui/SoundManager.cpp \
             gui/MessagesDialog.cpp \
@@ -721,6 +734,7 @@ SOURCES +=  main.cpp \
             gui/help/browser/helpbrowser.cpp \
             gui/help/browser/helptextbrowser.cpp \
             gui/FileTransfer/SearchDialog.cpp \
+            gui/FileTransfer/SharedFilesDialog.cpp \
             gui/FileTransfer/TransfersDialog.cpp \
             gui/FileTransfer/FileTransferInfoWidget.cpp \
             gui/FileTransfer/DLListDelegate.cpp \
@@ -798,6 +812,7 @@ SOURCES +=  main.cpp \
             gui/common/RSTreeWidgetItem.cpp \
             gui/common/RSFeedWidget.cpp \
             gui/common/RSTabWidget.cpp \
+            gui/common/RSElidedItemDelegate.cpp \
             gui/common/RSItemDelegate.cpp \
             gui/common/PeerDefs.cpp \
             gui/common/FilesDefs.cpp \
@@ -835,7 +850,7 @@ SOURCES +=  main.cpp \
             gui/settings/rsettings.cpp \
             gui/settings/rsettingswin.cpp \
             gui/settings/GeneralPage.cpp \
-            gui/settings/DirectoriesPage.cpp \
+            gui/settings/AboutPage.cpp \
             gui/settings/ServerPage.cpp \
             gui/settings/NetworkPage.cpp \
             gui/settings/NotifyPage.cpp \
@@ -853,7 +868,6 @@ SOURCES +=  main.cpp \
             gui/settings/ChatPage.cpp \
             gui/settings/ChannelPage.cpp \
             gui/settings/PostedPage.cpp \
-            gui/settings/RelayPage.cpp \
             gui/settings/ServicePermissionsPage.cpp \
             gui/settings/AddFileAssociationDialog.cpp \
             gui/settings/GroupFrameSettingsWidget.cpp \
@@ -885,6 +899,7 @@ SOURCES +=  main.cpp \
             gui/NewsFeed.cpp \
             gui/feeds/FeedItem.cpp \
             gui/feeds/FeedHolder.cpp \
+            gui/feeds/GxsCircleItem.cpp \
             gui/feeds/PeerItem.cpp \
             gui/feeds/MsgItem.cpp \
             gui/feeds/ChatMsgItem.cpp \
@@ -895,6 +910,7 @@ SOURCES +=  main.cpp \
             gui/feeds/NewsFeedUserNotify.cpp \
             gui/connect/ConnectFriendWizard.cpp \
             gui/connect/ConnectProgressDialog.cpp \
+            gui/connect/FriendRecommendDialog.cpp \
             gui/groups/CreateGroup.cpp \
             gui/GetStartedDialog.cpp \
             gui/statistics/BandwidthGraphWindow.cpp \
@@ -903,6 +919,7 @@ SOURCES +=  main.cpp \
             gui/statistics/TurtleRouterDialog.cpp \
             gui/statistics/TurtleRouterStatistics.cpp \
             gui/statistics/GlobalRouterStatistics.cpp \
+            gui/statistics/GxsTransportStatistics.cpp \
             gui/statistics/StatisticsWindow.cpp \
             gui/statistics/BwCtrlWindow.cpp \
             gui/statistics/RttStatistics.cpp \
@@ -978,51 +995,6 @@ pluginmgr {
         DEFINES *= PLUGINMGR
 
 }
-
-#blogs {
-#
-#DEPENDPATH += gui/unfinished \
-#
-#HEADERS += gui/unfinished/blogs/BlogsDialog.h \
-#           gui/unfinished/blogs/CreateBlog.h \
-#           gui/unfinished/blogs/CreateBlogMsg.h \
-#           gui/unfinished/blogs/BlogsMsgItem.h \
-#           gui/unfinished/blogs/BlogDetails.h \
-#           gui/feeds/BlogNewItem.h \
-#           gui/feeds/BlogMsgItem.h \
-#
-#FORMS += gui/unfinished/blogs/BlogsDialog.ui \
-#         gui/unfinished/blogs/CreateBlog.ui \
-#         gui/unfinished/blogs/CreateBlogMsg.ui \
-#         gui/unfinished/blogs/BlogsMsgItem.ui \
-#         gui/unfinished/blogs/BlogDetails.ui \
-#         gui/feeds/BlogNewItem.ui \
-#         gui/feeds/BlogMsgItem.ui \
-#
-#SOURCES += gui/unfinished/blogs/BlogsDialog.cpp \
-#           gui/unfinished/blogs/CreateBlog.cpp \
-#           gui/unfinished/blogs/CreateBlogMsg.cpp \
-#           gui/unfinished/blogs/BlogsMsgItem.cpp \
-#           gui/unfinished/blogs/BlogDetails.cpp \
-#           gui/feeds/BlogNewItem.cpp \
-#           gui/feeds/BlogMsgItem.cpp \
-#
-#DEFINES += BLOGS
-#}
-
-# use_links {
-# HEADERS += gui/AddLinksDialog.h \
-#            gui/LinksDialog.h
-# 
-# FORMS += gui/AddLinksDialog.ui \
-#          gui/LinksDialog.ui
-# 
-# SOURCES += gui/AddLinksDialog.cpp \
-#            gui/LinksDialog.cpp
-# 
-# DEFINES += RS_USE_LINKS
-# }
-
 
 idle {
 

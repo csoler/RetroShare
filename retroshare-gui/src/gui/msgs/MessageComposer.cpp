@@ -413,8 +413,8 @@ void MessageComposer::processSettings(bool bLoad)
         ui.contactsdockWidget->setVisible(Settings->value("ContactSidebar", true).toBool());
 
         // state of splitter
-        ui.splitter->restoreState(Settings->value("Splitter").toByteArray());
-        ui.splitter_2->restoreState(Settings->value("Splitter2").toByteArray());
+        ui.messageSplitter->restoreState(Settings->value("Splitter").toByteArray());
+        ui.centralwidgetHSplitter->restoreState(Settings->value("Splitter2").toByteArray());
         
         // state of filter combobox
         int index = Settings->value("ShowType", 0).toInt();
@@ -431,8 +431,8 @@ void MessageComposer::processSettings(bool bLoad)
         Settings->setValue("ContactSidebar", ui.contactsdockWidget->isVisible());
 
         // state of splitter
-        Settings->setValue("Splitter", ui.splitter->saveState());
-        Settings->setValue("Splitter2", ui.splitter_2->saveState());
+        Settings->setValue("Splitter", ui.messageSplitter->saveState());
+        Settings->setValue("Splitter2", ui.centralwidgetHSplitter->saveState());
         
         // state of filter combobox
         Settings->setValue("ShowType", ui.filterComboBox->currentIndex());
@@ -521,8 +521,8 @@ static QString buildRecommendHtml(const std::set<RsPeerId> &sslIds, const RsPeer
         if (*sslIt == excludeId) {
             continue;
         }
-        RetroShareLink link;
-        if (link.createCertificate(*sslIt)) {
+        RetroShareLink link = RetroShareLink::createCertificate(*sslIt);
+        if (link.valid()) {
             text += link.toHtml() + "<br>";
         }
     }
@@ -558,8 +558,7 @@ void MessageComposer::recommendFriend(const std::set <RsPeerId> &sslIds, const R
         composer->addRecipient(TO, to);
     }
     RsPgpId ownPgpId = rsPeers->getGPGOwnId();
-    RetroShareLink link;
-    link.createPerson(ownPgpId);
+    RetroShareLink link = RetroShareLink::createPerson(ownPgpId);
     
     QString sMsgText = msg.isEmpty() ? recommendMessage() : msg;
     sMsgText += "<br><br>";
@@ -595,8 +594,8 @@ void MessageComposer::sendConnectAttemptMsg(const RsPgpId &gpgId, const RsPeerId
         return;
     }
 
-    RetroShareLink link;
-    if (link.createUnknwonSslCertificate(sslId, gpgId) == false) {
+    RetroShareLink link = RetroShareLink::createUnknwonSslCertificate(sslId, gpgId);
+    if (link.valid() == false) {
         return;
     }
 
@@ -887,7 +886,7 @@ void MessageComposer::calculateTitle()
     setWindowTitle(tr("Compose") + ": " + misc::removeNewLine(ui.titleEdit->text()));
 }
 
-static void calculateGroupsOfSslIds(const std::list<RsGroupInfo> &existingGroupInfos, std::list<RsPeerId> &checkSslIds, std::list<RsNodeGroupId> &checkGroupIds)
+/*static void calculateGroupsOfSslIds(const std::list<RsGroupInfo> &existingGroupInfos, std::list<RsPeerId> &checkSslIds, std::list<RsNodeGroupId> &checkGroupIds)
 {
     checkGroupIds.clear();
 
@@ -973,6 +972,7 @@ static void calculateGroupsOfSslIds(const std::list<RsGroupInfo> &existingGroupI
         checkGroupIds.push_back(groupInfoIt->id);
     }
 }
+*/
 
 MessageComposer *MessageComposer::newMsg(const std::string &msgId /* = ""*/)
 {
@@ -1052,44 +1052,52 @@ MessageComposer *MessageComposer::newMsg(const std::string &msgId /* = ""*/)
 
 QString MessageComposer::buildReplyHeader(const MessageInfo &msgInfo)
 {
-    RetroShareLink link;
-    link.createMessage(msgInfo.rspeerid_srcId, "");
+    RetroShareLink link = RetroShareLink::createMessage(msgInfo.rspeerid_srcId, "");
     QString from = link.toHtml();
 
     QString to;
     for ( std::set<RsPeerId>::const_iterator  it = msgInfo.rspeerid_msgto.begin(); it != msgInfo.rspeerid_msgto.end(); ++it)
-        if (link.createMessage(*it, ""))
+    {
+        link = RetroShareLink::createMessage(*it, "");
+        if (link.valid())
         {
             if (!to.isEmpty())
                 to += ", ";
 
             to += link.toHtml();
         }
+    }
     for ( std::set<RsGxsId>::const_iterator  it = msgInfo.rsgxsid_msgto.begin(); it != msgInfo.rsgxsid_msgto.end(); ++it)
-        if (link.createMessage(*it, ""))
+    {
+        link = RetroShareLink::createMessage(*it, "");
+        if (link.valid())
         {
             if (!to.isEmpty())
                 to += ", ";
 
             to += link.toHtml();
         }
-
+    }
 
     QString cc;
-    for (std::set<RsPeerId>::const_iterator it = msgInfo.rspeerid_msgcc.begin(); it != msgInfo.rspeerid_msgcc.end(); ++it)
-        if (link.createMessage(*it, "")) {
+    for (std::set<RsPeerId>::const_iterator it = msgInfo.rspeerid_msgcc.begin(); it != msgInfo.rspeerid_msgcc.end(); ++it) {
+        link = RetroShareLink::createMessage(*it, "");
+        if (link.valid()) {
             if (!cc.isEmpty()) {
                 cc += ", ";
             }
             cc += link.toHtml();
         }
-    for (std::set<RsGxsId>::const_iterator it = msgInfo.rsgxsid_msgcc.begin(); it != msgInfo.rsgxsid_msgcc.end(); ++it)
-        if (link.createMessage(*it, "")) {
+    }
+    for (std::set<RsGxsId>::const_iterator it = msgInfo.rsgxsid_msgcc.begin(); it != msgInfo.rsgxsid_msgcc.end(); ++it) {
+        link = RetroShareLink::createMessage(*it, "");
+        if (link.valid()) {
             if (!cc.isEmpty()) {
                 cc += ", ";
             }
             cc += link.toHtml();
         }
+    }
 
 
     QString header = QString("<span>-----%1-----").arg(tr("Original Message"));
@@ -2199,7 +2207,13 @@ void MessageComposer::smileyWidget()
 
 void MessageComposer::addSmileys()
 {
-    ui.msgText->textCursor().insertText(qobject_cast<QPushButton*>(sender())->toolTip().split("|").first());
+	QString smiley = qobject_cast<QPushButton*>(sender())->toolTip().split("|").first();
+	// add trailing space
+	smiley += QString(" ");
+	// add preceding space when needed (not at start of text or preceding space already exists)
+	if(!ui.msgText->textCursor().atStart() && ui.msgText->toPlainText()[ui.msgText->textCursor().position() - 1] != QChar(' '))
+		smiley = QString(" ") + smiley;
+	ui.msgText->textCursor().insertText(smiley);
 }
 
 void MessageComposer::currentCharFormatChanged(const QTextCharFormat &format)
@@ -2634,10 +2648,11 @@ void MessageComposer::addRecommend()
 	if (sslIds.empty() && gxsIds.empty()) 
 		return;
 
-    for(std::set <RsPeerId>::iterator it = sslIds.begin(); it != sslIds.end(); ++it)
-        addRecipient(CC, *it);
-    for (std::set<RsGxsId>::const_iterator it = gxsIds.begin(); it != gxsIds.end(); ++it)
-        addRecipient(TO, *it);
+	for( std::set <RsPeerId>::iterator it = sslIds.begin(); it != sslIds.end(); ++it)
+		addRecipient(CC, *it) ;
+
+	for( std::set<RsGxsId>::const_iterator it = gxsIds.begin(); it != gxsIds.end(); ++it)
+		addRecipient(TO, *it) ;
 
 	QString text = buildRecommendHtml(sslIds);
 	ui.msgText->textCursor().insertHtml(text);
@@ -2756,3 +2771,43 @@ void MessageComposer::on_closeInfoFrameButton_clicked()
 {
 	ui.distantFrame->setVisible(false);
 }
+
+QString MessageComposer::inviteMessage()
+{
+    return tr("Hi,<br>I want to be friends with you on RetroShare.<br>");
+}
+
+void MessageComposer::sendInvite(const RsGxsId &to, const QString &/*msg*/, bool autoSend)
+{
+    /* create a message */
+    MessageComposer *composer = MessageComposer::newMsg();
+
+    composer->setTitleText(tr("You have a friend invite"));
+    composer->msgFlags |= RS_MSG_USER_REQUEST;
+
+
+    RsPeerId ownId = rsPeers->getOwnId();
+    RetroShareLink link = RetroShareLink::createCertificate(ownId);
+        
+    QString sMsgText = inviteMessage();
+    sMsgText += "<br><br>";
+    sMsgText += tr("Respond now:") + "<br>";
+    sMsgText += link.toHtml() + "<br>";
+    sMsgText += "<br>";
+    sMsgText += tr("Thanks, <br>") + QString::fromUtf8(rsPeers->getGPGName(rsPeers->getGPGOwnId()).c_str());
+    composer->setMsgText(sMsgText);
+    composer->addRecipient(MessageComposer::TO,  RsGxsId(to));
+    
+    
+    if (autoSend) {
+        if (composer->sendMessage_internal(false)) {
+            composer->close();
+            return;
+        }
+    }
+
+    //composer->show();
+
+    /* window will destroy itself! */
+}
+

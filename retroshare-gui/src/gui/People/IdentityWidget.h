@@ -26,7 +26,7 @@ public:
 	          , const RsPeerDetails& pgp_details);
 
 	//Start QWidget Properties
-	QSize sizeHint();
+	QSize sizeHint() const;
 	//Start FlowLayoutItem Properties
 	virtual const QPixmap getImage();
 	virtual const QPixmap getDragImage();
@@ -42,6 +42,7 @@ public:
 	const QString idtype() const { return _idtype; }
 	const QString nickname() const { return _nickname; }
 	const QString gxsId() const { return _gxsId; }
+	const QImage avatar() const { return _avatar; }
 
 signals:
 	void addButtonClicked();

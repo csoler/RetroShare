@@ -43,7 +43,12 @@ extern RsIdentity *rsIdentity;
 
 
 // GroupFlags: Only one so far:
-#define RSGXSID_GROUPFLAG_REALID  0x0001
+
+// The deprecated flag overlaps the privacy flags for mGroupFlags. This is an error that should be fixed. For the sake of keeping some
+// backward compatibility, we need to make the change step by step.
+
+#define RSGXSID_GROUPFLAG_REALID_kept_for_compatibility  0x0001
+#define RSGXSID_GROUPFLAG_REALID                         0x0100
 
 // THESE ARE FLAGS FOR INTERFACE.
 #define RSID_TYPE_MASK		0xff00
@@ -86,11 +91,11 @@ class GxsReputation
 };
 
 
-class RsGxsIdGroup
+struct RsGxsIdGroup
 {
-	public:
-    RsGxsIdGroup(): mLastUsageTS(0), mPgpKnown(false),mIsAContact(false) { return; }
-	~RsGxsIdGroup() { return; }
+	RsGxsIdGroup() :
+	    mLastUsageTS(0), mPgpKnown(false), mIsAContact(false) {}
+	~RsGxsIdGroup() {}
 
 
 	RsGroupMetaData mMeta;
@@ -162,40 +167,6 @@ class RsRecognTagDetails
 	bool is_pending;
 };
 
-class RsIdentityDetails
-{
-public:
-    RsIdentityDetails()
-            : mFlags(0), mLastUsageTS(0) { return; }
-
-    RsGxsId mId;
-
-    // identity details.
-    std::string mNickname;
-    
-    uint32_t mFlags ;
-
-    // PGP Stuff.
-    RsPgpId mPgpId;
-
-    // Recogn details.
-    std::list<RsRecognTag> mRecognTags;
-
-    // Cyril: Reputation details. At some point we might want to merge information
-    // between the two into a single global score. Since the old reputation system
-    // is not finished yet, I leave this in place. We should decide what to do with it.
-    
-    GxsReputation mReputation_oldSystem;		// this is the old "mReputation" field, which apparently is not used.
-    RsReputations::ReputationInfo mReputation;
-
-    // avatar
-    RsGxsImage mAvatar ;
-
-    // last usage
-    time_t mLastUsageTS ;
-};
-
-
 class RsIdOpinion
 {
 	public:
@@ -212,6 +183,82 @@ class RsIdentityParameters
     std::string nickname;
     RsGxsImage mImage ;
 };
+
+class RsIdentityUsage
+{
+public:
+    enum UsageCode { UNKNOWN_USAGE                      = 0x00,
+                   GROUP_ADMIN_SIGNATURE_CREATION       = 0x01,	// These 2 are normally not normal GXS identities, but nothing prevents it to happen either.
+                   GROUP_ADMIN_SIGNATURE_VALIDATION     = 0x02,
+                   GROUP_AUTHOR_SIGNATURE_CREATION      = 0x03, // not typically used, since most services do not require group author signatures
+                   GROUP_AUTHOR_SIGNATURE_VALIDATION    = 0x04,
+                   MESSAGE_AUTHOR_SIGNATURE_CREATION    = 0x05, // most common use case. Messages are signed by authors in e.g. forums.
+                   MESSAGE_AUTHOR_SIGNATURE_VALIDATION  = 0x06,
+                   GROUP_AUTHOR_KEEP_ALIVE              = 0x07, // Identities are stamped regularly by crawlign the set of messages for all groups. That helps keepign the useful identities in hand.
+                   MESSAGE_AUTHOR_KEEP_ALIVE            = 0x08, // Identities are stamped regularly by crawlign the set of messages for all groups. That helps keepign the useful identities in hand.
+                   CHAT_LOBBY_MSG_VALIDATION            = 0x09, // Chat lobby msgs are signed, so each time one comes, or a chat lobby event comes, a signature verificaiton happens.
+                   GLOBAL_ROUTER_SIGNATURE_CHECK        = 0x0a, // Global router message validation
+                   GLOBAL_ROUTER_SIGNATURE_CREATION     = 0x0b, // Global router message signature
+                   GXS_TUNNEL_DH_SIGNATURE_CHECK        = 0x0c, //
+                   GXS_TUNNEL_DH_SIGNATURE_CREATION     = 0x0d, //
+                   IDENTITY_DATA_UPDATE                 = 0x0e, // Group update on that identity data. Can be avatar, name, etc.
+                   IDENTITY_GENERIC_SIGNATURE_CHECK     = 0x0f, // Any signature verified for that identity
+                   IDENTITY_GENERIC_SIGNATURE_CREATION  = 0x10, // Any signature made by that identity
+		           IDENTITY_GENERIC_ENCRYPTION          = 0x11,
+		           IDENTITY_GENERIC_DECRYPTION          = 0x12,
+		           CIRCLE_MEMBERSHIP_CHECK              = 0x13
+                 } ;
+
+    explicit RsIdentityUsage(uint16_t service,const RsIdentityUsage::UsageCode& code,const RsGxsGroupId& gid=RsGxsGroupId(),const RsGxsMessageId& mid=RsGxsMessageId(),uint64_t additional_id=0,const std::string& comment = std::string());
+
+    uint16_t 		mServiceId;		// Id of the service using that identity, as understood by rsServiceControl
+    UsageCode		mUsageCode; 	// Specific code to use. Will allow forming the correct translated message in the GUI if necessary.
+    RsGxsGroupId 	mGrpId;	  		// Group ID using the identity
+
+	RsGxsMessageId  mMsgId;		   	// Message ID using the identity
+	uint64_t        mAdditionalId; 	// Some additional ID. Can be used for e.g. chat lobbies.
+    std::string 	mComment ;		// additional comment to be used mainly for debugging, but not GUI display
+
+    bool operator<(const RsIdentityUsage& u) const
+    {
+        return mHash < u.mHash ;
+    }
+    RsFileHash mHash ;
+};
+
+class RsIdentityDetails
+{
+public:
+    RsIdentityDetails()
+            : mFlags(0), mLastUsageTS(0) { return; }
+
+    RsGxsId mId;
+
+    // identity details.
+    std::string mNickname;
+
+    uint32_t mFlags ;
+
+    // PGP Stuff.
+    RsPgpId mPgpId;
+
+    // Recogn details.
+    std::list<RsRecognTag> mRecognTags;
+
+    // Cyril: Reputation details. At some point we might want to merge information
+    // between the two into a single global score. Since the old reputation system
+    // is not finished yet, I leave this in place. We should decide what to do with it.
+    RsReputations::ReputationInfo mReputation;
+
+    // avatar
+    RsGxsImage mAvatar ;
+
+    // last usage
+    time_t mLastUsageTS ;
+    std::map<RsIdentityUsage,time_t> mUseCases ;
+};
+
+
 
 
 class RsIdentity: public RsGxsIfaceHelper
@@ -247,6 +294,9 @@ public:
     virtual bool updateIdentity(uint32_t& token, RsGxsIdGroup &group) = 0;
     virtual bool deleteIdentity(uint32_t& token, RsGxsIdGroup &group) = 0;
 
+    virtual void setDeleteBannedNodesThreshold(uint32_t days) =0;
+    virtual uint32_t deleteBannedNodesThreshold() =0;
+
     virtual bool parseRecognTag(const RsGxsId &id, const std::string &nickname,
                                 const std::string &tag, RsRecognTagDetails &details) = 0;
     virtual bool getRecognTagRequest(const RsGxsId &id, const std::string &comment,
@@ -254,7 +304,18 @@ public:
 
     virtual bool setAsRegularContact(const RsGxsId& id,bool is_a_contact) = 0 ;
     virtual bool isARegularContact(const RsGxsId& id) = 0 ;
-    virtual bool isBanned(const RsGxsId& id) =0;
+
+	virtual bool serialiseIdentityToMemory( const RsGxsId& id,
+	                                        std::string& radix_string ) = 0;
+	virtual bool deserialiseIdentityFromMemory( const std::string& radix_string,
+	                                            RsGxsId* id = nullptr ) = 0;
+
+    /*!
+     * \brief overallReputationLevel
+     * 			Returns the overall reputation level of the supplied identity. See rsreputations.h
+     * \param id
+     * \return
+     */
     virtual time_t getLastUsageTS(const RsGxsId &id) =0;
 
     // Specific RsIdentity Functions....
@@ -263,6 +324,7 @@ public:
          */
 
     virtual bool    getGroupData(const uint32_t &token, std::vector<RsGxsIdGroup> &groups) = 0;
+	virtual bool 	getGroupSerializedData(const uint32_t &token, std::map<RsGxsId,std::string>& serialized_groups)=0;
     //virtual bool 	getMsgData(const uint32_t &token, std::vector<RsGxsIdOpinion> &opinions) = 0;
 
 };

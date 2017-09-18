@@ -53,7 +53,8 @@ public:
     {
         COLUMN_NAME         = 0,
         COLUMN_LAST_CONTACT = 1,
-        COLUMN_IP           = 2
+        COLUMN_IP           = 2,
+        COLUMN_ID           = 3
     };
 
 public:
@@ -65,8 +66,8 @@ public:
     void processSettings(bool load);
     void addGroupToExpand(const RsNodeGroupId &groupId);
     bool getExpandedGroups(std::set<RsNodeGroupId> &groups) const;
-    void addPeerToExpand(const std::string &gpgId);
-    bool getExpandedPeers(std::set<std::string> &peers) const;
+    void addPeerToExpand(const RsPgpId &gpgId);
+    bool getExpandedPeers(std::set<RsPgpId> &peers) const;
 
     std::string getSelectedGroupId() const;
 
@@ -101,6 +102,8 @@ public slots:
 private slots:
     void peerTreeColumnVisibleChanged(int column, bool visible);
     void peerTreeItemCollapsedExpanded(QTreeWidgetItem *item);
+	void collapseItem(QTreeWidgetItem *item);
+	void expandItem(QTreeWidgetItem *item);
 
 protected:
     void changeEvent(QEvent *e);
@@ -120,8 +123,7 @@ private:
 
     bool groupsHasChanged;
     std::set<RsNodeGroupId> openGroups;
-#warning this would needs an ID, not a std::string.
-    std::set<std::string>   openPeers;
+    std::set<RsPgpId>   openPeers;
 
     /* Color definitions (for standard see qss.default) */
     QColor mTextColorGroup;

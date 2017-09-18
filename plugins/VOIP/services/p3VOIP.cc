@@ -25,7 +25,7 @@
 #include "pqi/pqistore.h"
 #include "pqi/p3linkmgr.h"
 #include <serialiser/rsserial.h>
-#include <serialiser/rsconfigitems.h>
+#include <rsitems/rsconfigitems.h>
 
 #include <sstream> // for std::istringstream
 
@@ -770,7 +770,8 @@ bool p3VOIP::loadList(std::list<RsItem*>& load)
 		RsConfigKeyValueSet *vitem = dynamic_cast<RsConfigKeyValueSet*>(*it) ;
 
 		if(vitem != NULL)
-			for(std::list<RsTlvKeyValue>::const_iterator kit = vitem->tlvkvs.pairs.begin(); kit != vitem->tlvkvs.pairs.end(); ++kit) 
+		{
+			for(std::list<RsTlvKeyValue>::const_iterator kit = vitem->tlvkvs.pairs.begin(); kit != vitem->tlvkvs.pairs.end(); ++kit)
 				if(kit->key == "P3VOIP_CONFIG_ATRANSMIT")
 					_atransmit = pop_int_value(kit->value) ;
 				else if(kit->key == "P3VOIP_CONFIG_VOICEHOLD")
@@ -785,7 +786,7 @@ bool p3VOIP::loadList(std::list<RsItem*>& load)
 					_min_loudness = pop_int_value(kit->value) ;
 				else if(kit->key == "P3VOIP_CONFIG_ECHO_CNCL")
 					_echo_cancel = pop_int_value(kit->value) ;
-
+		}
 		delete vitem ;
 	}
     

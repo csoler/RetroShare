@@ -34,6 +34,8 @@
 #include <map>
 
 #include "services/p3service.h"
+#include "retroshare/rsreputations.h"
+#include "retroshare/rsidentity.h"
 #include "rsgds.h"
 
 /*!
@@ -65,9 +67,19 @@ public:
 
     /*!
      * Use this to set how far back synchronisation of messages should take place
-     * @param age the max age a sync item can to be allowed in a synchronisation
+     * @param age in seconds the max age a sync/store item can to be allowed in a synchronisation
      */
-    virtual void setSyncAge(uint32_t age) = 0;
+    virtual void setSyncAge(const RsGxsGroupId& id,uint32_t age_in_secs) =0;
+    virtual void setKeepAge(const RsGxsGroupId& id,uint32_t age_in_secs) =0;
+
+    virtual uint32_t getSyncAge(const RsGxsGroupId& id) =0;
+    virtual uint32_t getKeepAge(const RsGxsGroupId& id) =0;
+
+	virtual void setDefaultKeepAge(uint32_t t) =0;
+	virtual void setDefaultSyncAge(uint32_t t) =0;
+
+    virtual uint32_t getDefaultSyncAge() =0;
+    virtual uint32_t getDefaultKeepAge() =0;
 
     /*!
      * Initiates a search through the network
@@ -153,6 +165,63 @@ public:
      * \return
      */
     virtual bool stampMsgServerUpdateTS(const RsGxsGroupId& gid) =0;
+
+    /*!
+     * \brief removeGroups
+     * 			Removes time stamp information from the list of groups. This allows to re-sync them if suppliers are present.
+     * \param groups		list of groups to remove from the update maps
+     * \return 				true if nothing bad happens.
+     */
+    virtual bool removeGroups(const std::list<RsGxsGroupId>& groups)=0;
+
+    /*!
+     * \brief minReputationForForwardingMessages
+     * 				Encodes the policy for sending/requesting messages depending on anti-spam settings.
+     *
+     * \param group_sign_flags	Sign flags from the group meta data
+     * \param identity_flags	Flags of the identity
+     * \return
+     */
+    static RsReputations::ReputationLevel minReputationForRequestingMessages(uint32_t /* group_sign_flags */, uint32_t /* identity_flags */)
+	{
+		// We always request messages, except if the author identity is locally banned.
+
+		return RsReputations::REPUTATION_REMOTELY_NEGATIVE;
+	}
+    static RsReputations::ReputationLevel minReputationForForwardingMessages(uint32_t group_sign_flags, uint32_t identity_flags)
+	{
+		// If anti-spam is enabled, do not send messages from authors with bad reputation. The policy is to only forward messages if the reputation of the author is at least
+		// equal to the minimal reputation in the table below (R=remotely, L=locally, P=positive, N=negative, O=neutral) :
+		//
+		//
+		//                            +----------------------------------------------------+
+		//                            |                Identity flags                      |
+		//                            +----------------------------------------------------+
+		//                            | Anonymous          Signed          Signed+Known    |
+		//  +-------------+-----------+----------------------------------------------------+
+		//  |             |NONE       |     O                 O                  O         |
+		//  | Forum flags |GPG_AUTHED |    RP                 O                  O         |
+		//  |             |GPG_KNOWN  |    RP                RP                  O         |
+		//  +-------------+-----------+----------------------------------------------------+
+		//
+
+		if(identity_flags & RS_IDENTITY_FLAGS_PGP_KNOWN)
+			return RsReputations::REPUTATION_NEUTRAL;
+		else if(identity_flags & RS_IDENTITY_FLAGS_PGP_LINKED)
+		{
+			if(group_sign_flags & GXS_SERV::FLAG_AUTHOR_AUTHENTICATION_GPG_KNOWN)
+				return RsReputations::REPUTATION_REMOTELY_POSITIVE;
+			else
+				return RsReputations::REPUTATION_NEUTRAL;
+		}
+		else
+		{
+			if( (group_sign_flags & GXS_SERV::FLAG_AUTHOR_AUTHENTICATION_GPG_KNOWN) || (group_sign_flags & GXS_SERV::FLAG_AUTHOR_AUTHENTICATION_GPG))
+				return RsReputations::REPUTATION_REMOTELY_POSITIVE;
+			else
+				return RsReputations::REPUTATION_NEUTRAL;
+		}
+	}
 };
 
 #endif // RSGNP_H

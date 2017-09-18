@@ -152,6 +152,9 @@ class misc : public QObject
     // time duration like "1d 2h 10m".
     static QString userFriendlyDuration(qlonglong seconds);
 
+    // Computes the time shift between now and the given time, and prints it in a friendly way, accounting for possible negative shifts (time from the future!)
+	static QString timeRelativeToNow(uint32_t mtime);
+
     static QString userFriendlyUnit(double count, unsigned int decimal, double factor = 1000);
 
     static QString removeNewLine(const QString &text);
@@ -181,5 +184,20 @@ class SleeperThread : public QThread{
       QThread::msleep(msecs);
     }
 };
+
+template<class T> class SignalsBlocker
+{
+public:
+	SignalsBlocker(T *blocked) : blocked(blocked), previous(blocked->blockSignals(true)) {}
+	~SignalsBlocker() { blocked->blockSignals(previous); }
+
+	T *operator->() { return blocked; }
+
+private:
+	T *blocked;
+	bool previous;
+};
+
+template<class T> inline SignalsBlocker<T> whileBlocking(T *blocked) { return SignalsBlocker<T>(blocked); }
 
 #endif

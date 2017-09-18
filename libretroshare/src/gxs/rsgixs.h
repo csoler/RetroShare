@@ -103,7 +103,7 @@ typedef PGPIdType RsPgpId;
 class RsGixs
 {
 public:
-
+	// TODO: cleanup this should be an enum!
     static const uint32_t RS_GIXS_ERROR_NO_ERROR           = 0x0000 ;
     static const uint32_t RS_GIXS_ERROR_UNKNOWN            = 0x0001 ;
     static const uint32_t RS_GIXS_ERROR_KEY_NOT_AVAILABLE  = 0x0002 ;
@@ -117,15 +117,24 @@ public:
      */
 
     virtual bool signData(const uint8_t *data,uint32_t data_size,const RsGxsId& signer_id,RsTlvKeySignature& signature,uint32_t& signing_error) = 0 ;
-    virtual bool validateData(const uint8_t *data,uint32_t data_size,const RsTlvKeySignature& signature,bool force_load,uint32_t& signing_error) = 0 ;
+    virtual bool validateData(const uint8_t *data,uint32_t data_size,const RsTlvKeySignature& signature,bool force_load,const RsIdentityUsage& info,uint32_t& signing_error) = 0 ;
 
-    virtual bool encryptData(const uint8_t *clear_data,uint32_t clear_data_size,uint8_t *& encrypted_data,uint32_t& encrypted_data_size,const RsGxsId& encryption_key_id,bool force_load,uint32_t& encryption_error) = 0 ;
-    virtual bool decryptData(const uint8_t *encrypted_data,uint32_t encrypted_data_size,uint8_t *& clear_data,uint32_t& clear_data_size,const RsGxsId& encryption_key_id,uint32_t& encryption_error) = 0 ;
+	virtual bool encryptData( const uint8_t *clear_data,
+	                          uint32_t clear_data_size,
+	                          uint8_t *& encrypted_data,
+	                          uint32_t& encrypted_data_size,
+	                          const RsGxsId& encryption_key_id,
+	                          uint32_t& encryption_error, bool force_load) = 0 ;
+	virtual bool decryptData( const uint8_t *encrypted_data,
+	                          uint32_t encrypted_data_size,
+	                          uint8_t *& clear_data, uint32_t& clear_data_size,
+	                          const RsGxsId& encryption_key_id,
+	                          uint32_t& encryption_error, bool force_load) = 0 ;
 
     virtual bool getOwnIds(std::list<RsGxsId>& ids) = 0;
     virtual bool isOwnId(const RsGxsId& key_id) = 0 ;
 
-    virtual void timeStampKey(const RsGxsId& key_id) = 0 ;
+    virtual void timeStampKey(const RsGxsId& key_id,const RsIdentityUsage& reason) = 0 ;
 
     // Key related interface - used for validating msgs and groups.
     /*!
@@ -149,7 +158,7 @@ public:
      * @param keyref the KeyRef of the key being requested
      * @return will
      */
-    virtual bool requestKey(const RsGxsId &id, const std::list<RsPeerId> &peers) = 0;
+    virtual bool requestKey(const RsGxsId &id, const std::list<RsPeerId> &peers,const RsIdentityUsage& info) = 0;
     virtual bool requestPrivateKey(const RsGxsId &id) = 0;
 
 
@@ -166,28 +175,24 @@ public:
 
 class GixsReputation
 {
-	public:
-	GixsReputation() : score(0) {}
-		RsGxsId id;
-		int score;
+public:
+	GixsReputation() {}
+
+	RsGxsId id;
+	uint32_t reputation_level ;
 };
 
-
-class RsGixsReputation 
+class RsGixsReputation
 {
 public:
 	// get Reputation.
-    virtual bool haveReputation(const RsGxsId &id) = 0;
-    virtual bool loadReputation(const RsGxsId &id, const std::list<RsPeerId>& peers) = 0;
-    virtual bool getReputation(const RsGxsId &id, GixsReputation &rep) = 0;
+    virtual RsReputations::ReputationLevel overallReputationLevel(const RsGxsId& id,uint32_t *identity_flags=NULL) = 0;
 };
-
 
 /*** This Class pulls all the GXS Interfaces together ****/
 
 class RsGxsIdExchange: 
 	public RsGenExchange, 
-	public RsGixsReputation, 
 	public RsGixs
 {
 public:

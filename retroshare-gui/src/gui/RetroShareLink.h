@@ -68,7 +68,8 @@ class RetroShareLink
 		    TYPE_EXTRAFILE     = 0x08,
 		    TYPE_PRIVATE_CHAT  = 0x09,
             TYPE_PUBLIC_MSG    = 0x0a,
-            TYPE_POSTED        = 0x0b
+            TYPE_POSTED        = 0x0b,
+            TYPE_IDENTITY      = 0x0c
 		};
 
 	public:
@@ -76,17 +77,18 @@ class RetroShareLink
 		RetroShareLink(const QUrl& url);
 		RetroShareLink(const QString& url);
 
-		bool createFile(const QString& name, uint64_t size, const QString& hash);
-		bool createExtraFile(const QString& name, uint64_t size, const QString& hash, const QString& ssl_id);
-		bool createPerson(const RsPgpId &id);
-		bool createGxsGroupLink(const RetroShareLink::enumType &linkType, const RsGxsGroupId &groupId, const QString &groupName);
-		bool createGxsMessageLink(const RetroShareLink::enumType &linkType, const RsGxsGroupId &groupId, const RsGxsMessageId &msgId, const QString &msgName);
-		bool createSearch(const QString& keywords);
-		bool createMessage(const RsPeerId &peerId, const QString& subject);
-		bool createMessage(const RsGxsId &peerId, const QString& subject);
-		bool createCertificate(const RsPeerId &ssl_id) ;
-		bool createPublicMsgInvite(time_t time_stamp,const QString& pgp_id,const QString& hash) ;
-		bool createUnknwonSslCertificate(const RsPeerId &sslId, const RsPgpId &gpgId = RsPgpId()) ;
+		static RetroShareLink createIdentity(const RsGxsId& gxs_id,const QString& name,const QString& radix_data) ;
+		static RetroShareLink createExtraFile(const QString& name, uint64_t size, const QString& hash, const QString& ssl_id);
+		static RetroShareLink createFile(const QString& name, uint64_t size, const QString& hash);
+		static RetroShareLink createPublicMsgInvite(time_t time_stamp,const QString& pgp_id,const QString& hash) ;
+		static RetroShareLink createPerson(const RsPgpId &id);
+		static RetroShareLink createCertificate(const RsPeerId &ssl_id) ;
+		static RetroShareLink createUnknwonSslCertificate(const RsPeerId &sslId, const RsPgpId &gpgId = RsPgpId()) ;
+		static RetroShareLink createGxsGroupLink(const RetroShareLink::enumType &linkType, const RsGxsGroupId &groupId, const QString &groupName);
+		static RetroShareLink createGxsMessageLink(const RetroShareLink::enumType &linkType, const RsGxsGroupId &groupId, const RsGxsMessageId &msgId, const QString &msgName);
+		static RetroShareLink createSearch(const QString& keywords);
+		static RetroShareLink createMessage(const RsPeerId &peerId, const QString& subject);
+		static RetroShareLink createMessage(const RsGxsId &peerId, const QString& subject);
 
 		enumType type() const {return _type; }
 		uint64_t size() const { return _size ; }
@@ -100,12 +102,13 @@ class RetroShareLink
 		const QString& SSLId() const { return _SSLid ; }
 		const QString& GPGId() const { return _GPGid ; }
 		const QString& localIPAndPort() const { return _loc_ip_port ; }
-               const QString& externalIPAndPort() const { return _ext_ip_port ; }
-               const QString& dyndns() const { return _dyndns_name ; }
-               const QString& location() const { return _location ; }
-        const QString& radix() const { return _radix ; }
-        time_t timeStamp() const { return _time_stamp ; }
-               QString title() const;
+		const QString& externalIPAndPort() const { return _ext_ip_port ; }
+		const QString& dyndns() const { return _dyndns_name ; }
+		const QString& location() const { return _location ; }
+		const QString& radix() const { return _radix ; }
+		time_t timeStamp() const { return _time_stamp ; }
+		QString title() const;
+        QString radixGroupData() const { return _radix_group_data ;}
 
 		unsigned int subType() const { return _subType; }
 		void setSubType(unsigned int subType) { _subType = subType; }
@@ -157,12 +160,13 @@ class RetroShareLink
 		QString  _GPGBase64String ; // GPG Cert
 		QString  _GPGBase64CheckSum ; // GPG Cert
 		QString  _location ;	// location 
-               QString  _ext_ip_port ;
-               QString  _loc_ip_port ;
-               QString  _dyndns_name ;
+		QString  _ext_ip_port ;
+		QString  _loc_ip_port ;
+		QString  _dyndns_name ;
         QString  _radix ;
-        QString  _encrypted_chat_info ; // encrypted data string for the recipient of a chat invite
-               time_t   _time_stamp ; 				// time stamp at which the link will expire.
+		QString  _encrypted_chat_info ; // encrypted data string for the recipient of a chat invite
+		time_t   _time_stamp ; 				// time stamp at which the link will expire.
+        QString  _radix_group_data;
 
 		unsigned int _subType; // for general use as sub type for _type (RSLINK_SUBTYPE_...)
 };
@@ -207,6 +211,8 @@ class RSLinkClipboard
 		// Useful for menus.
 		//
 		static int process(RetroShareLink::enumType type = RetroShareLink::TYPE_UNKNOWN, uint flag = RSLINK_PROCESS_NOTIFY_ALL);
+
+		static void parseText(QString text, QList<RetroShareLink> &links) ;
 
 	private:
 		static void parseClipboard(QList<RetroShareLink> &links) ;

@@ -361,7 +361,11 @@ void pqissl::getCryptoParams(RsPeerCryptoParams& params)
 
 bool pqissl::actAsServer()
 {
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
 	return (bool)ssl_connection->server;
+#else
+	return (bool)SSL_is_server(ssl_connection);
+#endif
 }
 
 /* returns ...
@@ -448,7 +452,7 @@ int 	pqissl::ConnectAttempt()
   	  		rslog(RSL_DEBUG_BASIC, pqisslzone, 
 			  "pqissl::ConnectAttempt() STATE = Not Waiting, starting connection");
 #endif
-
+			/* fallthrough */
 		case WAITING_DELAY:
 
 #ifdef PQISSL_LOG_DEBUG 
@@ -1005,7 +1009,7 @@ int 	pqissl::Basic_Connection_Complete()
 
 			return -1;
 		}
-		else if ((err == ECONNREFUSED))
+		else if (err == ECONNREFUSED)
 		{
 			rslog(RSL_WARNING, pqisslzone, "pqissl::Basic_Connection_Complete() ECONNREFUSED: cert: " + PeerId().toStdString());
 
@@ -1226,8 +1230,13 @@ int 	pqissl::Extract_Failed_SSL_Certificate()
 	RsPeerId sslid ;
 	getX509id(peercert, sslid) ;
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
 	RsPgpId gpgid(getX509CNString(peercert->cert_info->issuer));
 	std::string sslcn = getX509CNString(peercert->cert_info->subject);
+#else
+	RsPgpId gpgid(getX509CNString(X509_get_issuer_name(peercert)));
+	std::string sslcn = getX509CNString(X509_get_subject_name(peercert));
+#endif
 
 	AuthSSL::getAuthSSL()->FailedCertificate(peercert, gpgid,sslid,sslcn,remote_addr, false);
 	mLinkMgr->notifyDeniedConnection(gpgid, sslid, sslcn, remote_addr, false);
@@ -1624,10 +1633,10 @@ int 	pqissl::readdata(void *data, int len)
 #ifdef PQISSL_DEBUG
 	std::cout << "Reading data thread=" << pthread_self() << ", ssl=" << (void*)this << std::endl ;
 #endif
-    // safety check.  Apparently this avoids some SIGSEGV.
-    //
-    if(ssl_connection == NULL)
-        return -1;
+	// Safety check.  Apparently this avoids some SIGSEGV.
+	//
+	if (ssl_connection == NULL)
+		return -1 ;
 
 	// There is a do, because packets can be splitted into multiple ssl buffers
 	// when they are larger than 16384 bytes. Such packets have to be read in 

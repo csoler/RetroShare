@@ -51,28 +51,22 @@ class GxsChannelDialog ;
 class GxsForumsDialog ;
 class PostedDialog;
 class FriendsDialog;
+class IdDialog;
 class ChatLobbyWidget;
+class SettingsPage ;
 class ChatDialog;
 class NetworkDialog;
 class SearchDialog;
 class TransfersDialog;
 class MessagesDialog;
-class SharedFilesDialog;
 class MessengerWindow;
 class PluginsPage;
+class HomePage;
 //class ChannelFeed;
 class BandwidthGraph;
 class MainPage;
 class NewsFeed;
 class UserNotify;
-
-#ifdef RS_USE_LINKS
-class LinksDialog;
-#endif
-
-#ifdef BLOGS
-class BlogsDialog;
-#endif
 
 #ifdef UNFINISHED
 class ApplicationWindow;
@@ -95,13 +89,27 @@ public:
         Channels           = 6,  /** Channels page. */
         Forums             = 7,  /** Forums page. */
         Search             = 8,  /** Search page. */
-#ifdef BLOGS
-        Blogs              = 9,  /** Blogs page. */
-#endif
-#ifdef RS_USE_LINKS
-        Links              = 10,  /** Links page. */
-#endif
         Posted             = 11,  /** Posted links */
+        People             = 12,   /** People page. */
+        Options            = 13   /** People page. */
+    };
+
+
+    enum StatusElement {
+        StatusGrpStatus    = 0x01,
+        StatusCompactMode  = 0x02,
+        StatusShowToolTip  = 0x03,
+        StatusShowStatus   = 0x04,
+        StatusShowPeer     = 0x05,
+        StatusShowNAT      = 0x06,
+        StatusShowDHT      = 0x07,
+        StatusShowHashing  = 0x08,
+        StatusShowDisc     = 0x09,
+        StatusShowRate     = 0x0a,
+        StatusShowOpMode   = 0x0b,
+        StatusShowSound    = 0x0c,
+        StatusShowToaster  = 0x0d,
+        StatusShowSystray  = 0x0e,
     };
 
     /** Create main window */
@@ -132,12 +140,14 @@ public:
 //    NetworkDialog     *networkDialog;
 //    SearchDialog      *searchDialog;
 
+	 HomePage          *homePage;
 	 NewsFeed          *newsFeed;
 	 FriendsDialog     *friendsDialog;
 	 TransfersDialog   *transfersDialog;
+ 	 IdDialog          *idDialog;
 	 ChatLobbyWidget   *chatLobbyDialog;
 	 MessagesDialog    *messagesDialog;
-	 SharedFilesDialog *sharedfilesDialog;
+	 SettingsPage      *settingsDialog;
 	 GxsChannelDialog  *gxschannelDialog ;
 	 GxsForumsDialog   *gxsforumDialog ;
 	 PostedDialog      *postedDialog;
@@ -145,14 +155,6 @@ public:
 //    ForumsDialog      *forumsDialog;
 //    ChannelFeed       *channelFeed;
     Idle              *idle;
-
-#ifdef RS_USE_LINKS
-    LinksDialog       *linksDialog;
-#endif
-
-#ifdef BLOGS
-    BlogsDialog       *blogsFeed;
-#endif
 
 #ifdef UNFINISHED
     ApplicationWindow   *applicationWindow;
@@ -163,11 +165,21 @@ public:
     static void installNotifyIcons();
     static void displayLobbySystrayMsg(const QString&,const QString&);
 
+    static void switchVisibilityStatus(MainWindow::StatusElement e,bool b);
+
     /* initialize widget with status informations, status constant stored in data or in Qt::UserRole */
     void initializeStatusObject(QObject *pObject, bool bConnect);
     void removeStatusObject(QObject *pObject);
     void setStatus(QObject *pObject, int nStatus);
 
+    QComboBox *statusComboBoxInstance();
+    PeerStatus *peerstatusInstance();
+    NATStatus *natstatusInstance();
+    DHTStatus *dhtstatusInstance();
+    HashingStatus *hashingstatusInstance();
+    DiscStatus *discstatusInstance();
+    RatesStatus *ratesstatusInstance();
+    OpModeStatus *opModeStatusInstance();
     SoundStatus *soundStatusInstance();
     ToasterDisable *toasterDisableInstance();
     SysTrayStatus *sysTrayStatusInstance();

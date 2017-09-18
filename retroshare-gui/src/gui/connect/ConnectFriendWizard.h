@@ -66,6 +66,7 @@ private slots:
 	void showHelpUserCert();
 	void copyCert();
 	void pasteCert();
+	void openCert();
 	void saveCert();
 	void friendCertChanged();
 	void cleanFriendCert();
@@ -90,13 +91,15 @@ private slots:
     void inviteAol();
     void inviteYandex();
 
+	void toggleAdvanced();
 
 private:
 	// returns the translated error string for the error code (to be found in rspeers.h)
 	QString getErrorString(uint32_t) ;
 	void updateStylesheet();
 	void setTitleText(QWizardPage *page, const QString &title);
-
+	bool AdvancedVisible;
+	
 private:
 	bool error;
 	RsPeerDetails peerDetails;

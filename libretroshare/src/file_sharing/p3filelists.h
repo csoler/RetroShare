@@ -129,6 +129,13 @@ class p3FileDatabase: public p3Service, public p3Config, public ftSearch //, pub
         void updateShareFlags(const SharedDirInfo& info) ;
         bool convertSharedFilePath(const std::string& path,std::string& fullpath);
 
+		void setIgnoreLists(const std::list<std::string>& ignored_prefixes,const std::list<std::string>& ignored_suffixes, uint32_t ignore_flags) ;
+		bool getIgnoreLists(std::list<std::string>& ignored_prefixes,std::list<std::string>& ignored_suffixes, uint32_t& ignore_flags) ;
+
+        // computes/gathers statistics about shared directories
+
+		int getSharedDirStatistics(const RsPeerId& pid,SharedDirStats& stats);
+
         // interface for hash caching
 
         void setWatchPeriod(uint32_t seconds);
@@ -136,10 +143,15 @@ class p3FileDatabase: public p3Service, public p3Config, public ftSearch //, pub
         void setWatchEnabled(bool b) ;
         bool watchEnabled() ;
 
+        bool followSymLinks() const;
+        void setFollowSymLinks(bool b) ;
+
         // interfact for directory parsing
 
 		void forceDirectoryCheck();              // Force re-sweep the directories and see what's changed
 		bool inDirectoryCheck();
+		void togglePauseHashingProcess();
+		bool hashingProcessPaused();
 
     protected:
 
@@ -200,7 +212,7 @@ class p3FileDatabase: public p3Service, public p3Config, public ftSearch //, pub
         uint32_t locked_getFriendIndex(const RsPeerId& pid);
 
         void handleDirSyncRequest (RsFileListsSyncRequestItem *) ;
-        void handleDirSyncResponse (RsFileListsSyncResponseItem *) ;
+        void handleDirSyncResponse (RsFileListsSyncResponseItem *&) ;
 
         std::map<RsPeerId,uint32_t> mFriendIndexMap ;
         std::vector<RsPeerId> mFriendIndexTab;
@@ -230,5 +242,6 @@ class p3FileDatabase: public p3Service, public p3Config, public ftSearch //, pub
         uint32_t mUpdateFlags ;
         std::string mFileSharingDir ;
         time_t mLastCleanupTime;
+        time_t mLastDataRecvTS ;
 };
 

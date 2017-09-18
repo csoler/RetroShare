@@ -60,7 +60,7 @@ class RsHtml
 public:
 	RsHtml();
 
-	static void    initEmoticons(const QHash< QString, QString >& hash);
+	static void    initEmoticons(const QHash<QString, QPair<QVector<QString>, QHash<QString, QString> > > &hash);
 
 	QString formatText(QTextDocument *textDocument, const QString &text, ulong flag, const QColor &backgroundColor = Qt::white, qreal desiredContrast = 1.0, int desiredMinimumFontSize = 10);
 	static bool    findAnchors(const QString &text, QStringList& urls);
@@ -86,6 +86,9 @@ protected:
 	virtual bool   canReplaceAnchor(QDomDocument &doc, QDomElement &element, const RetroShareLink &link);
 	virtual void   anchorTextForImg(QDomDocument &doc, QDomElement &element, const RetroShareLink &link, QString &text);
 	virtual void   anchorStylesheetForImg(QDomDocument &doc, QDomElement &element, const RetroShareLink &link, QString &styleSheet);
+
+private:
+	int indexInWithValidation(QRegExp &rx, const QString &text, EmbedInHtml &embedInfos, int pos = 0);
 };
 
 #endif // HANDLE_RICH_TEXT_H_

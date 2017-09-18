@@ -36,13 +36,11 @@ public:
 	PostedPage(QWidget * parent = 0, Qt::WindowFlags flags = 0);
 	~PostedPage();
 
-	/** Saves the changes on this page */
-	virtual bool save(QString &errmsg);
 	/** Loads the settings for this page */
 	virtual void load();
 
 	virtual QPixmap iconPixmap() const { return QPixmap(":/icons/settings/posted.svg") ; }
-	virtual QString pageName() const { return tr("Posted") ; }
+	virtual QString pageName() const { return tr("Links") ; }
 	virtual QString helpText() const { return ""; }
 
 private:

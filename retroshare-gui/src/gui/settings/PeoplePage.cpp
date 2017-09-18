@@ -20,39 +20,46 @@
  ****************************************************************/
 
 #include "PeoplePage.h"
+#include "util/misc.h"
 #include "rsharesettings.h"
 #include "retroshare/rsreputations.h"
+#include "retroshare/rsidentity.h"
 
 PeoplePage::PeoplePage(QWidget * parent, Qt::WindowFlags flags)
     : ConfigPage(parent, flags)
 {
 	ui.setupUi(this);
 	setAttribute(Qt::WA_QuitOnClose, false);
+
+    connect(ui.autoPositiveOpinion_CB,SIGNAL(toggled(bool)),this,SLOT(updateAutoPositiveOpinion())) ;
+    connect(ui.thresholdForPositive_SB,SIGNAL(valueChanged(int)),this,SLOT(updateThresholdForRemotelyPositiveReputation()));
+    connect(ui.thresholdForNegative_SB,SIGNAL(valueChanged(int)),this,SLOT(updateThresholdForRemotelyNegativeReputation()));
+    connect(ui.preventReloadingBannedIdentitiesFor_SB,SIGNAL(valueChanged(int)),this,SLOT(updateRememberDeletedNodes()));
+    connect(ui.deleteBannedIdentitiesAfter_SB,SIGNAL(valueChanged(int)),this,SLOT(updateDeleteBannedNodesThreshold()));
 }
+
+void PeoplePage::updateAutoPositiveOpinion() {  rsReputations->setNodeAutoPositiveOpinionForContacts(ui.autoPositiveOpinion_CB->isChecked()) ; }
+
+void PeoplePage::updateThresholdForRemotelyPositiveReputation() {  rsReputations->setThresholdForRemotelyPositiveReputation(ui.thresholdForPositive_SB->value()); }
+void PeoplePage::updateThresholdForRemotelyNegativeReputation() {  rsReputations->setThresholdForRemotelyNegativeReputation(ui.thresholdForNegative_SB->value()); }
+
+void PeoplePage::updateRememberDeletedNodes()       {    rsReputations->setRememberDeletedNodesThreshold(ui.preventReloadingBannedIdentitiesFor_SB->value()); }
+void PeoplePage::updateDeleteBannedNodesThreshold() {    rsIdentity->setDeleteBannedNodesThreshold(ui.deleteBannedIdentitiesAfter_SB->value());}
 
 PeoplePage::~PeoplePage()
 {
-}
-
-/** Saves the changes on this page */
-bool PeoplePage::save(QString &/*errmsg*/)
-{
-    if(ui.autoPositiveOpinion_CB->isChecked())
-        rsReputations->setNodeAutoPositiveOpinionForContacts(true) ;
-    else
-        rsReputations->setNodeAutoPositiveOpinionForContacts(false) ;
-
-    rsReputations->setNodeAutoBanIdentitiesLimit(ui.autoBanIdentitiesLimit_SB->value());
-
-    return true;
 }
 
 /** Loads the settings for this page */
 void PeoplePage::load()
 {
     bool auto_positive_contacts = rsReputations->nodeAutoPositiveOpinionForContacts() ;
-    float node_auto_ban_identities_limit = rsReputations->nodeAutoBanIdentitiesLimit();
+    uint32_t threshold_for_positive = rsReputations->thresholdForRemotelyPositiveReputation();
+    uint32_t threshold_for_negative = rsReputations->thresholdForRemotelyNegativeReputation();
 
-    ui.autoPositiveOpinion_CB->setChecked(auto_positive_contacts);
-    ui.autoBanIdentitiesLimit_SB->setValue(node_auto_ban_identities_limit);
+    whileBlocking(ui.autoPositiveOpinion_CB)->setChecked(auto_positive_contacts);
+    whileBlocking(ui.thresholdForPositive_SB)->setValue(threshold_for_positive);
+    whileBlocking(ui.thresholdForNegative_SB)->setValue(threshold_for_negative);
+    whileBlocking(ui.deleteBannedIdentitiesAfter_SB)->setValue(rsIdentity->deleteBannedNodesThreshold());
+    whileBlocking(ui.preventReloadingBannedIdentitiesFor_SB)->setValue(rsReputations->rememberDeletedNodesThreshold());
 }

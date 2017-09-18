@@ -27,6 +27,7 @@
  */
 
 #include "retroshare/rsgxsiface.h"
+#include "retroshare/rsreputations.h"
 #include "rsgxsflags.h"
 
 /*!
@@ -209,13 +210,37 @@ public:
 	}
 
     /*!
-     * @return storage time of messages in months
+     * @return storage/sync time of messages in secs
      */
-    int getStoragePeriod()
+    uint32_t getDefaultStoragePeriod()
     {
-        return mGxs->getStoragePeriod();
+        return mGxs->getDefaultStoragePeriod();
+    }
+    uint32_t getStoragePeriod(const RsGxsGroupId& grpId)
+    {
+        return mGxs->getStoragePeriod(grpId);
+    }
+    void setStoragePeriod(const RsGxsGroupId& grpId,uint32_t age_in_secs)
+    {
+        mGxs->setStoragePeriod(grpId,age_in_secs);
+    }
+    uint32_t getDefaultSyncPeriod()
+    {
+        return mGxs->getDefaultSyncPeriod();
+    }
+    uint32_t getSyncPeriod(const RsGxsGroupId& grpId)
+    {
+        return mGxs->getSyncPeriod(grpId);
+    }
+    void setSyncPeriod(const RsGxsGroupId& grpId,uint32_t age_in_secs)
+    {
+        mGxs->setSyncPeriod(grpId,age_in_secs);
     }
 
+    RsReputations::ReputationLevel minReputationForForwardingMessages(uint32_t group_sign_flags,uint32_t identity_flags)
+    {
+        return mGxs->minReputationForForwardingMessages(group_sign_flags,identity_flags);
+    }
 private:
 
     RsGxsIface* mGxs;

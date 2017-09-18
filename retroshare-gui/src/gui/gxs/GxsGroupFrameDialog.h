@@ -99,6 +99,8 @@ private slots:
 	/** Create the context popup menu and it's submenus */
 	void groupTreeCustomPopupMenu(QPoint point);
 	void settingsChanged();
+    void setSyncPostsDelay();
+    void setStorePostsDelay();
 
 	void restoreGroupKeys();
 	void newGroup();
@@ -124,7 +126,7 @@ private slots:
 
 	void sharePublishKey();
 
-	void loadComment(const RsGxsGroupId &grpId, const RsGxsMessageId &msgId, const QString &title);
+	void loadComment(const RsGxsGroupId &grpId, const QVector<RsGxsMessageId>& msg_versions,const RsGxsMessageId &most_recent_msgId, const QString &title);
 
 private:
 	virtual QString text(TextType type) = 0;

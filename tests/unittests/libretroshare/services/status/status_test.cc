@@ -7,7 +7,7 @@
 
 // from libretroshare
 #include "services/p3statusservice.h"
-#include "serialiser/rsstatusitems.h"
+#include "rsitems/rsstatusitems.h"
 
 #define N_PEERS 10
 
@@ -27,9 +27,9 @@ TEST(libretroshare_services, Status_test1)
 
 	// extract bits we need.
 	PeerNode *node = tester.getPeerNode();
-	p3PeerMgr *peerMgr = node->getPeerMgr();
-	p3LinkMgr *linkMgr = node->getLinkMgr();
-	p3NetMgr  *netMgr = node->getNetMgr();
+	//p3PeerMgr *peerMgr = node->getPeerMgr();
+	//p3LinkMgr *linkMgr = node->getLinkMgr();
+	//p3NetMgr  *netMgr = node->getNetMgr();
 	p3ServiceControl *serviceCtrl = node->getServiceControl();	
 
 	// add in service.

@@ -26,6 +26,8 @@
 #include <QMessageBox>
 #include <QMenu>
 #include <QWidgetAction>
+#include <QStyledItemDelegate>
+#include <QPainter>
 
 #include "IdDialog.h"
 #include "ui_IdDialog.h"
@@ -44,6 +46,7 @@
 #include <retroshare/rspeers.h>
 #include "retroshare/rsgxsflags.h"
 #include "retroshare/rsmsgs.h" 
+#include "retroshare/rsservicecontrol.h"
 #include <iostream>
 #include <algorithm>
 
@@ -52,10 +55,11 @@
  *****/
 
 // Data Requests.
-#define IDDIALOG_IDLIST     1
-#define IDDIALOG_IDDETAILS  2
-#define IDDIALOG_REPLIST    3
-#define IDDIALOG_REFRESH    4
+#define IDDIALOG_IDLIST           1
+#define IDDIALOG_IDDETAILS        2
+#define IDDIALOG_REPLIST          3
+#define IDDIALOG_REFRESH          4
+#define IDDIALOG_SERIALIZED_GROUP 5
 
 #define CIRCLEGROUP_CIRCLE_COL_GROUPNAME      0
 #define CIRCLEGROUP_CIRCLE_COL_GROUPID        1
@@ -107,26 +111,32 @@
 // comment this out in order to remove the sorting of circles into "belong to" and "other visible circles"
 #define CIRCLE_MEMBERSHIP_CATEGORIES 1
 
+static const uint32_t SortRole = Qt::UserRole+1 ;
+
 // quick solution for RSID_COL_VOTES sorting
-class TreeWidgetItem : public QTreeWidgetItem {
+class TreeWidgetItem : public QTreeWidgetItem
+{
   public:
   TreeWidgetItem(int type=Type): QTreeWidgetItem(type) {}
   TreeWidgetItem(QTreeWidget *tree): QTreeWidgetItem(tree) {}
   TreeWidgetItem(const QStringList& strings): QTreeWidgetItem (strings) {}
-  bool operator< (const QTreeWidgetItem& other ) const {
+
+  bool operator< (const QTreeWidgetItem& other ) const
+  {
     int column = treeWidget()->sortColumn();
-    const QVariant v1 = data(column, Qt::DisplayRole);
-    const QVariant v2 = other.data(column, Qt::DisplayRole);
-    double value1 = v1.toDouble();
-    double value2 = v2.toDouble();
-      if (value1 != value2) {
-          return value1 < value2;
-                }
-      else {
-           return (v1.toString().compare (v2.toString(), Qt::CaseInsensitive) < 0);
-                }
+
+    if(column == RSID_COL_VOTES)
+    {
+    const unsigned int v1 = data(column, SortRole).toUInt();
+    const unsigned int v2 = other.data(column, SortRole).toUInt();
+
+	return v1 < v2;
+    }
+    else
+        return data(column,Qt::DisplayRole).toString() < other.data(column,Qt::DisplayRole).toString();
   }
 };
+
 /** Constructor */
 IdDialog::IdDialog(QWidget *parent) :
     RsGxsUpdateBroadcastPage(rsIdentity, parent),
@@ -142,12 +152,15 @@ IdDialog::IdDialog(QWidget *parent) :
     
 	ownItem = new QTreeWidgetItem();
 	ownItem->setText(0, tr("My own identities"));
+	ownItem->setData(RSID_COL_VOTES, Qt::DecorationRole,0xff);	// this is in order to prevent displaying a reputaiton icon next to these items.
 
 	allItem = new QTreeWidgetItem();
 	allItem->setText(0, tr("All"));
+	allItem->setData(RSID_COL_VOTES, Qt::DecorationRole,0xff);
 
 	contactsItem = new QTreeWidgetItem();
 	contactsItem->setText(0, tr("My contacts"));
+	contactsItem->setData(RSID_COL_VOTES, Qt::DecorationRole,0xff);
 
 	ui->treeWidget_membership->clear();
     
@@ -217,6 +230,8 @@ IdDialog::IdDialog(QWidget *parent) :
 	/* Initialize splitter */
 	ui->mainSplitter->setStretchFactor(0, 0);
 	ui->mainSplitter->setStretchFactor(1, 1);
+	
+	ui->inviteFrame->hide();
 	
   /*remove
 	QList<int> sizes;
@@ -295,6 +310,8 @@ IdDialog::IdDialog(QWidget *parent) :
 	QString headerText = headerItem->text(RSID_COL_NICKNAME);
 	ui->filterLineEdit->addFilter(QIcon(), headerText, RSID_COL_NICKNAME, QString("%1 %2").arg(tr("Search"), headerText));
 
+    headerItem->setData(RSID_COL_VOTES,Qt::UserRole,tr("Reputation"));
+
 	/* Set initial section sizes */
   QHeaderView * circlesheader = ui->treeWidget_membership->header () ;
   circlesheader->resizeSection (CIRCLEGROUP_CIRCLE_COL_GROUPNAME, QFontMetricsF(ui->idTreeWidget->font()).width("Circle name")*1.5) ;
@@ -316,9 +333,13 @@ IdDialog::IdDialog(QWidget *parent) :
 	ui->idTreeWidget->setColumnWidth(RSID_COL_NICKNAME, 14 * fontWidth);
 	ui->idTreeWidget->setColumnWidth(RSID_COL_KEYID, 20 * fontWidth);
 	ui->idTreeWidget->setColumnWidth(RSID_COL_IDTYPE, 18 * fontWidth);
-	ui->idTreeWidget->setColumnWidth(RSID_COL_VOTES, 7 * fontWidth);
+	ui->idTreeWidget->setColumnWidth(RSID_COL_VOTES, 2 * fontWidth);
 	
-	//QHeaderView_setSectionResizeMode(ui->idTreeWidget->header(), QHeaderView::ResizeToContents);
+    ui->idTreeWidget->setItemDelegateForColumn(RSID_COL_VOTES,new ReputationItemDelegate(RsReputations::ReputationLevel(0xff))) ;
+
+	/* Set header resize modes and initial section sizes */
+	QHeaderView * idheader = ui->idTreeWidget->header();
+	QHeaderView_setSectionResizeModeColumn(idheader, RSID_COL_VOTES, QHeaderView::ResizeToContents);
 
 	mIdQueue = new TokenQueue(rsIdentity->getTokenService(), this);
 
@@ -340,7 +361,7 @@ IdDialog::IdDialog(QWidget *parent) :
                     <p>An <b>circle</b> can be restricted to another circle, thereby limiting its visibility to members of that circle \
                         or even self-restricted, meaning that it is only visible to invited members.</p>") ;
 
-	registerHelpButton(ui->helpButton, hlp_str) ;
+	registerHelpButton(ui->helpButton, hlp_str,"PeopleDialog") ;
 
 	// load settings
 	processSettings(true);
@@ -711,7 +732,7 @@ void IdDialog::loadCircleGroupMeta(const uint32_t &token)
 				if(has_id)
 					subitem->setText(CIRCLEGROUP_CIRCLE_COL_GROUPNAME, QString::fromUtf8(idd.mNickname.c_str())) ;
 				else
-					subitem->setText(CIRCLEGROUP_CIRCLE_COL_GROUPNAME, tr("Unknown ID :")+QString::fromStdString(it->first.toStdString())) ;
+					subitem->setText(CIRCLEGROUP_CIRCLE_COL_GROUPNAME, tr("Unknown ID:")+QString::fromStdString(it->first.toStdString())) ;
 
 				QString tooltip ;
 				tooltip += tr("Identity ID: ")+QString::fromStdString(it->first.toStdString()) ;
@@ -794,7 +815,7 @@ void IdDialog::loadCircleGroupData(const uint32_t& token)
 #ifdef ID_DEBUG
     std::cerr << "Loading circle info" << std::endl;
 #endif
-    
+
     std::vector<RsGxsCircleGroup> circle_grp_v ;
     rsGxsCircles->getGroupData(token, circle_grp_v);
 
@@ -1039,7 +1060,9 @@ void IdDialog::CircleListCustomPopupMenu( QPoint )
 	}
 #endif
         
+#ifdef ID_DEBUG
 	    std::cerr << "  Item is a circle item. Adding Edit/Details menu entry." << std::endl;
+#endif
             is_circle = true ;
 
 	    contextMnu.addSeparator() ;
@@ -1055,7 +1078,9 @@ void IdDialog::CircleListCustomPopupMenu( QPoint )
 		    am_I_circle_admin = bool(group_flags & GXS_SERV::GROUP_SUBSCRIBE_ADMIN) ;
 	    }
 
+#ifdef ID_DEBUG
 	    std::cerr << "  Item is a GxsId item. Requesting flags/group id from parent: " << circle_id << std::endl;
+#endif
     }
  
     RsGxsCircleDetails details ;
@@ -1187,6 +1212,7 @@ void IdDialog::CircleListCustomPopupMenu( QPoint )
     contextMnu.exec(QCursor::pos());
 }
 
+#ifdef SUSPENDED
 static void set_item_background(QTreeWidgetItem *item, uint32_t type)
 {
 	QBrush brush;
@@ -1227,7 +1253,6 @@ static void update_children_background(QTreeWidgetItem *item, uint32_t type)
 	}
 }
 
-#ifdef SUSPENDED
 static void set_tree_background(QTreeWidget *tree, uint32_t type)
 {
 	std::cerr << "CirclesDialog set_tree_background()";
@@ -1365,6 +1390,8 @@ void IdDialog::updateSelection()
 	}
 }
 
+
+
 void IdDialog::requestIdList()
 {
 	//Disable by default, will be enable by insertIdDetails()
@@ -1392,12 +1419,13 @@ bool IdDialog::fillIdListItem(const RsGxsIdGroup& data, QTreeWidgetItem *&item, 
 	bool isOwnId = (data.mMeta.mSubscribeFlags & GXS_SERV::GROUP_SUBSCRIBE_ADMIN);
 	RsIdentityDetails idd ;
 	rsIdentity->getIdDetails(RsGxsId(data.mMeta.mGroupId),idd) ;
-	bool isBanned = idd.mReputation.mAssessment == RsReputations::ASSESSMENT_BAD;
+
+	bool isBanned = idd.mReputation.mOverallReputationLevel == RsReputations::REPUTATION_LOCALLY_NEGATIVE;
 	uint32_t item_flags = 0 ;
 
 	/* do filtering */
 	bool ok = false;
-	if (data.mMeta.mGroupFlags & RSGXSID_GROUPFLAG_REALID)
+	if (data.mMeta.mGroupFlags & RSGXSID_GROUPFLAG_REALID_kept_for_compatibility)
     {
         if (isLinkedToOwnNode && (accept & RSID_FILTER_YOURSELF))
         {
@@ -1462,7 +1490,8 @@ bool IdDialog::fillIdListItem(const RsGxsIdGroup& data, QTreeWidgetItem *&item, 
 
     item->setData(RSID_COL_KEYID, Qt::UserRole,QVariant(item_flags)) ;
     item->setTextAlignment(RSID_COL_VOTES, Qt::AlignRight | Qt::AlignVCenter);
-    item->setData(RSID_COL_VOTES,Qt::DisplayRole, QString::number(idd.mReputation.mOverallReputationScore - 1.0f,'f',3));
+    item->setData(RSID_COL_VOTES,Qt::DecorationRole, idd.mReputation.mOverallReputationLevel);
+    item->setData(RSID_COL_VOTES,SortRole, idd.mReputation.mOverallReputationLevel);
 
     if(isOwnId)
     {
@@ -1498,7 +1527,7 @@ bool IdDialog::fillIdListItem(const RsGxsIdGroup& data, QTreeWidgetItem *&item, 
 
     QString tooltip;
 
-	if (data.mMeta.mGroupFlags & RSGXSID_GROUPFLAG_REALID)
+	if (data.mMeta.mGroupFlags & RSGXSID_GROUPFLAG_REALID_kept_for_compatibility)
 	{
 		if (data.mPgpKnown)
 		{
@@ -1540,6 +1569,15 @@ bool IdDialog::fillIdListItem(const RsGxsIdGroup& data, QTreeWidgetItem *&item, 
 
 void IdDialog::insertIdList(uint32_t token)
 {
+	//First: Get current item to restore after
+	RsGxsGroupId oldCurrentId = mIdToNavigate;
+	{
+		QTreeWidgetItem *oldCurrent = ui->idTreeWidget->currentItem();
+		if (oldCurrent) {
+			oldCurrentId = RsGxsGroupId(oldCurrent->text(RSID_COL_KEYID).toStdString());
+		}
+	}
+
 	mStateHelper->setLoading(IDDIALOG_IDLIST, false);
 
 	int accept = filter;
@@ -1638,6 +1676,7 @@ void IdDialog::insertIdList(uint32_t token)
 	int itemCount = contactsItem->childCount() + allItem->childCount() + ownItem->childCount();
 	ui->label_count->setText( "(" + QString::number( itemCount ) + ")" );
 
+	navigate(RsGxsId(oldCurrentId));
 	filterIds();
 	updateSelection();
 }
@@ -1740,7 +1779,7 @@ void IdDialog::insertIdDetails(uint32_t token)
 	}
 	else
 	{
-		if (data.mMeta.mGroupFlags & RSGXSID_GROUPFLAG_REALID)
+		if (data.mMeta.mGroupFlags & RSGXSID_GROUPFLAG_REALID_kept_for_compatibility)
 			ui->lineEdit_GpgName->setText(tr("[Unknown node]"));
 		else
 			ui->lineEdit_GpgName->setText(tr("Anonymous Id"));
@@ -1776,7 +1815,7 @@ void IdDialog::insertIdDetails(uint32_t token)
             ui->lineEdit_Type->setText(tr("Identity owned by you, linked to your Retroshare node")) ;
         else
             ui->lineEdit_Type->setText(tr("Anonymous identity, owned by you")) ;
-    else if (data.mMeta.mGroupFlags & RSGXSID_GROUPFLAG_REALID)
+    else if (data.mMeta.mGroupFlags & RSGXSID_GROUPFLAG_REALID_kept_for_compatibility)
     {
         if (data.mPgpKnown)
             if (rsPeers->isGPGAccepted(data.mPgpId))
@@ -1836,10 +1875,27 @@ void IdDialog::insertIdDetails(uint32_t token)
     RsReputations::ReputationInfo info ;
     rsReputations->getReputationInfo(RsGxsId(data.mMeta.mGroupId),data.mPgpId,info) ;
 
-    ui->neighborNodesOpinion_TF->setText(QString::number(info.mFriendAverage - 1.0f));
+    QString frep_string ;
+    if(info.mFriendsPositiveVotes > 0) frep_string += QString::number(info.mFriendsPositiveVotes) + tr(" positive ") ;
+    if(info.mFriendsNegativeVotes > 0) frep_string += QString::number(info.mFriendsNegativeVotes) + tr(" negative ") ;
 
-    ui->overallOpinion_TF->setText(QString::number(info.mOverallReputationScore - 1.0f) +" ("+
-     ((info.mAssessment == RsReputations::ASSESSMENT_OK)? tr("OK") : tr("Banned")) +")" ) ;
+    if(info.mFriendsPositiveVotes==0 && info.mFriendsNegativeVotes==0)
+        frep_string = tr("No votes from friends") ;
+
+    ui->neighborNodesOpinion_TF->setText(frep_string) ;
+    
+    ui->label_positive->setText(QString::number(info.mFriendsPositiveVotes));
+    ui->label_negative->setText(QString::number(info.mFriendsNegativeVotes));
+
+    switch(info.mOverallReputationLevel)
+    {
+    	case RsReputations::REPUTATION_LOCALLY_POSITIVE:  ui->overallOpinion_TF->setText(tr("Positive")) ; break ;
+    	case RsReputations::REPUTATION_LOCALLY_NEGATIVE:  ui->overallOpinion_TF->setText(tr("Negative (Banned by you)")) ; break ;
+    	case RsReputations::REPUTATION_REMOTELY_POSITIVE: ui->overallOpinion_TF->setText(tr("Positive (according to your friends)")) ; break ;
+    	case RsReputations::REPUTATION_REMOTELY_NEGATIVE: ui->overallOpinion_TF->setText(tr("Negative (according to your friends)")) ; break ;
+    default:
+    	case RsReputations::REPUTATION_NEUTRAL:           ui->overallOpinion_TF->setText(tr("Neutral")) ; break ;
+    }
     
     switch(info.mOwnOpinion)
 	{
@@ -1849,6 +1905,112 @@ void IdDialog::insertIdDetails(uint32_t token)
         default:
             std::cerr << "Unexpected value in own opinion: " << info.mOwnOpinion << std::endl;
 	}
+
+    // now fill in usage cases
+
+	RsIdentityDetails det ;
+	rsIdentity->getIdDetails(RsGxsId(data.mMeta.mGroupId),det) ;
+
+    QString usage_txt ;
+    std::map<time_t,RsIdentityUsage> rmap ;
+    for(std::map<RsIdentityUsage,time_t>::const_iterator it(det.mUseCases.begin());it!=det.mUseCases.end();++it)
+        rmap.insert(std::make_pair(it->second,it->first)) ;
+
+    for(std::map<time_t,RsIdentityUsage>::const_iterator it(rmap.begin());it!=rmap.end();++it)
+        usage_txt += QString("<b>")+ getHumanReadableDuration(now - data.mLastUsageTS) + "</b> \t: " + createUsageString(it->second) + "<br/>" ;
+
+    if(usage_txt.isNull())
+        usage_txt = tr("<b>[No record in current session]</b>") ;
+
+    ui->usageStatistics_TB->setText(usage_txt) ;
+}
+
+QString IdDialog::createUsageString(const RsIdentityUsage& u) const
+{
+    QString service_name;
+    RetroShareLink::enumType service_type = RetroShareLink::TYPE_UNKNOWN;
+
+    switch(u.mServiceId)
+    {
+    case RS_SERVICE_GXS_TYPE_CHANNELS:  service_name = tr("Channels") ;service_type = RetroShareLink::TYPE_CHANNEL ; break ;
+    case RS_SERVICE_GXS_TYPE_FORUMS:    service_name = tr("Forums") ;  service_type = RetroShareLink::TYPE_FORUM   ; break ;
+    case RS_SERVICE_GXS_TYPE_POSTED:    service_name = tr("Posted") ;  service_type = RetroShareLink::TYPE_POSTED  ; break ;
+    case RS_SERVICE_TYPE_CHAT:      	service_name = tr("Chat") ;  break ;
+    default:
+        service_name = tr("Unknown"); service_type = RetroShareLink::TYPE_UNKNOWN ;
+    }
+
+    switch(u.mUsageCode)
+    {
+	case RsIdentityUsage::UNKNOWN_USAGE:
+        	return tr("[Unknown]") ;
+	case RsIdentityUsage::GROUP_ADMIN_SIGNATURE_CREATION:       // These 2 are normally not normal GXS identities, but nothing prevents it to happen either.
+        	return tr("Admin signature in service %1").arg(service_name);
+    case RsIdentityUsage::GROUP_ADMIN_SIGNATURE_VALIDATION:
+        	return tr("Admin signature verification in service %1").arg(service_name);
+    case RsIdentityUsage::GROUP_AUTHOR_SIGNATURE_CREATION:      // not typically used, since most services do not require group author signatures
+        	return tr("Creation of author signature in service %1").arg(service_name);
+    case RsIdentityUsage::GROUP_AUTHOR_SIGNATURE_VALIDATION:
+    case RsIdentityUsage::MESSAGE_AUTHOR_SIGNATURE_CREATION:    // most common use case. Messages are signed by authors in e.g. forums.
+    case RsIdentityUsage::GROUP_AUTHOR_KEEP_ALIVE:               // Identities are stamped regularly by crawlign the set of messages for all groups. That helps keepign the useful identities in hand.
+        break ;
+    case RsIdentityUsage::MESSAGE_AUTHOR_SIGNATURE_VALIDATION:
+    case RsIdentityUsage::MESSAGE_AUTHOR_KEEP_ALIVE:             // Identities are stamped regularly by crawlign the set of messages for all groups. That helps keepign the useful identities in hand.
+	{
+		RetroShareLink l = RetroShareLink::createGxsMessageLink(service_type,u.mGrpId,u.mMsgId,tr("Message/vote/comment"));
+		return tr("%1 in %2 tab").arg(l.toHtml()).arg(service_name) ;
+	}
+    case RsIdentityUsage::CHAT_LOBBY_MSG_VALIDATION:             // Chat lobby msgs are signed, so each time one comes, or a chat lobby event comes, a signature verificaiton happens.
+    {
+        // there is no link for chat lobby yet.
+		return tr("Message in chat lobby %1").arg(u.mAdditionalId) ;
+    }
+    case RsIdentityUsage::GLOBAL_ROUTER_SIGNATURE_CHECK:         // Global router message validation
+    {
+		return tr("Distant message signature validation.");
+    }
+    case RsIdentityUsage::GLOBAL_ROUTER_SIGNATURE_CREATION:      // Global router message signature
+    {
+		return tr("Distant message signature creation.");
+    }
+    case RsIdentityUsage::GXS_TUNNEL_DH_SIGNATURE_CHECK:         //
+    {
+		return tr("Signature validation in distant tunnel system.");
+    }
+    case RsIdentityUsage::GXS_TUNNEL_DH_SIGNATURE_CREATION:      //
+    {
+		return tr("Signature in distant tunnel system.");
+    }
+    case RsIdentityUsage::IDENTITY_DATA_UPDATE:                  // Group update on that identity data. Can be avatar, name, etc.
+    {
+		return tr("Update of identity data.");
+    }
+    case RsIdentityUsage::IDENTITY_GENERIC_SIGNATURE_CHECK:      // Any signature verified for that identity
+    {
+		return tr("Generic signature validation.");
+    }
+    case RsIdentityUsage::IDENTITY_GENERIC_SIGNATURE_CREATION:   // Any signature made by that identity
+    {
+		return tr("Generic signature.");
+    }
+	case RsIdentityUsage::IDENTITY_GENERIC_ENCRYPTION:
+    {
+		return tr("Generic encryption.");
+    }
+	case RsIdentityUsage::IDENTITY_GENERIC_DECRYPTION:
+    {
+		return tr("Generic decryption.");
+    }
+	case RsIdentityUsage::CIRCLE_MEMBERSHIP_CHECK:
+    {
+		return tr("Membership verification in circle %1.").arg(QString::fromStdString(u.mGrpId.toStdString()));
+    }
+
+#warning TODO! csoler 2017-01-03: Add the different strings and translations here.
+	default:
+		return QString("Undone yet");
+    }
+    return QString("Unknown");
 }
 
 void IdDialog::modifyReputation()
@@ -1900,6 +2062,29 @@ void IdDialog::modifyReputation()
 	return;
 }
 	
+void IdDialog::navigate(const RsGxsId& gxs_id)
+{
+#ifdef ID_DEBUG
+	std::cerr << "IdDialog::navigate to " << gxs_id.toStdString() << std::endl;
+#endif
+
+	// in order to do this, we just select the correct ID in the ID list
+	if (!gxs_id.isNull())
+	{
+		QList<QTreeWidgetItem*> select = ui->idTreeWidget->findItems(QString::fromStdString(gxs_id.toStdString()),Qt::MatchExactly | Qt::MatchRecursive | Qt::MatchWrap,RSID_COL_KEYID) ;
+
+		if(select.empty())
+		{
+			mIdToNavigate = RsGxsGroupId(gxs_id);
+			std::cerr << "Cannot find item with ID " << gxs_id << " in ID list." << std::endl;
+			return;
+		}
+		ui->idTreeWidget->setCurrentItem(*select.begin(),true);
+	}
+
+	mIdToNavigate = RsGxsGroupId();
+}
+
 void IdDialog::updateDisplay(bool complete)
 {
 	/* Update identity list */
@@ -2012,6 +2197,44 @@ void IdDialog::insertRepList(uint32_t token)
 	mStateHelper->setActive(IDDIALOG_REPLIST, true);
 }
 
+void IdDialog::handleSerializedGroupData(uint32_t token)
+{
+    std::map<RsGxsId,std::string> serialized_group_map ;
+
+    rsIdentity->getGroupSerializedData(token, serialized_group_map);
+
+    if(serialized_group_map.size() < 1)
+    {
+        std::cerr << "(EE) Cannot get radix data " << std::endl;
+        return;
+    }
+    if(serialized_group_map.size() > 1)
+    {
+        std::cerr << "(EE) Too many results for serialized data" << std::endl;
+        return;
+    }
+
+    RsGxsId gxs_id = serialized_group_map.begin()->first ;
+    std::string radix = serialized_group_map.begin()->second ;
+
+    RsIdentityDetails details ;
+
+    if(!rsIdentity->getIdDetails(gxs_id,details))
+    {
+        std::cerr << "(EE) Cannot get id details for key " << gxs_id << std::endl;
+        return;
+    }
+
+    QList<RetroShareLink> urls ;
+
+	RetroShareLink link = RetroShareLink::createIdentity(gxs_id,QString::fromUtf8(details.mNickname.c_str()),QString::fromStdString(radix)) ;
+	urls.push_back(link);
+
+	RSLinkClipboard::copyLinks(urls) ;
+
+    QMessageBox::information(NULL,tr("information"),tr("This identity link was copied to your clipboard. Paste it in a mail, or a message to transmit the identity to someone.")) ;
+}
+
 void IdDialog::loadRequest(const TokenQueue * queue, const TokenRequest &req)
 {
 #ifdef ID_DEBUG
@@ -2033,6 +2256,10 @@ void IdDialog::loadRequest(const TokenQueue * queue, const TokenRequest &req)
 
 	    case IDDIALOG_REPLIST:
 		    insertRepList(req.mToken);
+		    break;
+
+	    case IDDIALOG_SERIALIZED_GROUP:
+		    handleSerializedGroupData(req.mToken);
 		    break;
 
 	    case IDDIALOG_REFRESH:
@@ -2078,165 +2305,211 @@ void IdDialog::loadRequest(const TokenQueue * queue, const TokenRequest &req)
 
 void IdDialog::IdListCustomPopupMenu( QPoint )
 {
-    QMenu *contextMenu = new QMenu(this);
+	QMenu *contextMenu = new QMenu(this);
 
 
-    std::list<RsGxsId> own_identities ;
-    rsIdentity->getOwnIds(own_identities) ;
+	std::list<RsGxsId> own_identities ;
+	rsIdentity->getOwnIds(own_identities) ;
 
-    // make some stats about what's selected. If the same value is used for all selected items, it can be switched.
+	// make some stats about what's selected. If the same value is used for all selected items, it can be switched.
 
-    QList<QTreeWidgetItem *> selected_items = ui->idTreeWidget->selectedItems();
+	QList<QTreeWidgetItem *> selected_items = ui->idTreeWidget->selectedItems();
 
-    bool root_node_present = false ;
-    bool one_item_owned_by_you = false ;
-    uint32_t n_positive_reputations = 0 ;
-    uint32_t n_negative_reputations = 0 ;
-    uint32_t n_neutral_reputations = 0 ;
-    uint32_t n_is_a_contact = 0 ;
-    uint32_t n_is_not_a_contact = 0 ;
-    uint32_t n_selected_items =0 ;
+	bool root_node_present = false ;
+	bool one_item_owned_by_you = false ;
+	uint32_t n_positive_reputations = 0 ;
+	uint32_t n_negative_reputations = 0 ;
+	uint32_t n_neutral_reputations = 0 ;
+	uint32_t n_is_a_contact = 0 ;
+	uint32_t n_is_not_a_contact = 0 ;
+	uint32_t n_selected_items =0 ;
 
-    for(QList<QTreeWidgetItem*>::const_iterator it(selected_items.begin());it!=selected_items.end();++it)
-    {
-	    if(*it == allItem || *it == contactsItem || *it == ownItem)
-	    {
-		    root_node_present = true ;
-		    continue ;
-	    }
-
-	    uint32_t item_flags = (*it)->data(RSID_COL_KEYID,Qt::UserRole).toUInt() ;
-
-        if(item_flags & RSID_FILTER_OWNED_BY_YOU)
-		one_item_owned_by_you = true ;
-        
-#ifdef ID_DEBUG
-        	std::cerr << "  item flags = " << item_flags << std::endl;
-#endif
-	    RsGxsId keyId((*it)->text(RSID_COL_KEYID).toStdString());
-
-                RsIdentityDetails det ;
-                rsIdentity->getIdDetails(keyId,det) ;
-
-            switch(det.mReputation.mOwnOpinion)
-            {
-            case RsReputations::OPINION_NEGATIVE:  ++n_negative_reputations ;
-		    break ;
-            
-	    case RsReputations::OPINION_POSITIVE: ++n_positive_reputations ;
-                break ;
-                
-	    case RsReputations::OPINION_NEUTRAL: ++n_neutral_reputations ;
-                break ;
-            }
-
-	    ++n_selected_items ;
-
-	    if(rsIdentity->isARegularContact(keyId))
-		    ++n_is_a_contact ;
-	    else
-		    ++n_is_not_a_contact ;
-    }
-
-		if(!root_node_present)	// don't show menu if some of the root nodes are present
+	for(QList<QTreeWidgetItem*>::const_iterator it(selected_items.begin());it!=selected_items.end();++it)
+	{
+		if(*it == allItem || *it == contactsItem || *it == ownItem)
 		{
-
-			if(!one_item_owned_by_you)
-			{
-				QWidget *widget = new QWidget(contextMenu);
-				widget->setStyleSheet( ".QWidget{background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 #FEFEFE, stop:1 #E8E8E8); border: 1px solid #CCCCCC;}");
-
-				// create menu header
-				QHBoxLayout *hbox = new QHBoxLayout(widget);
-				hbox->setMargin(0);
-				hbox->setSpacing(6);
-
-				QLabel *iconLabel = new QLabel(widget);
-				QPixmap pix = QPixmap(":/images/user/friends24.png").scaledToHeight(QFontMetricsF(iconLabel->font()).height()*1.5);
-				iconLabel->setPixmap(pix);
-				iconLabel->setMaximumSize(iconLabel->frameSize().height() + pix.height(), pix.width());
-				hbox->addWidget(iconLabel);
-
-				QLabel *textLabel = new QLabel("<strong>" + ui->titleBarLabel->text() + "</strong>", widget);
-				hbox->addWidget(textLabel);
-
-				QSpacerItem *spacerItem = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
-				hbox->addItem(spacerItem);
-
-				widget->setLayout(hbox);
-
-				QWidgetAction *widgetAction = new QWidgetAction(this);
-				widgetAction->setDefaultWidget(widget);
-				contextMenu->addAction(widgetAction);
-
-				if(n_selected_items == 1)		// if only one item is selected, allow to chat with this item
-				{
-					if(own_identities.size() <= 1)
-					{
-						QAction *action = contextMenu->addAction(QIcon(":/images/chat_24.png"), tr("Chat with this person"), this, SLOT(chatIdentity()));
-
-						if(own_identities.empty())
-							action->setEnabled(false) ;
-						else
-							action->setData(QString::fromStdString((own_identities.front()).toStdString())) ;
-					}
-					else
-					{
-						QMenu *mnu = contextMenu->addMenu(QIcon(":/images/chat_24.png"),tr("Chat with this person as...")) ;
-
-						for(std::list<RsGxsId>::const_iterator it=own_identities.begin();it!=own_identities.end();++it)
-						{
-							RsIdentityDetails idd ;
-							rsIdentity->getIdDetails(*it,idd) ;
-
-							QPixmap pixmap ;
-
-							if(idd.mAvatar.mSize == 0 || !pixmap.loadFromData(idd.mAvatar.mData, idd.mAvatar.mSize, "PNG"))
-								pixmap = QPixmap::fromImage(GxsIdDetails::makeDefaultIcon(*it)) ;
-
-							QAction *action = mnu->addAction(QIcon(pixmap), QString("%1 (%2)").arg(QString::fromUtf8(idd.mNickname.c_str()), QString::fromStdString((*it).toStdString())), this, SLOT(chatIdentity()));
-							action->setData(QString::fromStdString((*it).toStdString())) ;
-						}
-					}
-				}
-
-				// always allow to send messages
-				contextMenu->addAction(QIcon(":/images/mail_new.png"), tr("Send message"), this, SLOT(sendMsg()));
-
-				contextMenu->addSeparator();
-
-				if(n_is_a_contact == 0)
-					contextMenu->addAction(QIcon(), tr("Add to Contacts"), this, SLOT(addtoContacts()));
-
-				if(n_is_not_a_contact == 0)
-					contextMenu->addAction(QIcon(":/images/cancel.png"), tr("Remove from Contacts"), this, SLOT(removefromContacts()));
-
-				contextMenu->addSeparator();
-
-				if(n_positive_reputations == 0)	// only unban when all items are banned
-					contextMenu->addAction(QIcon(":/icons/png/thumbs-up.png"), tr("Set positive opinion"), this, SLOT(positivePerson()));
-
-				if(n_neutral_reputations == 0)	// only unban when all items are banned
-					contextMenu->addAction(QIcon(":/icons/png/thumbs-neutral.png"), tr("Set neutral opinion"), this, SLOT(neutralPerson()));
-
-				if(n_negative_reputations == 0)
-					contextMenu->addAction(QIcon(":/icons/png/thumbs-down.png"), tr("Set negative opinion"), this, SLOT(negativePerson()));
-			}
-
-			if(one_item_owned_by_you && n_selected_items==1)
-			{
-				contextMenu->addSeparator();
-
-				contextMenu->addAction(ui->editIdentity);
-				contextMenu->addAction(ui->removeIdentity);
-			}
-
+			root_node_present = true ;
+			continue ;
 		}
 
-		contextMenu = ui->idTreeWidget->createStandardContextMenu(contextMenu);
+		uint32_t item_flags = (*it)->data(RSID_COL_KEYID,Qt::UserRole).toUInt() ;
 
-		contextMenu->exec(QCursor::pos());
-		delete contextMenu;
+		if(item_flags & RSID_FILTER_OWNED_BY_YOU)
+			one_item_owned_by_you = true ;
+
+#ifdef ID_DEBUG
+		std::cerr << "  item flags = " << item_flags << std::endl;
+#endif
+		RsGxsId keyId((*it)->text(RSID_COL_KEYID).toStdString());
+
+		RsIdentityDetails det ;
+		rsIdentity->getIdDetails(keyId,det) ;
+
+		switch(det.mReputation.mOwnOpinion)
+		{
+		case RsReputations::OPINION_NEGATIVE:  ++n_negative_reputations ;
+			break ;
+
+		case RsReputations::OPINION_POSITIVE: ++n_positive_reputations ;
+			break ;
+
+		case RsReputations::OPINION_NEUTRAL: ++n_neutral_reputations ;
+			break ;
+		}
+
+		++n_selected_items ;
+
+		if(rsIdentity->isARegularContact(keyId))
+			++n_is_a_contact ;
+		else
+			++n_is_not_a_contact ;
+	}
+
+	if(!root_node_present)	// don't show menu if some of the root nodes are present
+	{
+
+		if(!one_item_owned_by_you)
+		{
+			QWidget *widget = new QWidget(contextMenu);
+			widget->setStyleSheet( ".QWidget{background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,stop:0 #FEFEFE, stop:1 #E8E8E8); border: 1px solid #CCCCCC;}");
+
+			// create menu header
+			QHBoxLayout *hbox = new QHBoxLayout(widget);
+			hbox->setMargin(0);
+			hbox->setSpacing(6);
+
+			QLabel *iconLabel = new QLabel(widget);
+			QPixmap pix = QPixmap(":/images/user/friends24.png").scaledToHeight(QFontMetricsF(iconLabel->font()).height()*1.5);
+			iconLabel->setPixmap(pix);
+			iconLabel->setMaximumSize(iconLabel->frameSize().height() + pix.height(), pix.width());
+			hbox->addWidget(iconLabel);
+
+			QLabel *textLabel = new QLabel("<strong>" + ui->titleBarLabel->text() + "</strong>", widget);
+			hbox->addWidget(textLabel);
+
+			QSpacerItem *spacerItem = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+			hbox->addItem(spacerItem);
+
+			widget->setLayout(hbox);
+
+			QWidgetAction *widgetAction = new QWidgetAction(this);
+			widgetAction->setDefaultWidget(widget);
+			contextMenu->addAction(widgetAction);
+
+			if(n_selected_items == 1)		// if only one item is selected, allow to chat with this item
+			{
+				if(own_identities.size() <= 1)
+				{
+					QAction *action = contextMenu->addAction(QIcon(":/images/chat_24.png"), tr("Chat with this person"), this, SLOT(chatIdentity()));
+
+					if(own_identities.empty())
+						action->setEnabled(false) ;
+					else
+						action->setData(QString::fromStdString((own_identities.front()).toStdString())) ;
+				}
+				else
+				{
+					QMenu *mnu = contextMenu->addMenu(QIcon(":/images/chat_24.png"),tr("Chat with this person as...")) ;
+
+					for(std::list<RsGxsId>::const_iterator it=own_identities.begin();it!=own_identities.end();++it)
+					{
+						RsIdentityDetails idd ;
+						rsIdentity->getIdDetails(*it,idd) ;
+
+						QPixmap pixmap ;
+
+						if(idd.mAvatar.mSize == 0 || !pixmap.loadFromData(idd.mAvatar.mData, idd.mAvatar.mSize, "PNG"))
+							pixmap = QPixmap::fromImage(GxsIdDetails::makeDefaultIcon(*it)) ;
+
+						QAction *action = mnu->addAction(QIcon(pixmap), QString("%1 (%2)").arg(QString::fromUtf8(idd.mNickname.c_str()), QString::fromStdString((*it).toStdString())), this, SLOT(chatIdentity()));
+						action->setData(QString::fromStdString((*it).toStdString())) ;
+					}
+				}
+			}
+
+			if (n_selected_items==1)
+				contextMenu->addAction(QIcon(":/images/chat_24.png"),tr("Copy identity to clipboard"),this,SLOT(copyRetroshareLink())) ;
+
+			// always allow to send messages
+			contextMenu->addAction(QIcon(":/images/mail_new.png"), tr("Send message"), this, SLOT(sendMsg()));
+
+			contextMenu->addSeparator();
+
+			if(n_is_a_contact == 0)
+				contextMenu->addAction(QIcon(), tr("Add to Contacts"), this, SLOT(addtoContacts()));
+
+			if(n_is_not_a_contact == 0)
+				contextMenu->addAction(QIcon(":/images/cancel.png"), tr("Remove from Contacts"), this, SLOT(removefromContacts()));
+
+			contextMenu->addSeparator();
+
+			if(n_positive_reputations == 0)	// only unban when all items are banned
+				contextMenu->addAction(QIcon(":/icons/png/thumbs-up.png"), tr("Set positive opinion"), this, SLOT(positivePerson()));
+
+			if(n_neutral_reputations == 0)	// only unban when all items are banned
+				contextMenu->addAction(QIcon(":/icons/png/thumbs-neutral.png"), tr("Set neutral opinion"), this, SLOT(neutralPerson()));
+
+			if(n_negative_reputations == 0)
+				contextMenu->addAction(QIcon(":/icons/png/thumbs-down.png"), tr("Set negative opinion"), this, SLOT(negativePerson()));
+		}
+
+		if(one_item_owned_by_you && n_selected_items==1)
+		{
+			contextMenu->addSeparator();
+
+			contextMenu->addAction(QIcon(":/images/chat_24.png"),tr("Copy identity to clipboard"),this,SLOT(copyRetroshareLink())) ;
+			contextMenu->addAction(ui->editIdentity);
+			contextMenu->addAction(ui->removeIdentity);
+		}
+
+	}
+
+	contextMenu = ui->idTreeWidget->createStandardContextMenu(contextMenu);
+
+	contextMenu->exec(QCursor::pos());
+	delete contextMenu;
+}
+
+void IdDialog::copyRetroshareLink()
+{
+	QTreeWidgetItem *item = ui->idTreeWidget->currentItem();
+
+	if (!item)
+	{
+		std::cerr << "IdDialog::editIdentity() Invalid item";
+		std::cerr << std::endl;
+		return;
+	}
+
+	RsGxsId gxs_id(item->text(RSID_COL_KEYID).toStdString());
+
+    if(gxs_id.isNull())
+    {
+        std::cerr << "Null GXS id. Something went wrong." << std::endl;
+        return ;
+    }
+
+    RsIdentityDetails details ;
+
+	if(! rsIdentity->getIdDetails(gxs_id,details))
+		return ;
+
+	if (!mIdQueue)
+		return;
+
+	mStateHelper->setLoading(IDDIALOG_SERIALIZED_GROUP, true);
+
+	mIdQueue->cancelActiveRequestTokens(IDDIALOG_SERIALIZED_GROUP);
+
+    std::list<RsGxsGroupId> ids ;
+    ids.push_back(RsGxsGroupId(gxs_id)) ;
+
+	RsTokReqOptions opts;
+	opts.mReqType = GXS_REQUEST_TYPE_GROUP_SERIALIZED_DATA;
+
+	uint32_t token;
+
+	mIdQueue->requestGroupInfo(token, RS_TOKREQ_ANSTYPE_DATA, opts, ids, IDDIALOG_SERIALIZED_GROUP);
 }
 
 void IdDialog::chatIdentity()
@@ -2300,27 +2573,16 @@ void IdDialog::sendInvite()
 	{
 		return;
 	}
-    /* create a message */
-    MessageComposer *composer = MessageComposer::newMsg();
 
-    composer->setTitleText(tr("You have a friend invite"));
+    RsGxsId id(ui->lineEdit_KeyId->text().toStdString());
     
-    RsPeerId ownId = rsPeers->getOwnId();
-    RetroShareLink link;
-    link.createCertificate(ownId);
+    if ((QMessageBox::question(this, tr("Send invite?"),tr("Do you really want send a invite with your Certificate?"),QMessageBox::Yes|QMessageBox::No, QMessageBox::Yes))== QMessageBox::Yes)
+	{
+        MessageComposer::sendInvite(id);
+        ui->inviteFrame->show();
+        ui->inviteButton->setEnabled(false);
+	}
     
-    std::string keyId = item->text(RSID_COL_KEYID).toStdString();
-    
-    QString sMsgText = inviteMessage();
-    sMsgText += "<br><br>";
-    sMsgText += tr("Respond now:") + "<br>";
-    sMsgText += link.toHtml() + "<br>";
-    sMsgText += "<br>";
-    sMsgText += tr("Thanks, <br>") + QString::fromUtf8(rsPeers->getGPGName(rsPeers->getGPGOwnId()).c_str());
-    composer->setMsgText(sMsgText);
-    composer->addRecipient(MessageComposer::TO,  RsGxsId(keyId));
-
-    composer->show();
 
 }
 
@@ -2399,3 +2661,7 @@ QList<QTreeWidgetItem *> selected_items = ui->idTreeWidget->selectedItems();
 	requestIdList();
 }
 
+void IdDialog::on_closeInfoFrameButton_clicked()
+{
+	ui->inviteFrame->setVisible(false);
+}

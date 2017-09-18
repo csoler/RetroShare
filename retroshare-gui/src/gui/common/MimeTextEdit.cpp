@@ -42,6 +42,7 @@ MimeTextEdit::MimeTextEdit(QWidget *parent)
 	mCompleterKey = Qt::Key_Space;
 	mForceCompleterShowNextKeyEvent = false;
 	highliter = new RsSyntaxHighlighter(this);
+	mOnlyPlainText = false;
 }
 
 bool MimeTextEdit::canInsertFromMimeData(const QMimeData* source) const
@@ -77,6 +78,21 @@ void MimeTextEdit::insertFromMimeData(const QMimeData* source)
 		}
 	}
 #endif
+	if (source == NULL) return;
+
+	//insert retroshare links
+	QList<RetroShareLink> links;
+	RSLinkClipboard::parseText(source->text(), links);
+	if(links.size() > 0)
+	{
+		for(int i = 0; i < links.size(); ++i)
+			if (mOnlyPlainText)
+				insertPlainText(links[i].toString());
+			else
+				insertHtml(links[i].toHtml() + "<br>");
+
+		return;
+	}
 
 	return RSTextEdit::insertFromMimeData(source);
 }
@@ -259,10 +275,10 @@ void MimeTextEdit::pasteLink()
 
 void MimeTextEdit::pasteOwnCertificateLink()
 {
-	RetroShareLink link;
 	RsPeerId ownId = rsPeers->getOwnId();
+	RetroShareLink link = RetroShareLink::createCertificate(ownId);
 
-	if (link.createCertificate(ownId)) {
+	if (link.valid()) {
 		insertHtml(link.toHtml() + " ");
 	}
 }

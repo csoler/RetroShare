@@ -93,6 +93,9 @@ IdEditDialog::IdEditDialog(QWidget *parent) :
 
 	mIdQueue = new TokenQueue(rsIdentity->getTokenService(), this);
 	ui->pushButton_Tag->setEnabled(false);
+	ui->pushButton_Tag->hide(); // unfinished
+	ui->plainTextEdit_Tag->hide();
+	ui->label_TagCheck->hide();
 }
 
 IdEditDialog::~IdEditDialog()
@@ -262,7 +265,7 @@ void IdEditDialog::loadExistingId(uint32_t token)
 
 	setAvatar(avatar);
 
-	bool realid = (mEditGroup.mMeta.mGroupFlags & RSGXSID_GROUPFLAG_REALID);
+	bool realid = (mEditGroup.mMeta.mGroupFlags & RSGXSID_GROUPFLAG_REALID_kept_for_compatibility);
 
 	if (realid)
 	{

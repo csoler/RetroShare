@@ -161,7 +161,7 @@ void DLListDelegate::paint(QPainter * painter, const QStyleOptionViewItem & opti
         case COLUMN_PROGRESS:
 			{
 				// create a xProgressBar
-				FileProgressInfo pinfo = index.data().value<FileProgressInfo>() ;
+				FileProgressInfo pinfo = index.data(Qt::UserRole).value<FileProgressInfo>() ;
 
 //				std::cerr << "drawing progress info: nb_chunks = " << pinfo.nb_chunks ;
 //				for(uint i=0;i<pinfo.cmap._map.size();++i)
@@ -229,6 +229,8 @@ void DLListDelegate::paint(QPainter * painter, const QStyleOptionViewItem & opti
                         painter->drawText(option.rect.translated(pixmap.size().width(), 0), Qt::AlignLeft, temp);
                         break;
     case COLUMN_LASTDL:
+        if (index.data().value<QString>().isEmpty())
+            break;
         qi64Value = index.data().value<qint64>();
         if (qi64Value < std::numeric_limits<qint64>::max()){
             QDateTime qdtLastDL = QDateTime::fromTime_t(qi64Value);

@@ -61,14 +61,14 @@ file_lists {
 
 dsdv {
 DEFINES *= SERVICES_DSDV
-HEADERS += services/p3dsdv.h \
-			  serialiser/rstlvdsdv.h \
-			  serialiser/rsdsdvitems.h \
-			  retroshare/rsdsdv.h 
+HEADERS += unused/p3dsdv.h \
+			  unused/rstlvdsdv.h \
+			  unused/rsdsdvitems.h \
+			  unused/rsdsdv.h 
 
-SOURCES *= serialiser/rstlvdsdv.cc \
-			  serialiser/rsdsdvitems.cc \
-		  	  services/p3dsdv.cc 
+SOURCES *= unused/rstlvdsdv.cc \
+			  unused/rsdsdvitems.cc \
+		  	  unused/p3dsdv.cc 
 }
 bitdht {
 
@@ -140,10 +140,9 @@ PUBLIC_HEADERS =	retroshare/rsdisc.h \
 					retroshare/rsversion.h \
 					retroshare/rsservicecontrol.h \
 
-
 HEADERS += plugins/pluginmanager.h \
 		plugins/dlfcn_win32.h \
-		serialiser/rspluginitems.h \
+		rsitems/rspluginitems.h \
     util/rsinitedptr.h
 
 HEADERS += $$PUBLIC_HEADERS
@@ -151,13 +150,12 @@ HEADERS += $$PUBLIC_HEADERS
 
 ################################# Linux ##########################################
 linux-* {
-	CONFIG += link_pkgconfig
+    CONFIG += link_pkgconfig
 
 	QMAKE_CXXFLAGS *= -Wall -D_FILE_OFFSET_BITS=64
 	QMAKE_CC = $${QMAKE_CXX}
 
-	contains(CONFIG, NO_SQLCIPHER) {
-		DEFINES *= NO_SQLCIPHER
+    no_sqlcipher {
 		PKGCONFIG *= sqlite3
 	} else {
 		SQLCIPHER_OK = $$system(pkg-config --exists sqlcipher && echo yes)
@@ -168,7 +166,7 @@ linux-* {
 				DEPENDPATH += ../../../lib/
 				INCLUDEPATH += ../../../lib/
 			} else {
-				error("libsqlcipher is not installed and libsqlcipher.a not found. SQLCIPHER is necessary for encrypted database, to build with unencrypted database, run: qmake CONFIG+=NO_SQLCIPHER")
+                error("libsqlcipher is not installed and libsqlcipher.a not found. SQLCIPHER is necessary for encrypted database, to build with unencrypted database, run: qmake CONFIG+=no_sqlcipher")
 			}
 		} else {
 			# Workaround for broken sqlcipher packages, e.g. Ubuntu 14.04
@@ -182,7 +180,7 @@ linux-* {
 
 	# linux/bsd can use either - libupnp is more complete and packaged.
 	#CONFIG += upnp_miniupnpc 
-	CONFIG += upnp_libupnp
+    CONFIG += upnp_libupnp
 
 	# Check if the systems libupnp has been Debian-patched
 	system(grep -E 'char[[:space:]]+PublisherUrl' /usr/include/upnp/upnp.h >/dev/null 2>&1) {
@@ -192,14 +190,12 @@ linux-* {
 		DEFINES *= PATCHED_LIBUPNP
 	}
 
-	DEFINES *= HAS_GNOME_KEYRING
-	PKGCONFIG *= gnome-keyring-1
 	PKGCONFIG *= libssl libupnp
 	PKGCONFIG *= libcrypto zlib
 	LIBS *= -lpthread -ldl
 }
 
-unix {
+linux-* {
 	DEFINES *= PLUGIN_DIR=\"\\\"$${PLUGIN_DIR}\\\"\"
 	DEFINES *= DATA_DIR=\"\\\"$${DATA_DIR}\\\"\"
 
@@ -282,7 +278,12 @@ win32 {
 
 	CONFIG += upnp_miniupnpc
 
-	LIBS += -lsqlcipher
+	no_sqlcipher {
+		PKGCONFIG *= sqlite3
+		LIBS += -lsqlite3
+	} else {
+		LIBS += -lsqlcipher
+	}
 
 	DEPENDPATH += . $$INC_DIR
 	INCLUDEPATH += . $$INC_DIR
@@ -295,7 +296,7 @@ mac {
 		OBJECTS_DIR = temp/obj
 		MOC_DIR = temp/moc
 		#DEFINES = WINDOWS_SYS WIN32 STATICLIB MINGW
-                DEFINES *= MINIUPNPC_VERSION=13
+		#DEFINES *= MINIUPNPC_VERSION=13
 
 		CONFIG += upnp_miniupnpc
                 CONFIG += c++11
@@ -305,7 +306,7 @@ mac {
 		#CONFIG += zcnatassist
 
 		# Beautiful Hack to fix 64bit file access.
-                QMAKE_CXXFLAGS *= -Dfseeko64=fseeko -Dftello64=ftello -Dfopen64=fopen -Dvstatfs64=vstatfs
+		QMAKE_CXXFLAGS *= -Dfseeko64=fseeko -Dftello64=ftello -Dfopen64=fopen -Dvstatfs64=vstatfs
 
 		#GPG_ERROR_DIR = ../../../../libgpg-error-1.7
 		#GPGME_DIR  = ../../../../gpgme-1.1.8
@@ -315,10 +316,14 @@ mac {
 
 		DEPENDPATH += . $$INC_DIR
 		INCLUDEPATH += . $$INC_DIR
+		INCLUDEPATH += ../../../.
 
 		# We need a explicit path here, to force using the home version of sqlite3 that really encrypts the database.
 		LIBS += /usr/local/lib/libsqlcipher.a
 		#LIBS += -lsqlite3
+
+		DEFINES *= PLUGIN_DIR=\"\\\"$${PLUGIN_DIR}\\\"\"
+		DEFINES *= DATA_DIR=\"\\\"$${DATA_DIR}\\\"\"
 }
 
 ################################# FreeBSD ##########################################
@@ -331,7 +336,7 @@ freebsd-* {
 
 	# linux/bsd can use either - libupnp is more complete and packaged.
 	#CONFIG += upnp_miniupnpc 
-	CONFIG += upnp_libupnp
+    CONFIG += upnp_libupnp
 }
 
 ################################# OpenBSD ##########################################
@@ -380,6 +385,9 @@ HEADERS +=	ft/ftchunkmap.h \
 			ft/fttransfermodule.h \
 			ft/ftturtlefiletransferitem.h 
 
+HEADERS += crypto/chacha20.h \
+				crypto/hashstream.h
+
 HEADERS += directory_updater.h \
 				directory_list.h \
 				p3filelists.h
@@ -423,6 +431,7 @@ HEADERS +=	pqi/authssl.h \
 			pqi/pqissl.h \
 			pqi/pqissllistener.h \
 			pqi/pqisslpersongrp.h \
+                        pqi/pqissli2pbob.h \
 			pqi/pqissludp.h \
 			pqi/pqisslproxy.h \
 			pqi/pqistore.h \
@@ -451,17 +460,17 @@ HEADERS +=  grouter/groutercache.h \
 				grouter/groutertypes.h \
 				grouter/rsgrouterclient.h 
 
-HEADERS +=	serialiser/itempriorities.h \
+HEADERS +=	rsitems/rsitem.h \
+			rsitems/itempriorities.h \
 			serialiser/rsbaseserial.h \
-			serialiser/rsfiletransferitems.h \
-			serialiser/rsserviceserialiser.h \
-			serialiser/rsconfigitems.h \
-			serialiser/rshistoryitems.h \
-			serialiser/rsmsgitems.h \
+			rsitems/rsfiletransferitems.h \
+			rsitems/rsconfigitems.h \
+			rsitems/rshistoryitems.h \
+			rsitems/rsmsgitems.h \
 			serialiser/rsserial.h \
-			serialiser/rsserviceids.h \
+			rsitems/rsserviceids.h \
 			serialiser/rsserviceitems.h \
-			serialiser/rsstatusitems.h \
+			rsitems/rsstatusitems.h \
 			serialiser/rstlvaddrs.h \
 			serialiser/rstlvbase.h \
 			serialiser/rstlvitem.h \
@@ -478,16 +487,18 @@ HEADERS +=	serialiser/itempriorities.h \
 			serialiser/rstlvlist.h \
 			serialiser/rstlvmaps.h \
 			serialiser/rstlvbanlist.h \
-			serialiser/rsbanlistitems.h \
-			serialiser/rsbwctrlitems.h \
-			serialiser/rsdiscovery2items.h \
-			serialiser/rsheartbeatitems.h \
-			serialiser/rsrttitems.h \
-			serialiser/rsgxsrecognitems.h \
-			serialiser/rsgxsupdateitems.h \
-			serialiser/rsserviceinfoitems.h \
+			rsitems/rsbanlistitems.h \
+			rsitems/rsbwctrlitems.h \
+			rsitems/rsdiscovery2items.h \
+			rsitems/rsheartbeatitems.h \
+			rsitems/rsrttitems.h \
+			rsitems/rsgxsrecognitems.h \
+			rsitems/rsgxsupdateitems.h \
+			rsitems/rsserviceinfoitems.h \
 
-HEADERS +=	services/p3msgservice.h \
+HEADERS +=  services/autoproxy/p3i2pbob.h \
+            services/autoproxy/rsautoproxymonitor.h \
+            services/p3msgservice.h \
 			services/p3service.h \
 			services/p3statusservice.h \
 			services/p3banlist.h \
@@ -512,6 +523,9 @@ HEADERS +=	util/folderiterator.h \
 			util/rsnet.h \
 			util/extaddrfinder.h \
 			util/dnsresolver.h \
+                        util/radix32.h \
+                        util/radix64.h \
+                        util/rsinitedptr.h \
 			util/rsprint.h \
 			util/rsstring.h \
 			util/rsstd.h \
@@ -519,13 +533,14 @@ HEADERS +=	util/folderiterator.h \
 			util/rsversioninfo.h \
 			util/rswin.h \
 			util/rsrandom.h \
-			util/radix64.h \
 			util/pugiconfig.h \  
 			util/rsmemcache.h \
 			util/rstickevent.h \
 			util/rsrecogn.h \
 			util/rsscopetimer.h \
-			util/stacktrace.h
+            util/stacktrace.h \
+            util/rsdeprecate.h \
+            util/cxx11retrocompat.h
 
 SOURCES +=	ft/ftchunkmap.cc \
 			ft/ftcontroller.cc \
@@ -537,6 +552,9 @@ SOURCES +=	ft/ftchunkmap.cc \
 			ft/ftserver.cc \
 			ft/fttransfermodule.cc \
 			ft/ftturtlefiletransferitem.cc 
+
+SOURCES += crypto/chacha20.cpp \
+			  crypto/hashstream.cc
 
 SOURCES += chat/distantchat.cc \
 			  chat/p3chatservice.cc \
@@ -569,6 +587,7 @@ SOURCES +=	pqi/authgpg.cc \
 			pqi/pqissl.cc \
 			pqi/pqissllistener.cc \
 			pqi/pqisslpersongrp.cc \
+                        pqi/pqissli2pbob.cpp \
 			pqi/pqissludp.cc \
 			pqi/pqisslproxy.cc \
 			pqi/pqistore.cc \
@@ -599,17 +618,14 @@ SOURCES +=  grouter/p3grouter.cc \
 				grouter/groutermatrix.cc 
 
 SOURCES += plugins/pluginmanager.cc \
-				plugins/dlfcn_win32.cc \
-				serialiser/rspluginitems.cc
+				plugins/dlfcn_win32.cc 
 
 SOURCES +=	serialiser/rsbaseserial.cc \
-			serialiser/rsfiletransferitems.cc \
-			serialiser/rsserviceserialiser.cc \
-			serialiser/rsconfigitems.cc \
-			serialiser/rshistoryitems.cc \
-			serialiser/rsmsgitems.cc \
+			rsitems/rsfiletransferitems.cc \
+			rsitems/rsconfigitems.cc \
+			rsitems/rshistoryitems.cc \
+			rsitems/rsmsgitems.cc \
 			serialiser/rsserial.cc \
-			serialiser/rsstatusitems.cc \
 			serialiser/rstlvaddrs.cc \
 			serialiser/rstlvbase.cc \
 			serialiser/rstlvitem.cc \
@@ -622,16 +638,17 @@ SOURCES +=	serialiser/rsbaseserial.cc \
 			serialiser/rstlvkeyvalue.cc \
 			serialiser/rstlvgenericparam.cc \
 			serialiser/rstlvbanlist.cc \
-			serialiser/rsbanlistitems.cc \
-			serialiser/rsbwctrlitems.cc \
-			serialiser/rsdiscovery2items.cc \
-			serialiser/rsheartbeatitems.cc \
-			serialiser/rsrttitems.cc \
-			serialiser/rsgxsrecognitems.cc \
-			serialiser/rsgxsupdateitems.cc \
-			serialiser/rsserviceinfoitems.cc \
+			rsitems/rsbanlistitems.cc \
+			rsitems/rsbwctrlitems.cc \
+			rsitems/rsdiscovery2items.cc \
+			rsitems/rsrttitems.cc \
+			rsitems/rsgxsrecognitems.cc \
+			rsitems/rsgxsupdateitems.cc \
+			rsitems/rsserviceinfoitems.cc \
 
-SOURCES +=	services/p3msgservice.cc \
+SOURCES +=  services/autoproxy/rsautoproxymonitor.cc \
+            services/autoproxy/p3i2pbob.cc \
+            services/p3msgservice.cc \
 			services/p3service.cc \
 			services/p3statusservice.cc \
 			services/p3banlist.cc \
@@ -716,7 +733,7 @@ SOURCES +=	zeroconf/p3zcnatassist.cc \
 DEFINES *= SQLITE_HAS_CODEC
 DEFINES *= GXS_ENABLE_SYNC_MSGS
 
-HEADERS += serialiser/rsnxsitems.h \
+HEADERS += rsitems/rsnxsitems.h \
 	gxs/rsgds.h \
 	gxs/rsgxs.h \
 	gxs/rsdataservice.h \
@@ -729,7 +746,7 @@ HEADERS += serialiser/rsnxsitems.h \
 	retroshare/rstokenservice.h \
 	gxs/rsgxsdataaccess.h \
 	retroshare/rsgxsservice.h \
-	serialiser/rsgxsitems.h \
+	rsitems/rsgxsitems.h \
 	util/retrodb.h \
 	util/rsdbbind.h \
 	gxs/rsgxsutil.h \
@@ -742,12 +759,12 @@ HEADERS += serialiser/rsnxsitems.h \
 	gxs/rsgxsrequesttypes.h
 
 
-SOURCES += serialiser/rsnxsitems.cc \
+SOURCES += rsitems/rsnxsitems.cc \
 	gxs/rsdataservice.cc \
 	gxs/rsgenexchange.cc \
 	gxs/rsgxsnetservice.cc \
 	gxs/rsgxsdata.cc \
-	serialiser/rsgxsitems.cc \
+	rsitems/rsgxsitems.cc \
 	gxs/rsgxsdataaccess.cc \
 	util/retrodb.cc \
 	util/contentvalue.cc \
@@ -766,88 +783,98 @@ HEADERS += gxstunnel/p3gxstunnel.h \
 SOURCES += gxstunnel/p3gxstunnel.cc \
 				gxstunnel/rsgxstunnelitems.cc 
 
+# new serialization code
+HEADERS += serialiser/rsserializer.h \
+           serialiser/rstypeserializer.h
+
+SOURCES += serialiser/rsserializer.cc \
+           serialiser/rstypeserializer.cc 
+
 # Identity Service
 HEADERS += retroshare/rsidentity.h \
 	gxs/rsgixs.h \
 	services/p3idservice.h \
-	serialiser/rsgxsiditems.h \
+	rsitems/rsgxsiditems.h \
 	services/p3gxsreputation.h \
-	serialiser/rsgxsreputationitems.h \
+	rsitems/rsgxsreputationitems.h \
 
 SOURCES += services/p3idservice.cc \
-	serialiser/rsgxsiditems.cc \
+	rsitems/rsgxsiditems.cc \
 	services/p3gxsreputation.cc \
-	serialiser/rsgxsreputationitems.cc \
+	rsitems/rsgxsreputationitems.cc \
 
 # GxsCircles Service
 HEADERS += services/p3gxscircles.h \
-	serialiser/rsgxscircleitems.h \
+	rsitems/rsgxscircleitems.h \
 	retroshare/rsgxscircles.h \
 
 SOURCES += services/p3gxscircles.cc \
-	serialiser/rsgxscircleitems.cc \
+	rsitems/rsgxscircleitems.cc \
 
 # GxsForums Service
 HEADERS += retroshare/rsgxsforums.h \
 	services/p3gxsforums.h \
-	serialiser/rsgxsforumitems.h
+	rsitems/rsgxsforumitems.h
 
 SOURCES += services/p3gxsforums.cc \
-	serialiser/rsgxsforumitems.cc \
+	rsitems/rsgxsforumitems.cc \
 
 # GxsChannels Service
 HEADERS += retroshare/rsgxschannels.h \
 	services/p3gxschannels.h \
 	services/p3gxscommon.h \
-	serialiser/rsgxscommentitems.h \
-	serialiser/rsgxschannelitems.h \
+	rsitems/rsgxscommentitems.h \
+	rsitems/rsgxschannelitems.h \
 
 SOURCES += services/p3gxschannels.cc \
 	services/p3gxscommon.cc \
-	serialiser/rsgxscommentitems.cc \
-	serialiser/rsgxschannelitems.cc \
+	rsitems/rsgxscommentitems.cc \
+	rsitems/rsgxschannelitems.cc \
 
 wikipoos {
 	# Wiki Service
 	HEADERS += retroshare/rswiki.h \
 		services/p3wiki.h \
-		serialiser/rswikiitems.h
+		rsitems/rswikiitems.h
 
 	SOURCES += services/p3wiki.cc \
-		serialiser/rswikiitems.cc \
+		rsitems/rswikiitems.cc \
 }
 
 gxsthewire {
 	# Wire Service
 	HEADERS += retroshare/rswire.h \
 		services/p3wire.h \
-		serialiser/rswireitems.h
+		rsitems/rswireitems.h
 
 	SOURCES += services/p3wire.cc \
-		serialiser/rswireitems.cc \
+		rsitems/rswireitems.cc \
 }
 
 # Posted Service
 HEADERS += services/p3postbase.h \
 	services/p3posted.h \
 	retroshare/rsposted.h \
-	serialiser/rsposteditems.h
+	rsitems/rsposteditems.h
 
 SOURCES +=  services/p3postbase.cc \
 	services/p3posted.cc \
-	serialiser/rsposteditems.cc
+	rsitems/rsposteditems.cc
 
 gxsphotoshare {
 	#Photo Service
 	HEADERS += services/p3photoservice.h \
 		retroshare/rsphoto.h \
-		serialiser/rsphotoitems.h \
+		rsitems/rsphotoitems.h \
 
 	SOURCES += services/p3photoservice.cc \
-		serialiser/rsphotoitems.cc \
+		rsitems/rsphotoitems.cc \
 }
 
-
+rs_gxs_trans {
+    HEADERS += gxstrans/p3gxstransitems.h gxstrans/p3gxstrans.h
+    SOURCES += gxstrans/p3gxstransitems.cc gxstrans/p3gxstrans.cc
+}
 
 
 
@@ -886,3 +913,27 @@ test_bitdht {
 	# ENABLED UDP NOW.
 }
 
+################################# Android #####################################
+
+android-g++ {
+## ifaddrs is missing on Android add them don't use the one from
+## https://github.com/morristech/android-ifaddrs
+## because they crash, use QNetworkInterface from Qt instead
+    CONFIG *= qt
+    QT *= network
+
+## Add this here and not in retroshare.pri because static library are very
+## sensible to order in command line, has to be in the end of file for the
+## same reason
+    LIBS += -L$$NATIVE_LIBS_TOOLCHAIN_PATH/sysroot/usr/lib/ -lssl
+    INCLUDEPATH += $$NATIVE_LIBS_TOOLCHAIN_PATH/sysroot/usr/include
+    DEPENDPATH += $$NATIVE_LIBS_TOOLCHAIN_PATH/sysroot/usr/include
+    PRE_TARGETDEPS += $$NATIVE_LIBS_TOOLCHAIN_PATH/sysroot/usr/lib/libssl.a
+
+    LIBS += -L$$NATIVE_LIBS_TOOLCHAIN_PATH/sysroot/usr/lib/ -lcrypto
+    INCLUDEPATH += $$NATIVE_LIBS_TOOLCHAIN_PATH/sysroot/usr/include
+    DEPENDPATH += $$NATIVE_LIBS_TOOLCHAIN_PATH/sysroot/usr/include
+    PRE_TARGETDEPS += $$NATIVE_LIBS_TOOLCHAIN_PATH/sysroot/usr/lib/libcrypto.a
+
+    HEADERS += util/androiddebug.h
+}

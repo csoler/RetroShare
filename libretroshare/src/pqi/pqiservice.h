@@ -93,6 +93,7 @@ public:
 
     inline bool enabled() const { return mEnabled ; }
 
+	 virtual void getItemNames(std::map<uint8_t,std::string>& /*names*/) const {}	// This does nothing by default. Service should derive it in order to give info for the UI
 private:
     p3ServiceServerIface *mServiceServer; // const, no need for mutex.
     bool mEnabled ;
@@ -114,10 +115,10 @@ public:
 	virtual ~p3ServiceServerIface() {}
 
 
-virtual bool	recvItem(RsRawItem *) = 0;
-virtual bool	sendItem(RsRawItem *) = 0;
+	virtual bool	recvItem(RsRawItem *) = 0;
+	virtual bool	sendItem(RsRawItem *) = 0;
 
-
+	virtual bool    getServiceItemNames(uint32_t service_type,std::map<uint8_t,std::string>& names) =0;
 };
 
 class p3ServiceServer : public p3ServiceServerIface
@@ -125,15 +126,16 @@ class p3ServiceServer : public p3ServiceServerIface
 public:
     p3ServiceServer(pqiPublisher *pub, p3ServiceControl *ctrl);
 
-    int	addService(pqiService *, bool defaultOn);
-    int	removeService(pqiService *);
+	int	addService(pqiService *, bool defaultOn);
+	int	removeService(pqiService *);
 
-    bool	recvItem(RsRawItem *);
-    bool	sendItem(RsRawItem *);
+	bool	recvItem(RsRawItem *);
+	bool	sendItem(RsRawItem *);
 
-    int	tick();
+	void switchService(uint32_t service_id,bool on) ;
+	bool getServiceItemNames(uint32_t service_type, std::map<uint8_t,std::string>& names) ;
 
-    void switchService(uint32_t service_id,bool on) ;
+	int	tick();
 
 private:
 
@@ -142,7 +144,6 @@ private:
 
     RsMutex srvMtx;
     std::map<uint32_t, pqiService *> services;
-
 };
 
 

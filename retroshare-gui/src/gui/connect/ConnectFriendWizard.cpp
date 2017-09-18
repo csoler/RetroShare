@@ -19,13 +19,15 @@
  *  Boston, MA  02110-1301, USA.
  ****************************************************************/
 
-#include <QUrl>
-#include <QDesktopServices>
-#include <QMessageBox>
+#include <QCheckBox>
 #include <QClipboard>
+#include <QDesktopServices>
 #include <QFileDialog>
-#include <QTextStream>
+#include <QLayout>
+#include <QMessageBox>
 #include <QTextCodec>
+#include <QTextStream>
+#include <QUrl>
 
 #if QT_VERSION >= QT_VERSION_CHECK(5,0,0)
 #include <QUrlQuery>
@@ -42,6 +44,7 @@
 
 #include <retroshare/rsiface.h>
 #include <retroshare/rsbanlist.h>
+#include <retroshare/rsconfig.h>
 
 #include "ConnectProgressDialog.h"
 #include "gui/GetStartedDialog.h"
@@ -78,6 +81,11 @@ ConnectFriendWizard::ConnectFriendWizard(QWidget *parent) :
 	mTitleFontSize = 0; // Standard
 	mTitleFontWeight = 0; // Standard
 
+    // (csoler) I'm hiding this, since it is not needed anymore with the new Home page.
+    ui->userFrame->hide();
+	
+	ui->userFileFrame->hide(); // in homepage dropmenu now
+
 // this define comes from Qt example. I don't have mac, so it wasn't tested
 #ifndef Q_OS_MAC
 	setWizardStyle(ModernStyle);
@@ -89,7 +97,7 @@ ConnectFriendWizard::ConnectFriendWizard(QWidget *parent) :
 //	setOption(HaveHelpButton, true);
 //	connect(this, SIGNAL(helpRequested()), this, SLOT(showHelp()));
 
-	setPixmap(QWizard::LogoPixmap, QPixmap(":/images/connect/connectFriendLogo.png"));
+	setPixmap(QWizard::LogoPixmap, QPixmap(":/icons/invite64.png"));
 
 // we have no good pictures for watermarks
 //	setPixmap(QWizard::WatermarkPixmap, QPixmap(":/images/connectFriendWatermark.png"));
@@ -101,9 +109,9 @@ ConnectFriendWizard::ConnectFriendWizard(QWidget *parent) :
 	ui->foffRadioButton->hide();
 	ui->rsidRadioButton->hide();
 	
-	ui->fr_label->hide();
+	ui->cp_Label->hide();
 	ui->requestinfolabel->hide();
-
+	
     connect(ui->acceptNoSignGPGCheckBox,SIGNAL(toggled(bool)), ui->_options_GB,SLOT(setEnabled(bool))) ;
     connect(ui->addKeyToKeyring_CB,SIGNAL(toggled(bool)), ui->acceptNoSignGPGCheckBox,SLOT(setChecked(bool))) ;
 	
@@ -113,14 +121,51 @@ ConnectFriendWizard::ConnectFriendWizard(QWidget *parent) :
     connect(ui->aolButton, SIGNAL(clicked()), this, SLOT(inviteAol()));
     connect(ui->yandexButton, SIGNAL(clicked()), this, SLOT(inviteYandex()));
     connect(ui->emailButton, SIGNAL(clicked()), this, SLOT(runEmailClient2()));
-
+	connect(ui->toggleadvancedButton, SIGNAL(clicked()), this, SLOT(toggleAdvanced()));
     
     subject = tr("RetroShare Invitation");
     body = GetStartedDialog::GetInviteText();
 	
     body += "\n" + GetStartedDialog::GetCutBelowText();
     body += "\n\n" + QString::fromUtf8(rsPeers->GetRetroshareInvite(false).c_str());
+	
+	std::string advsetting;
+	if(rsConfig->getConfigurationOption(RS_CONFIG_ADVANCED, advsetting) && (advsetting == "YES"))
+	{
+		ui->toggleadvancedButton->setVisible(false);
+	}
+	else
+	{
+		ui->userFrame->hide(); // certificates page - top half with own cert and it's functions
+		ui->cp_Frame->hide(); // Advanced options - key sign, whitelist, direct source ...
+		AdvancedVisible=false;
+		ui->trustLabel->hide();
+		ui->trustEdit->hide();
+	}
+	
+	unsigned int onlineCount = 0, friendCount = 0;
+    rsPeers->getPeerCount (&friendCount, &onlineCount, false);
+	if(friendCount<30)
+		ui->makefriend_infolabel->hide();
 
+	//Add warning to direct source checkbox depends general setting.
+	switch (rsFiles->filePermDirectDL())
+	{
+		case RS_FILE_PERM_DIRECT_DL_YES:
+			ui->_direct_transfer_CB->setIcon(QIcon(":/icons/warning_yellow_128.png"));
+			ui->_direct_transfer_CB->setToolTip(ui->_direct_transfer_CB->toolTip().append(tr("\nWarning: In your File-Transfer option, you select allow direct download to Yes.")));
+			ui->_direct_transfer_CB_2->setIcon(QIcon(":/icons/warning_yellow_128.png"));
+			ui->_direct_transfer_CB_2->setToolTip(ui->_direct_transfer_CB_2->toolTip().append(tr("\nWarning: In your File-Transfer option, you select allow direct download to Yes.")));
+			break ;
+		case RS_FILE_PERM_DIRECT_DL_NO:
+			ui->_direct_transfer_CB->setIcon(QIcon(":/icons/warning_yellow_128.png"));
+			ui->_direct_transfer_CB->setToolTip(ui->_direct_transfer_CB->toolTip().append(tr("\nWarning: In your File-Transfer option, you select allow direct download to No.")));
+			ui->_direct_transfer_CB_2->setIcon(QIcon(":/icons/warning_yellow_128.png"));
+			ui->_direct_transfer_CB_2->setToolTip(ui->_direct_transfer_CB_2->toolTip().append(tr("\nWarning: In your File-Transfer option, you select allow direct download to No.")));
+			break ;
+
+		default: break ;
+	}
 	updateStylesheet();
 }
 
@@ -254,7 +299,7 @@ void ConnectFriendWizard::setCertificate(const QString &certificate, bool friend
         //setStartId(friendRequest ? Page_FriendRequest : Page_Conclusion);
         setStartId(Page_Conclusion);
         if (friendRequest){
-        ui->fr_label->show();
+        ui->cp_Label->show();
         ui->requestinfolabel->show();
         setTitleText(ui->ConclusionPage, tr("Friend request"));
         ui->ConclusionPage->setSubTitle(tr("Details about the request"));
@@ -280,7 +325,7 @@ void ConnectFriendWizard::setGpgId(const RsPgpId &gpgId, const RsPeerId &sslId, 
     //setStartId(friendRequest ? Page_FriendRequest : Page_Conclusion);
     setStartId(Page_Conclusion);
     if (friendRequest){
-    ui->fr_label->show();
+    ui->cp_Label->show();
     ui->requestinfolabel->show();
     setTitleText(ui->ConclusionPage,tr("Friend request"));
     ui->ConclusionPage->setSubTitle(tr("Details about the request"));
@@ -320,6 +365,7 @@ void ConnectFriendWizard::initializePage(int id)
 		connect(ui->userCertOldFormatButton, SIGNAL(clicked()), this, SLOT(toggleFormatState()));
 		connect(ui->userCertCopyButton, SIGNAL(clicked()), this, SLOT(copyCert()));
 		connect(ui->userCertPasteButton, SIGNAL(clicked()), this, SLOT(pasteCert()));
+		connect(ui->userCertOpenButton, SIGNAL(clicked()), this, SLOT(openCert()));
 		connect(ui->userCertSaveButton, SIGNAL(clicked()), this, SLOT(saveCert()));
 		connect(ui->userCertMailButton, SIGNAL(clicked()), this, SLOT(runEmailClient()));
 		connect(ui->friendCertEdit, SIGNAL(textChanged()), this, SLOT(friendCertChanged()));
@@ -391,7 +437,7 @@ void ConnectFriendWizard::initializePage(int id)
 		{
 			std::cerr << "Conclusion page id : " << peerDetails.id << "; gpg_id : " << peerDetails.gpg_id << std::endl;
 
-            ui->_direct_transfer_CB_2  ->setChecked(peerDetails.service_perm_flags & RS_NODE_PERM_DIRECT_DL) ;
+            ui->_direct_transfer_CB_2  ->setChecked(false) ; //peerDetails.service_perm_flags & RS_NODE_PERM_DIRECT_DL) ;
             ui->_allow_push_CB_2  ->setChecked(peerDetails.service_perm_flags & RS_NODE_PERM_ALLOW_PUSH) ;
             ui->_require_WL_CB_2  ->setChecked(peerDetails.service_perm_flags & RS_NODE_PERM_REQUIRE_WL) ;
 
@@ -402,7 +448,7 @@ void ConnectFriendWizard::initializePage(int id)
         {
             QString ipstring0 = QString::fromStdString(sockaddr_storage_iptostring(addr));
 
-            ui->_addIPToWhiteList_CB_2->setChecked(true) ;
+            ui->_addIPToWhiteList_CB_2->setChecked(ui->_require_WL_CB_2->isChecked());
             ui->_addIPToWhiteList_ComboBox_2->addItem(ipstring0) ;
             ui->_addIPToWhiteList_ComboBox_2->addItem(ipstring0+"/24") ;
             ui->_addIPToWhiteList_ComboBox_2->addItem(ipstring0+"/16") ;
@@ -494,7 +540,7 @@ void ConnectFriendWizard::initializePage(int id)
 				}
 			}
 
-			ui->fr_label->setText(tr("You have a friend request from") + " " + QString::fromUtf8(peerDetails.name.c_str()));
+			ui->cp_Label->setText(tr("You have a friend request from") + " " + QString::fromUtf8(peerDetails.name.c_str()));
 			ui->nameEdit->setText(QString::fromUtf8(peerDetails.name.c_str()));
 			ui->trustEdit->setText(trustString);
 			ui->emailEdit->setText(QString::fromUtf8(peerDetails.email.c_str()));
@@ -518,6 +564,26 @@ void ConnectFriendWizard::initializePage(int id)
 			ui->signersEdit->setPlainText(ts);
 
 			fillGroups(this, ui->groupComboBox, groupId);
+			
+			if(peerDetails.isHiddenNode)
+			{
+				ui->_addIPToWhiteList_CB_2->setEnabled(false) ;
+				ui->_require_WL_CB_2->setEnabled(false) ;
+				ui->_addIPToWhiteList_ComboBox_2->setEnabled(false) ;
+				ui->_addIPToWhiteList_ComboBox_2->addItem("(Hidden node)") ;
+				int S = QFontMetricsF(ui->ipEdit->font()).height() ;
+				ui->ipEdit->setToolTip("This is a Hidden node - you need tor/i2p proxy to connect");
+				ui->ipLabel->setPixmap(QPixmap(":/images/anonymous_128_blue.png").scaledToHeight(S*2,Qt::SmoothTransformation));
+				ui->ipLabel->setToolTip("This is a Hidden node - you need tor/i2p proxy to connect");
+			}
+
+			if(peerDetails.email.empty())
+			{
+				ui->emailLabel->hide(); // is it ever used?
+				ui->emailEdit->hide();
+			}
+			ui->ipEdit->setTextInteractionFlags(Qt::TextSelectableByMouse);
+
 		}
 		break;
 	case Page_FriendRequest:
@@ -573,7 +639,7 @@ void ConnectFriendWizard::initializePage(int id)
 
 			ui->fr_nodeEdit->setText(loc);
 			
-			ui->fr_label_3->setText(tr("You have a friend request from") + " " + QString::fromUtf8(peerDetails.name.c_str()));
+			ui->fr_InfoTopLabel->setText(tr("You have a friend request from") + " " + QString::fromUtf8(peerDetails.name.c_str()));
 
 			fillGroups(this, ui->fr_groupComboBox, groupId);
 		}
@@ -627,6 +693,7 @@ bool ConnectFriendWizard::validateCurrentPage()
 
 	switch ((Page) currentId()) {
 	case Page_Intro:
+	case Page_WebMail:
 		break;
 	case Page_Text:
 		{
@@ -959,12 +1026,15 @@ void ConnectFriendWizard::friendCertChanged()
 void ConnectFriendWizard::cleanFriendCert()
 {
 	bool certValid = false;
-	QString errorMsg;
+	QString errorMsg ;
 	std::string cert = ui->friendCertEdit->toPlainText().toUtf8().constData();
 
 	if (cert.empty()) {
 		ui->friendCertCleanLabel->setPixmap(QPixmap(":/images/delete.png"));
 		ui->friendCertCleanLabel->setToolTip("");
+		ui->friendCertCleanLabel->setStyleSheet("");
+		errorMsg = tr("");
+
 	} else {
 		std::string cleanCert;
 		int error_code;
@@ -976,29 +1046,36 @@ void ConnectFriendWizard::cleanFriendCert()
 				QTextCursor textCursor = ui->friendCertEdit->textCursor();
 				ui->friendCertEdit->setPlainText(QString::fromUtf8(cleanCert.c_str()));
 				ui->friendCertEdit->setTextCursor(textCursor);
+				ui->friendCertCleanLabel->setStyleSheet("");
 				connect(ui->friendCertEdit, SIGNAL(textChanged()), this, SLOT(friendCertChanged()));
 			}
+			errorMsg = tr("Certificate appears to be valid");
+			ui->friendCertCleanLabel->setPixmap(QPixmap(":/images/accepted16.png"));
 		} else {
 			if (error_code > 0) {
 				switch (error_code) {
-				case RS_PEER_CERT_CLEANING_CODE_NO_BEGIN_TAG:
-					errorMsg = tr("No or misspelled BEGIN tag found") ;
-					break ;
-				case RS_PEER_CERT_CLEANING_CODE_NO_END_TAG:
-					errorMsg = tr("No or misspelled END tag found") ;
-					break ;
-				case RS_PEER_CERT_CLEANING_CODE_NO_CHECKSUM:
-					errorMsg = tr("No checksum found (the last 5 chars should be separated by a '=' char), or no newline after tag line (e.g. line beginning with Version:)") ;
-					break ;
+				case CERTIFICATE_PARSING_ERROR_CHECKSUM_ERROR            :
+				case CERTIFICATE_PARSING_ERROR_WRONG_VERSION             :
+				case CERTIFICATE_PARSING_ERROR_SIZE_ERROR                :
+				case CERTIFICATE_PARSING_ERROR_INVALID_LOCATION_ID       :
+				case CERTIFICATE_PARSING_ERROR_INVALID_EXTERNAL_IP       :
+				case CERTIFICATE_PARSING_ERROR_INVALID_LOCAL_IP          :
+				case CERTIFICATE_PARSING_ERROR_INVALID_CHECKSUM_SECTION  :
+				case CERTIFICATE_PARSING_ERROR_UNKNOWN_SECTION_PTAG      :
+				case CERTIFICATE_PARSING_ERROR_MISSING_CHECKSUM          :
+
 				default:
-					errorMsg = tr("Unknown error. Your cert is probably not even a certificate.") ;
+					errorMsg = tr("Not a valid Retroshare certificate!") ;
+					ui->friendCertCleanLabel->setStyleSheet("QLabel#friendCertCleanLabel {border: 2px solid red; border-radius: 6px;}");
 				}
 			}
+			ui->friendCertCleanLabel->setPixmap(QPixmap(":/images/delete.png"));
 		}
 	}
 
 	ui->friendCertCleanLabel->setPixmap(certValid ? QPixmap(":/images/accepted16.png") : QPixmap(":/images/delete.png"));
 	ui->friendCertCleanLabel->setToolTip(errorMsg);
+	ui->friendCertCleanLabel->setText(errorMsg);
 
 	ui->TextPage->setComplete(certValid);
 }
@@ -1019,6 +1096,22 @@ void ConnectFriendWizard::pasteCert()
 {
 	QClipboard *clipboard = QApplication::clipboard();
 	ui->friendCertEdit->setPlainText(clipboard->text());
+}
+
+void ConnectFriendWizard::openCert()
+{
+	QString fileName ;
+	if(!misc::getOpenFileName(this, RshareSettings::LASTDIR_CERT, tr("Select Certificate"), tr("RetroShare Certificate (*.rsc );;All Files (*)"),fileName))
+		return ;
+
+	if (!fileName.isNull()) {
+		QFile fileCert(fileName);
+		if (fileCert.open(QIODevice::ReadOnly )) {
+			QByteArray arrayCert(fileCert.readAll());
+			ui->friendCertEdit->setPlainText(QString::fromUtf8(arrayCert));
+			fileCert.close();
+		}
+	}
 }
 
 void ConnectFriendWizard::saveCert()
@@ -1266,4 +1359,20 @@ void ConnectFriendWizard::inviteYandex()
 void ConnectFriendWizard::runEmailClient2()
 {
 	sendMail("", subject, body );
+}
+
+void ConnectFriendWizard::toggleAdvanced()
+{
+	if(AdvancedVisible)
+	{
+		ui->cp_Frame->hide();
+		ui->toggleadvancedButton->setText("Show advanced options");
+		AdvancedVisible=false;
+	}
+	else
+	{
+		ui->cp_Frame->show();
+		ui->toggleadvancedButton->setText("Hide advanced options");
+		AdvancedVisible=true;
+	}
 }

@@ -123,7 +123,7 @@ GxsGroupFrameDialog::~GxsGroupFrameDialog()
 
 void GxsGroupFrameDialog::initUi()
 {
-	registerHelpButton(ui->helpButton, getHelpString()) ;
+	registerHelpButton(ui->helpButton, getHelpString(),pageName()) ;
 
 	ui->titleBarPixmap->setPixmap(QPixmap(icon(ICON_NAME)));
 	ui->titleBarLabel->setText(text(TEXT_NAME));
@@ -285,14 +285,34 @@ void GxsGroupFrameDialog::groupTreeCustomPopupMenu(QPoint point)
 	action = contextMnu.addAction(QIcon(IMAGE_EDIT), tr("Edit Details"), this, SLOT(editGroupDetails()));
 	action->setEnabled (!mGroupId.isNull() && isAdmin);
 
+    uint32_t current_store_time = mInterface->getStoragePeriod(mGroupId)/86400 ;
+    uint32_t current_sync_time  = mInterface->getSyncPeriod(mGroupId)/86400 ;
+
+    std::cerr << "Got sync=" << current_sync_time << ". store=" << current_store_time << std::endl;
+    QAction *actnn = NULL;
+
+	QMenu *ctxMenu2 = contextMnu.addMenu(tr("Synchronise posts of last...")) ;
+    actnn = ctxMenu2->addAction(tr(" 5 days"     ),this,SLOT(setSyncPostsDelay())) ; actnn->setData(QVariant(  5)) ; if(current_sync_time ==  5) { actnn->setEnabled(false);actnn->setIcon(QIcon(":/images/start.png"));}
+	actnn = ctxMenu2->addAction(tr(" 2 weeks"    ),this,SLOT(setSyncPostsDelay())) ; actnn->setData(QVariant( 15)) ; if(current_sync_time == 15) { actnn->setEnabled(false);actnn->setIcon(QIcon(":/images/start.png"));}
+	actnn = ctxMenu2->addAction(tr(" 1 month"    ),this,SLOT(setSyncPostsDelay())) ; actnn->setData(QVariant( 30)) ; if(current_sync_time == 30) { actnn->setEnabled(false);actnn->setIcon(QIcon(":/images/start.png"));}
+	actnn = ctxMenu2->addAction(tr(" 3 months"   ),this,SLOT(setSyncPostsDelay())) ; actnn->setData(QVariant( 90)) ; if(current_sync_time == 90) { actnn->setEnabled(false);actnn->setIcon(QIcon(":/images/start.png"));}
+	actnn = ctxMenu2->addAction(tr(" 6 months"   ),this,SLOT(setSyncPostsDelay())) ; actnn->setData(QVariant(180)) ; if(current_sync_time ==180) { actnn->setEnabled(false);actnn->setIcon(QIcon(":/images/start.png"));}
+	actnn = ctxMenu2->addAction(tr(" 1 year  "   ),this,SLOT(setSyncPostsDelay())) ; actnn->setData(QVariant(372)) ; if(current_sync_time ==372) { actnn->setEnabled(false);actnn->setIcon(QIcon(":/images/start.png"));}
+	actnn = ctxMenu2->addAction(tr(" Indefinitly"),this,SLOT(setSyncPostsDelay())) ; actnn->setData(QVariant(  0)) ; if(current_sync_time ==  0) { actnn->setEnabled(false);actnn->setIcon(QIcon(":/images/start.png"));}
+
+    ctxMenu2 = contextMnu.addMenu(tr("Store posts for at most...")) ;
+    actnn = ctxMenu2->addAction(tr(" 5 days"     ),this,SLOT(setStorePostsDelay())) ; actnn->setData(QVariant(  5)) ; if(current_store_time ==  5) { actnn->setEnabled(false);actnn->setIcon(QIcon(":/images/start.png"));}
+    actnn = ctxMenu2->addAction(tr(" 2 weeks"    ),this,SLOT(setStorePostsDelay())) ; actnn->setData(QVariant( 15)) ; if(current_store_time == 15) { actnn->setEnabled(false);actnn->setIcon(QIcon(":/images/start.png"));}
+    actnn = ctxMenu2->addAction(tr(" 1 month"    ),this,SLOT(setStorePostsDelay())) ; actnn->setData(QVariant( 30)) ; if(current_store_time == 30) { actnn->setEnabled(false);actnn->setIcon(QIcon(":/images/start.png"));}
+    actnn = ctxMenu2->addAction(tr(" 3 months"   ),this,SLOT(setStorePostsDelay())) ; actnn->setData(QVariant( 90)) ; if(current_store_time == 90) { actnn->setEnabled(false);actnn->setIcon(QIcon(":/images/start.png"));}
+    actnn = ctxMenu2->addAction(tr(" 6 months"   ),this,SLOT(setStorePostsDelay())) ; actnn->setData(QVariant(180)) ; if(current_store_time ==180) { actnn->setEnabled(false);actnn->setIcon(QIcon(":/images/start.png"));}
+    actnn = ctxMenu2->addAction(tr(" 1 year  "   ),this,SLOT(setStorePostsDelay())) ; actnn->setData(QVariant(372)) ; if(current_store_time ==372) { actnn->setEnabled(false);actnn->setIcon(QIcon(":/images/start.png"));}
+    actnn = ctxMenu2->addAction(tr(" Indefinitly"),this,SLOT(setStorePostsDelay())) ; actnn->setData(QVariant(  0)) ; if(current_store_time ==  0) { actnn->setEnabled(false);actnn->setIcon(QIcon(":/images/start.png"));}
+
 	if (shareKeyType()) {
         action = contextMnu.addAction(QIcon(IMAGE_SHARE), tr("Share publish permissions"), this, SLOT(sharePublishKey()));
         action->setEnabled(!mGroupId.isNull() && isPublisher);
 	}
-
-    //if (!mGroupId.isNull() && isPublisher && !isAdmin) {
-    //	contextMnu.addAction(QIcon(":/images/settings16.png"), tr("Restore Publish Rights" ), this, SLOT(restoreGroupKeys()));
-    //}
 
 	if (getLinkType() != RetroShareLink::TYPE_UNKNOWN) {
 		action = contextMnu.addAction(QIcon(IMAGE_COPYLINK), tr("Copy RetroShare Link"), this, SLOT(copyGroupLink()));
@@ -316,6 +336,70 @@ void GxsGroupFrameDialog::groupTreeCustomPopupMenu(QPoint point)
 	}
 
 	contextMnu.exec(QCursor::pos());
+}
+
+void GxsGroupFrameDialog::setStorePostsDelay()
+{
+    QAction *action = dynamic_cast<QAction*>(sender()) ;
+
+    if(!action || mGroupId.isNull())
+    {
+        std::cerr << "(EE) Cannot find action/group that called me! Group is " << mGroupId << ", action is " << (void*)action << "  " << __PRETTY_FUNCTION__ << std::endl;
+        return;
+    }
+
+    uint32_t duration = action->data().toUInt() ;
+
+    std::cerr << "Data is " << duration << std::endl;
+
+ 	mInterface->setStoragePeriod(mGroupId,duration * 86400) ;
+
+    // If the sync is larger, we reduce it. No need to sync more than we store. The machinery below also takes care of this.
+    //
+    uint32_t sync_period = mInterface->getSyncPeriod(mGroupId);
+
+    if(duration > 0)      // the >0 test is to discard the indefinitly test. Basically, if we store for less than indefinitly, the sync is reduced accordingly.
+    {
+        if(sync_period == 0 || sync_period > duration*86400)
+        {
+			mInterface->setSyncPeriod(mGroupId,duration * 86400) ;
+
+            std::cerr << "(II) auto adjusting sync period to " << duration<< " days as well." << std::endl;
+        }
+    }
+}
+
+
+void GxsGroupFrameDialog::setSyncPostsDelay()
+{
+    QAction *action = dynamic_cast<QAction*>(sender()) ;
+
+    if(!action || mGroupId.isNull())
+    {
+        std::cerr << "(EE) Cannot find action/group that called me! Group is " << mGroupId << ", action is " << (void*)action << "  " << __PRETTY_FUNCTION__ << std::endl;
+        return;
+    }
+
+    uint32_t duration = action->data().toUInt() ;
+
+    std::cerr << "Data is " << duration << std::endl;
+
+ 	mInterface->setSyncPeriod(mGroupId,duration * 86400) ;
+
+    // If the store is smaller, we increase it accordingly. No need to sync more than we store. The machinery below also takes care of this.
+    //
+    uint32_t store_period = mInterface->getStoragePeriod(mGroupId);
+
+    if(duration == 0)
+ 		mInterface->setStoragePeriod(mGroupId,duration * 86400) ;	// indefinite sync => indefinite storage
+    else
+    {
+        if(store_period != 0 && store_period < duration*86400)
+        {
+ 			mInterface->setStoragePeriod(mGroupId,duration * 86400) ;	// indefinite sync => indefinite storage
+            std::cerr << "(II) auto adjusting storage period to " << duration<< " days as well." << std::endl;
+        }
+    }
 }
 
 void GxsGroupFrameDialog::restoreGroupKeys(void)
@@ -396,12 +480,12 @@ void GxsGroupFrameDialog::copyGroupLink()
 		return;
 	}
 
-	RetroShareLink link;
-
 	QString name;
 	if(!getCurrentGroupName(name)) return;
 
-	if (link.createGxsGroupLink(getLinkType(), mGroupId, name)) {
+	RetroShareLink link = RetroShareLink::createGxsGroupLink(getLinkType(), mGroupId, name);
+
+	if (link.valid()) {
 		QList<RetroShareLink> urls;
 		urls.push_back(link);
 		RSLinkClipboard::copyLinks(urls);
@@ -441,7 +525,7 @@ void GxsGroupFrameDialog::sharePublishKey()
     shareUi.exec();
 }
 
-void GxsGroupFrameDialog::loadComment(const RsGxsGroupId &grpId, const RsGxsMessageId &msgId, const QString &title)
+void GxsGroupFrameDialog::loadComment(const RsGxsGroupId &grpId, const QVector<RsGxsMessageId>& msg_versions, const RsGxsMessageId &most_recent_msgId, const QString &title)
 {
 	RsGxsCommentService *commentService = getCommentService();
 	if (!commentService) {
@@ -449,7 +533,8 @@ void GxsGroupFrameDialog::loadComment(const RsGxsGroupId &grpId, const RsGxsMess
 		return;
 	}
 
-	GxsCommentDialog *commentDialog = commentWidget(msgId);
+	GxsCommentDialog *commentDialog = commentWidget(most_recent_msgId);
+
 	if (!commentDialog) {
 		QString comments = title;
 		if (title.length() > MAX_COMMENT_TITLE)
@@ -460,12 +545,16 @@ void GxsGroupFrameDialog::loadComment(const RsGxsGroupId &grpId, const RsGxsMess
 
 		commentDialog = new GxsCommentDialog(this, mInterface->getTokenService(), commentService);
 
-		QWidget *commentHeader = createCommentHeaderWidget(grpId, msgId);
+		QWidget *commentHeader = createCommentHeaderWidget(grpId, most_recent_msgId);
 		if (commentHeader) {
 			commentDialog->setCommentHeader(commentHeader);
 		}
 
-		commentDialog->commentLoad(grpId, msgId);
+        std::set<RsGxsMessageId> msgv;
+        for(int i=0;i<msg_versions.size();++i)
+            msgv.insert(msg_versions[i]);
+
+		commentDialog->commentLoad(grpId, msgv,most_recent_msgId);
 
 		int index = ui->messageTabWidget->addTab(commentDialog, comments);
 		ui->messageTabWidget->setTabIcon(index, QIcon(IMAGE_COMMENT));
@@ -536,12 +625,12 @@ GxsMessageFrameWidget *GxsGroupFrameDialog::createMessageWidget(const RsGxsGroup
 
 	connect(msgWidget, SIGNAL(groupChanged(QWidget*)), this, SLOT(messageTabInfoChanged(QWidget*)));
 	connect(msgWidget, SIGNAL(waitingChanged(QWidget*)), this, SLOT(messageTabWaitingChanged(QWidget*)));
-	connect(msgWidget, SIGNAL(loadComment(RsGxsGroupId,RsGxsMessageId,QString)), this, SLOT(loadComment(RsGxsGroupId,RsGxsMessageId,QString)));
+	connect(msgWidget, SIGNAL(loadComment(RsGxsGroupId,QVector<RsGxsMessageId>,RsGxsMessageId,QString)), this, SLOT(loadComment(RsGxsGroupId,QVector<RsGxsMessageId>,RsGxsMessageId,QString)));
 
 	return msgWidget;
 }
 
-GxsCommentDialog *GxsGroupFrameDialog::commentWidget(const RsGxsMessageId &msgId)
+GxsCommentDialog *GxsGroupFrameDialog::commentWidget(const RsGxsMessageId& msgId)
 {
 	int tabCount = ui->messageTabWidget->count();
 	for (int index = 0; index < tabCount; ++index) {
@@ -726,8 +815,8 @@ void GxsGroupFrameDialog::insertGroupsData(const std::list<RsGroupMetaData> &gro
 		}
 		else
 		{
-			/* rate the others by popularity */
-			popMap.insert(std::make_pair(it->mPop, groupItemInfo));
+			//popMap.insert(std::make_pair(it->mPop, groupItemInfo)); /* rate the others by popularity */
+			popMap.insert(std::make_pair(it->mLastPost, groupItemInfo)); /* rate the others by time of last post */
 		}
 	}
 
@@ -739,26 +828,29 @@ void GxsGroupFrameDialog::insertGroupsData(const std::list<RsGroupMetaData> &gro
 	}
 
 	uint32_t i = 0;
-	uint32_t popLimit = 0;
 	std::multimap<uint32_t, GroupItemInfo>::reverse_iterator rit;
-	for(rit = popMap.rbegin(); ((rit != popMap.rend()) && (i < popCount)); ++rit, ++i) ;
-	if (rit != popMap.rend()) {
-		popLimit = rit->first;
-	}
+	//uint32_t popLimit = 0;
+	//for(rit = popMap.rbegin(); ((rit != popMap.rend()) && (i < popCount)); ++rit, ++i) ;
+	//if (rit != popMap.rend()) {
+	//	popLimit = rit->first;
+	//}
 
-	for (rit = popMap.rbegin(); rit != popMap.rend(); ++rit) {
-		if (rit->second.popularity < (int) popLimit) {
-			otherList.append(rit->second);
-		} else {
+	for (rit = popMap.rbegin(); rit != popMap.rend(); ++rit,++i) {
+		//if (rit->second.popularity > (int) popLimit) {
+		if(i < popCount)
 			popList.append(rit->second);
-		}
+		else
+			otherList.append(rit->second);
 	}
 
 	/* now we can add them in as a tree! */
 	ui->groupTreeWidget->fillGroupItems(mYourGroups, adminList);
 	ui->groupTreeWidget->fillGroupItems(mSubscribedGroups, subList);
+	mSubscribedGroups->setText(2, QString::number(mSubscribedGroups->childCount())); // 1 COLUMN_UNREAD 2 COLUMN_POPULARITY
 	ui->groupTreeWidget->fillGroupItems(mPopularGroups, popList);
+	mPopularGroups->setText(2, QString::number(mPopularGroups->childCount()));
 	ui->groupTreeWidget->fillGroupItems(mOtherGroups, otherList);
+	mOtherGroups->setText(2, QString::number(mOtherGroups->childCount()));
 
 	mInFill = false;
 

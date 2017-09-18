@@ -5,7 +5,7 @@
 #include "gxstestservice.h"
 
 // libretroshare
-#include "serialiser/rsnxsitems.h"
+#include "rsitems/rsnxsitems.h"
 
 GxsPairServiceTester::GxsPairServiceTester(const RsPeerId &peerId1, const RsPeerId &peerId2, int testMode, bool useIdentityService)
 	:SetServiceTester()
@@ -104,7 +104,7 @@ void GxsPairServiceTester::PrintCapturedPackets()
 	std::cerr << "#Packets: " << getPacketCount();
 	std::cerr << std::endl;
 
-	for(int i = 0; i < getPacketCount(); i++)
+	for(uint32_t i = 0; i < getPacketCount(); i++)
 	{
 		SetPacket &pkt = examinePacket(i);
 

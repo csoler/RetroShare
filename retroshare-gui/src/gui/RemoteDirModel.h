@@ -94,9 +94,10 @@ class RetroshareDirModel : public QAbstractItemModel
 		void treeStyle();
 		void downloadDirectory(const DirDetails & details, int prefixLen);
 		static QString getFlagsString(FileStorageFlags f) ;
-        static QString getGroupsString(const std::list<RsNodeGroupId> &) ;
+        static QString getGroupsString(FileStorageFlags flags, const std::list<RsNodeGroupId> &) ;
 		QString getAgeIndicatorString(const DirDetails &) const;
 //		void getAgeIndicatorRec(const DirDetails &details, QString &ret) const;
+        static const QIcon& getFlagsIcon(FileStorageFlags flags) ;
 
 		virtual QVariant displayRole(const DirDetails&,int) const = 0 ;
 		virtual QVariant sortRole(const QModelIndex&,const DirDetails&,int) const =0;
@@ -145,11 +146,17 @@ class RetroshareDirModel : public QAbstractItemModel
 		};
 
 		bool RemoteMode;
-		QMap<void*, DirDetailsVector> mCache;
 
 		mutable int nIndex;
 		mutable std::vector<RemoteIndex> indexSet;
 
+        // This material attempts to keep last request in cache, with no search cost.
+
+        mutable DirDetails mDirDetails ;
+        mutable bool mLastRemote ;
+        mutable time_t mLastReq;
+
+        bool mUpdating ;
 };
 
 // This class shows the classical hierarchical directory view of shared files
@@ -170,6 +177,7 @@ class TreeStyle_RDM: public RetroshareDirModel
 
 	protected:
         virtual void updateRef(const QModelIndex&) const ;
+		virtual void update() ;
 
         /* These are all overloaded Virtual Functions */
 		virtual int rowCount(const QModelIndex &parent = QModelIndex()) const;
@@ -193,11 +201,7 @@ class FlatStyle_RDM: public RetroshareDirModel
 	Q_OBJECT 
 
 	public:
-		FlatStyle_RDM(bool mode)
-            : RetroshareDirModel(mode), _ref_mutex("Flat file list")
-		{
-			_needs_update = true ;
-		}
+		FlatStyle_RDM(bool mode);
 
 		virtual ~FlatStyle_RDM() ;
 
@@ -227,6 +231,7 @@ class FlatStyle_RDM: public RetroshareDirModel
         std::vector<void *> _ref_entries ;// used to store the refs to display
 		std::vector<void *> _ref_stack ;		// used to store the refs to update
 		bool _needs_update ;
+        time_t _last_update ;
 };
 
 

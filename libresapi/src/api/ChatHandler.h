@@ -11,9 +11,10 @@ class RsIdentity;
 namespace resource_api
 {
 
-class UnreadMsgNotify{
+class UnreadMsgNotify
+{
 public:
-    virtual void notifyUnreadMsgCountChanged(const RsPeerId& peer, uint32_t count) = 0;
+	virtual void notifyUnreadMsgCountChanged(const RsPeerId& peer, uint32_t count) = 0;
 };
 
 class ChatHandler: public ResourceRouter, NotifyClient, Tickable
@@ -33,6 +34,8 @@ public:
     //typing label for lobby chat, peer join and leave messages
     virtual void notifyChatLobbyEvent (uint64_t           /* lobby id */, uint32_t           /* event type    */ ,
                                        const RsGxsId& /* nickname */,const std::string& /* any string */);
+
+	virtual void notifyListChange(int list, int type);
 
     // from tickable
     virtual void tick();
@@ -117,8 +120,13 @@ public:
 private:
     void handleWildcard(Request& req, Response& resp);
     void handleLobbies(Request& req, Response& resp);
+	void handleCreateLobby(Request& req, Response& resp);
     void handleSubscribeLobby(Request& req, Response& resp);
     void handleUnsubscribeLobby(Request& req, Response& resp);
+	void handleAutoSubsribeLobby(Request& req, Response& resp);
+	void handleInviteToLobby(Request& req, Response& resp);
+	void handleGetInvitationsToLobby(Request& req, Response& resp);
+	void handleAnswerToInvitation(Request& req, Response& resp);
     void handleClearLobby(Request& req, Response& resp);
     ResponseTask* handleLobbyParticipants(Request& req, Response& resp);
     void handleMessages(Request& req, Response& resp);
@@ -128,6 +136,9 @@ private:
     ResponseTask *handleReceiveStatus(Request& req, Response& resp);
     void handleSendStatus(Request& req, Response& resp);
     void handleUnreadMsgs(Request& req, Response& resp);
+	void handleInitiateDistantChatConnexion(Request& req, Response& resp);
+	void handleDistantChatStatus(Request& req, Response& resp);
+	void handleCloseDistantChatConnexion(Request& req, Response& resp);
 
     void getPlainText(const std::string& in, std::string &out, std::vector<Triple> &links);
     // last parameter is only used for lobbies!
@@ -156,6 +167,7 @@ private:
     std::map<ChatLobbyId, LobbyParticipantsInfo> mLobbyParticipantsInfos;
 
     StateToken mUnreadMsgsStateToken;
+	StateToken mInvitationsStateToken;
 
 };
 } // namespace resource_api

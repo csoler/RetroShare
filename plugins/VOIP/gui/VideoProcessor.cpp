@@ -38,6 +38,7 @@ extern "C" {
 #endif
 #endif
 
+#ifndef MINGW
 #if (LIBAVUTIL_VERSION_MAJOR == 54) && (LIBAVUTIL_VERSION_MINOR == 3) && (LIBAVUTIL_VERSION_MICRO == 0)
 //Ubuntu Vivid use other version of rational.h than GIT with LIBAVUTIL_VERSION_MICRO  == 0
 #define VIVID_RATIONAL_H_VERSION 1
@@ -75,9 +76,10 @@ void avcodec_free_context(AVCodecContext **pavctx)
 //Since https://github.com/FFmpeg/FFmpeg/commit/7ecc2d403ce5c7b6ea3b1f368dccefd105209c7e
 static void get_frame_defaults(AVFrame *frame)
 {
-    if (frame->extended_data != frame->data)
+    if (frame->extended_data != frame->data) {
         av_freep(&frame->extended_data);
         return;
+    }
 
     frame->extended_data = NULL;
     get_frame_defaults(frame);
@@ -106,7 +108,7 @@ void av_frame_free(AVFrame **frame)
     av_freep(frame);
 }
 #endif
-
+#endif // MINGW
 
 VideoProcessor::VideoProcessor()
     :_encoded_frame_size(640,480) , vpMtx("VideoProcessor")
@@ -283,7 +285,7 @@ void VideoProcessor::receiveEncodedData(const RsVOIPDataChunk& chunk)
 //        {
             _decoded_output_device->showFrame(img) ;
 //            _lastTimeToShowFrame = time(NULL) ;//+ 1000/25;
-#warning "\plugins\VOIP\gui\VideoProcessor.cpp:210 TODO: Get CPU usage to pass image."
+#warning \plugins\VOIP\gui\VideoProcessor.cpp:210 Phenom: TODO: Get CPU usage to pass image.
 //        }
 }
 

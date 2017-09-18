@@ -53,7 +53,7 @@ class p3ServiceControl;
 #include "pqi/p3cfgmgr.h"
 
 #include "retroshare/rsfiles.h"
-#include "serialiser/rsconfigitems.h"
+#include "rsitems/rsconfigitems.h"
 
 #include <map>
 
@@ -140,9 +140,17 @@ class ftController: public RsTickingThread, public pqiServiceMonitor, public p3C
 
         bool 	setChunkStrategy(const RsFileHash& hash,FileChunksInfo::ChunkStrategy s);
 		void 	setDefaultChunkStrategy(FileChunksInfo::ChunkStrategy s);
-		FileChunksInfo::ChunkStrategy	defaultChunkStrategy();
+        void 	setDefaultEncryptionPolicy(uint32_t s);
+        FileChunksInfo::ChunkStrategy	defaultChunkStrategy();
 		uint32_t freeDiskSpaceLimit() const ;
 		void setFreeDiskSpaceLimit(uint32_t size_in_mb) ;
+        uint32_t defaultEncryptionPolicy();
+
+        void setMaxUploadsPerFriend(uint32_t m) ;
+        uint32_t getMaxUploadsPerFriend() ;
+
+		void setFilePermDirectDL(uint32_t perm) ;
+		uint32_t filePermDirectDL() ;
 
         bool 	FileCancel(const RsFileHash& hash);
         bool 	FileControl(const RsFileHash& hash, uint32_t flags);
@@ -162,8 +170,6 @@ class ftController: public RsTickingThread, public pqiServiceMonitor, public p3C
 		void clearQueue() ;
 		void setQueueSize(uint32_t size) ;
 		uint32_t getQueueSize() ;
-		void setMinPrioritizedTransfers(uint32_t size) ;
-		uint32_t getMinPrioritizedTransfers() ;
 
 		/* get Details of File Transfers */
         void FileDownloads(std::list<RsFileHash> &hashs);
@@ -174,9 +180,6 @@ class ftController: public RsTickingThread, public pqiServiceMonitor, public p3C
 		std::string getDownloadDirectory();
 		std::string getPartialsDirectory();
         bool 	FileDetails(const RsFileHash &hash, FileInfo &info);
-
-		bool moveFile(const std::string& source,const std::string& dest) ;
-		bool copyFile(const std::string& source,const std::string& dest) ;
 
 		/***************************************************************/
 		/********************** Cache Transfer *************************/
@@ -236,14 +239,16 @@ class ftController: public RsTickingThread, public pqiServiceMonitor, public p3C
 		p3turtle *mTurtle ;
 		ftServer *mFtServer ;
 		p3ServiceControl *mServiceCtrl;
-		uint32_t mFtServiceId;
+		uint32_t mFtServiceType;
+		uint32_t mDefaultEncryptionPolicy;
+		uint32_t mFilePermDirectDLPolicy;
 
         uint32_t cnt ;
 		RsMutex ctrlMutex;
 
         std::map<RsFileHash, ftFileControl*> mCompleted;
         std::map<RsFileHash, ftFileControl*> mDownloads;
-		std::vector<ftFileControl*> _queue ;
+		std::vector<ftFileControl*> mDownloadQueue ;
 
 		std::string mConfigPath;
 		std::string mDownloadPath;
@@ -263,8 +268,8 @@ class ftController: public RsTickingThread, public pqiServiceMonitor, public p3C
 
 		FileChunksInfo::ChunkStrategy mDefaultChunkStrategy ;
 
-		uint32_t _max_active_downloads ; // maximum number of simultaneous downloads
-		uint32_t _min_prioritized_transfers ; // min number of non cache transfers in the top of the queue.
+		uint32_t _max_active_downloads ;   // maximum number of simultaneous downloads
+		uint32_t _max_uploads_per_friend ; // maximum number of uploads per friend. 0 means unlimited.
 };
 
 #endif

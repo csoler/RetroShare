@@ -24,7 +24,6 @@
 #include <retroshare/rsplugin.h>
 #include <rshare.h>
 #include "GeneralPage.h"
-#include "DirectoriesPage.h"
 #include "ServerPage.h"
 #include "NetworkPage.h"
 #include "NotifyPage.h"
@@ -33,12 +32,12 @@
 #include "FileAssociationsPage.h"
 #include "SoundPage.h"
 #include "TransferPage.h"
-#include "RelayPage.h"
 #include "ChatPage.h"
 #include "ChannelPage.h"
 #include "PeoplePage.h"
 #include "MessagePage.h"
 #include "ForumPage.h"
+#include "AboutPage.h"
 #include "PostedPage.h"
 #include "PluginsPage.h"
 #include "ServicePermissionsPage.h"
@@ -46,23 +45,30 @@
 #include "rsharesettings.h"
 #include "gui/notifyqt.h"
 #include "gui/common/FloatingHelpBrowser.h"
+#include "gui/common/RSElidedItemDelegate.h"
 
 #define IMAGE_GENERAL       ":/images/kcmsystem24.png"
 
+#define ITEM_SPACING 2
+
 #include "rsettingswin.h"
 
-RSettingsWin *RSettingsWin::_instance = NULL;
-int RSettingsWin::lastPage = 0;
+//RSettingsWin *RSettingsWin::_instance = NULL;
+int SettingsPage::lastPage = 0;
 
-RSettingsWin::RSettingsWin(QWidget *parent)
-    : QDialog(parent, Qt::WindowSystemMenuHint | Qt::WindowTitleHint | Qt::WindowMinMaxButtonsHint | Qt::WindowCloseButtonHint)
+SettingsPage::SettingsPage(QWidget *parent)
+    : MainPage(parent, Qt::WindowSystemMenuHint | Qt::WindowTitleHint | Qt::WindowMinMaxButtonsHint | Qt::WindowCloseButtonHint)
 {
     ui.setupUi(this);
     setAttribute(Qt::WA_DeleteOnClose, true);
-    setModal(false);
 
     /* Initialize help browser */
     mHelpBrowser = new FloatingHelpBrowser(this, ui.helpButton);
+
+    /* Add own item delegate to get item width*/
+    RSElidedItemDelegate *itemDelegate = new RSElidedItemDelegate(this);
+    itemDelegate->setSpacing(QSize(0, ITEM_SPACING));
+    ui.listWidget->setItemDelegate(itemDelegate);
 
     initStackedWidget();
 
@@ -73,31 +79,30 @@ RSettingsWin::RSettingsWin(QWidget *parent)
     }
 
     connect(ui.listWidget, SIGNAL(currentRowChanged(int)), this, SLOT(setNewPage(int)));
-    connect(ui.buttonBox, SIGNAL(accepted()), this, SLOT(saveChanges()));
-    connect(ui.buttonBox, SIGNAL(rejected()), this, SLOT(close()));
     connect(this, SIGNAL(finished(int)), this, SLOT(dialogFinished(int)));
 }
 
-RSettingsWin::~RSettingsWin()
+SettingsPage::~SettingsPage()
 {
     /* Save window position */
     Settings->setValueToGroup("SettingDialog", "Geometry", saveGeometry());
     lastPage = ui.stackedWidget->currentIndex ();
-    _instance = NULL;
+    //_instance = NULL;
 }
 
-void RSettingsWin::dialogFinished(int result)
-{
-	if (result == Rejected) {
-		/* reaload style sheet */
-		Rshare::loadStyleSheet(::Settings->getSheetName());
-	}
-}
+//void RSettingsPage::dialogFinished(int result)
+//{
+//	if (result == Rejected) {
+//		/* reaload style sheet */
+//		Rshare::loadStyleSheet(::Settings->getSheetName());
+//	}
+//}
 
-/*static*/ void RSettingsWin::showYourself(QWidget *parent, PageType page /* = LastPage*/)
+/*static*/ void SettingsPage::showYourself(QWidget */*parent*/, PageType /*page = LastPage*/)
 {
+#ifdef TODO
     if(_instance == NULL) {
-        _instance = new RSettingsWin(parent);
+        _instance = new RSettingsPage(parent);
     }
 
     if (page != LastPage) {
@@ -111,17 +116,21 @@ void RSettingsWin::dialogFinished(int result)
 
     _instance->show();
     _instance->activateWindow();
+#else
+    std::cerr << "(EE) unimplemented call to RSettingsPage::showYourself" << std::endl;
+#endif
 }
 
-/*static*/ void RSettingsWin::postModDirectories(bool update_local)
+/*static*/ void SettingsPage::postModDirectories(bool update_local)
 {
-    if (_instance == NULL || _instance->isHidden() || _instance->ui.stackedWidget == NULL) {
+    //if (_instance == NULL || _instance->isHidden() || _instance->ui.stackedWidget == NULL) {
+    if (ui.stackedWidget == NULL) {
        return;
     }
 
     if (update_local) {
-        if (_instance->ui.stackedWidget->currentIndex() == Directories) {
-            ConfigPage *Page = dynamic_cast<ConfigPage *> (_instance->ui.stackedWidget->currentWidget());
+        if (ui.stackedWidget->currentIndex() == Directories) {
+            ConfigPage *Page = dynamic_cast<ConfigPage *> (ui.stackedWidget->currentWidget());
             if (Page) {
                 Page->load();
             }
@@ -130,28 +139,26 @@ void RSettingsWin::dialogFinished(int result)
 }
 
 void
-RSettingsWin::initStackedWidget()
+SettingsPage::initStackedWidget()
 {
     ui.stackedWidget->setCurrentIndex(-1);
     ui.stackedWidget->removeWidget(ui.stackedWidget->widget(0));
 
-    addPage(new GeneralPage(0));
-    addPage(new ServerPage());
-    addPage(new TransferPage());
-    addPage(new RelayPage() );
-    addPage(new DirectoriesPage());
-    addPage(new PluginsPage() );
-    addPage(new NotifyPage());
-    addPage(new CryptoPage());
-    addPage(new PeoplePage());
-    addPage(new ChatPage());
-    addPage(new MessagePage());
-    addPage(new ChannelPage());
-    addPage(new ForumPage());
-    addPage(new PostedPage());
-    addPage(new AppearancePage());
-    addPage(new SoundPage() );
-    addPage(new ServicePermissionsPage() );
+    addPage(new GeneralPage()); // GENERAL
+    addPage(new CryptoPage()); // NODE
+    addPage(new ServerPage()); // NETWORK
+    addPage(new PeoplePage()); // PEOLPE
+    addPage(new ChatPage()); // CHAT
+    addPage(new MessagePage()); //MESSGE RENAME TO MAIL
+    addPage(new TransferPage()); //FILE TRANSFER
+    addPage(new ChannelPage()); // CHANNELS
+    addPage(new ForumPage()); // FORUMS
+    addPage(new PostedPage()); // POSTED RENAME TO LINKS
+    addPage(new NotifyPage()); // NOTIFY
+    addPage(new PluginsPage() ); // PLUGINS
+    addPage(new AppearancePage()); // APPEARENCE
+    addPage(new SoundPage() ); // SOUND
+    addPage(new ServicePermissionsPage() ); // PERMISSIONS
 #ifdef ENABLE_WEBUI
     addPage(new WebuiPage() );
 #endif // ENABLE_WEBUI
@@ -167,22 +174,28 @@ RSettingsWin::initStackedWidget()
 				addPage(cp) ;
 		}
 	}
+    addPage(new AboutPage() );
 
 	 // make the first page the default.
 
     setNewPage(General);
 }
 
-void RSettingsWin::addPage(ConfigPage *page)
+void SettingsPage::addPage(ConfigPage *page)
 {
 	ui.stackedWidget->addWidget(page) ;
 
-	QListWidgetItem *item = new QListWidgetItem(QIcon(page->iconPixmap()),page->pageName()) ;
-	ui.listWidget->addItem(item) ;
+	QListWidgetItem *item = new QListWidgetItem(QIcon(page->iconPixmap()),page->pageName(),ui.listWidget) ;
+	QFontMetrics fontMetrics = ui.listWidget->fontMetrics();
+	int w = ITEM_SPACING*8;
+	w += ui.listWidget->iconSize().width();
+	w += fontMetrics.width(item->text());
+	if (w > ui.listWidget->maximumWidth())
+		ui.listWidget->setMaximumWidth(w);
 }
 
 void
-RSettingsWin::setNewPage(int page)
+SettingsPage::setNewPage(int page)
 {
 	ConfigPage *pagew = dynamic_cast<ConfigPage*>(ui.stackedWidget->widget(page)) ;
 
@@ -190,7 +203,7 @@ RSettingsWin::setNewPage(int page)
 
 	if(pagew == NULL)
 	{
-		std::cerr << "Error in RSettingsWin::setNewPage(): widget is not a ConfigPage!" << std::endl;
+		std::cerr << "Error in RSettingsPage::setNewPage(): widget is not a ConfigPage!" << std::endl;
 		mHelpBrowser->clear();
 		return ;
 	}
@@ -204,39 +217,11 @@ RSettingsWin::setNewPage(int page)
 }
 
 /** Saves changes made to settings. */
-void
-RSettingsWin::saveChanges()
+void SettingsPage::notifySettingsChanged()
 {
-	QString errmsg;
-
-	/* Call each config page's save() method to save its data */
-	int i, count = ui.stackedWidget->count();
-	for (i = 0; i < count; i++)
-	{
-		ConfigPage *page = dynamic_cast<ConfigPage *>(ui.stackedWidget->widget(i));
-		if (page && page->wasLoaded()) {
-			if (!page->save(errmsg))
-			{
-				/* Display the offending page */
-				ui.stackedWidget->setCurrentWidget(page);
-
-				/* Show the user what went wrong */
-				QMessageBox::warning(this,
-				tr("Error Saving Configuration on page")+" "+QString::number(i), errmsg,
-				QMessageBox::Ok, QMessageBox::NoButton);
-
-				/* Don't process the rest of the pages */
-				return;
-			}
-		}
-	}
-
 	/* call to RsIface save function.... */
 	//rsicontrol -> ConfigSave();
 
-	if (NotifyQt::getInstance()) {
+	if (NotifyQt::getInstance())
 		NotifyQt::getInstance()->notifySettingsChanged();
-	}
-
-    close();
 }

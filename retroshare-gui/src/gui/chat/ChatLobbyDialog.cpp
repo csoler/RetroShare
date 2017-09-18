@@ -19,44 +19,42 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, 
  *  Boston, MA  02110-1301, USA.
  *
- *  ccr . 2016 Jan 26
- *
- *  Play sound on incoming messages.
- *
  ****************************************************************/
 
-#include <unistd.h>
 
-#include <QMessageBox>
 #include <QInputDialog>
 #include <QMenu>
+#include <QMessageBox>
 #include <QWidgetAction>
 
 #include "ChatLobbyDialog.h"
-#include "gui/ChatLobbyWidget.h"
+
 #include "ChatTabWidget.h"
-#include "gui/settings/rsharesettings.h"
-#include "gui/settings/RsharePeerSettings.h"
-#include "gui/MainWindow.h"
+#include "gui/ChatLobbyWidget.h"
 #include "gui/FriendsDialog.h"
-#include "gui/msgs/MessageComposer.h"
-#include <gui/common/html.h>
-#include "gui/common/RSTreeWidgetItem.h"
+#include "gui/MainWindow.h"
+#include "gui/common/html.h"
 #include "gui/common/FriendSelectionDialog.h"
-#include "gui/gxs/GxsIdTreeWidgetItem.h"
+#include "gui/common/RSTreeWidgetItem.h"
 #include "gui/gxs/GxsIdChooser.h"
 #include "gui/gxs/GxsIdDetails.h"
+#include "gui/gxs/GxsIdTreeWidgetItem.h"
+#include "gui/Identity/IdDialog.h"
+#include "gui/msgs/MessageComposer.h"
+#include "gui/settings/RsharePeerSettings.h"
+#include "gui/settings/rsharesettings.h"
 #include "util/HandleRichText.h"
-#include "gui/SoundManager.h"
+#include "util/QtVersion.h"
 
 #include <retroshare/rsnotify.h>
 
 #include <time.h>
+#include <unistd.h>
 
-#define COLUMN_ICON      0
-#define COLUMN_NAME      1
-#define COLUMN_ACTIVITY  2
-#define COLUMN_ID        3
+#define COLUMN_NAME      0
+#define COLUMN_ACTIVITY  1
+#define COLUMN_ID        2
+#define COLUMN_ICON      3
 #define COLUMN_COUNT     4
 
 #define ROLE_SORT            Qt::UserRole + 1
@@ -79,18 +77,25 @@ ChatLobbyDialog::ChatLobbyDialog(const ChatLobbyId& lid, QWidget *parent, Qt::Wi
 	connect(ui.filterLineEdit, SIGNAL(textChanged(QString)), this, SLOT(filterChanged(QString)));
 
             int S = QFontMetricsF(font()).height() ;
-    ui.participantsList->setIconSize(QSize(1.3*S,1.3*S));
+    ui.participantsList->setIconSize(QSize(1.4*S,1.4*S));
 
     ui.participantsList->setColumnCount(COLUMN_COUNT);
-    ui.participantsList->setColumnWidth(COLUMN_ICON, 1.4*S);
+    ui.participantsList->setColumnWidth(COLUMN_ICON, 1.7*S);
     ui.participantsList->setColumnHidden(COLUMN_ACTIVITY,true);
     ui.participantsList->setColumnHidden(COLUMN_ID,true);
+    
+    /* Set header resize modes and initial section sizes */
+	QHeaderView * header = ui.participantsList->header();
+	QHeaderView_setSectionResizeModeColumn(header, COLUMN_NAME, QHeaderView::Stretch);
 
     muteAct = new QAction(QIcon(), tr("Mute participant"), this);
-    banAct = new QAction(QIcon(":/icons/yellow_biohazard64.png"), tr("Ban this person (Sets negative opinion)"), this);
+    voteNegativeAct = new QAction(QIcon(":/icons/png/thumbs-down.png"), tr("Ban this person (Sets negative opinion)"), this);
+    voteNeutralAct = new QAction(QIcon(":/icons/png/thumbs-neutral.png"), tr("Give neutral opinion"), this);
+    votePositiveAct = new QAction(QIcon(":/icons/png/thumbs-up.png"), tr("Give positive opinion"), this);
     distantChatAct = new QAction(QIcon(":/images/chat_24.png"), tr("Start private chat"), this);
     sendMessageAct = new QAction(QIcon(":/images/mail_new.png"), tr("Send Message"), this);
-    
+    showinpeopleAct = new QAction(QIcon(), tr("Show author in people tab"), this);
+	
     QActionGroup *sortgrp = new QActionGroup(this);
     actionSortByName = new QAction(QIcon(), tr("Sort by Name"), this);
     actionSortByName->setCheckable(true);
@@ -106,8 +111,15 @@ ChatLobbyDialog::ChatLobbyDialog(const ChatLobbyId& lid, QWidget *parent, Qt::Wi
     connect(muteAct, SIGNAL(triggered()), this, SLOT(changePartipationState()));
     connect(distantChatAct, SIGNAL(triggered()), this, SLOT(distantChatParticipant()));
     connect(sendMessageAct, SIGNAL(triggered()), this, SLOT(sendMessage()));
-    connect(banAct, SIGNAL(triggered()), this, SLOT(banParticipant()));
-    
+    connect(votePositiveAct, SIGNAL(triggered()), this, SLOT(voteParticipant()));
+    connect(voteNeutralAct, SIGNAL(triggered()), this, SLOT(voteParticipant()));
+    connect(voteNegativeAct, SIGNAL(triggered()), this, SLOT(voteParticipant()));
+    connect(showinpeopleAct, SIGNAL(triggered()), this, SLOT(showInPeopleTab()));
+
+    votePositiveAct->setData(RsReputations::OPINION_POSITIVE);
+    voteNeutralAct->setData(RsReputations::OPINION_NEUTRAL);
+    voteNegativeAct->setData(RsReputations::OPINION_NEGATIVE);
+
     connect(actionSortByName, SIGNAL(triggered()), this, SLOT(sortParcipants()));
     connect(actionSortByActivity, SIGNAL(triggered()), this, SLOT(sortParcipants()));
     
@@ -167,7 +179,7 @@ ChatLobbyDialog::ChatLobbyDialog(const ChatLobbyId& lid, QWidget *parent, Qt::Wi
     unsubscribeButton->setMaximumSize(QSize(2.4*S,2.4*S)) ;
 	unsubscribeButton->setText(QString()) ;
 	unsubscribeButton->setAutoRaise(true) ;
-	unsubscribeButton->setToolTip(tr("Leave this lobby (Unsubscribe)"));
+	unsubscribeButton->setToolTip(tr("Leave this chat room (Unsubscribe)"));
 
 	{
 	QIcon icon ;
@@ -215,81 +227,85 @@ void ChatLobbyDialog::participantsTreeWidgetCustomPopupMenu(QPoint)
 	QMenu contextMnu(this);
 
     contextMnu.addAction(distantChatAct);
-    contextMnu.addAction(sendMessageAct);
+	contextMnu.addAction(sendMessageAct);
     contextMnu.addSeparator();
     contextMnu.addAction(actionSortByActivity);
     contextMnu.addAction(actionSortByName);
     contextMnu.addSeparator();
     contextMnu.addAction(muteAct);
-    contextMnu.addAction(banAct);
+    contextMnu.addAction(votePositiveAct);
+    contextMnu.addAction(voteNeutralAct);
+    contextMnu.addAction(voteNegativeAct);
+	contextMnu.addAction(showinpeopleAct);
 
+	distantChatAct->setEnabled(false);
+	sendMessageAct->setEnabled(selectedItems.count()==1);
 	muteAct->setCheckable(true);
-	muteAct->setEnabled(false);
-	muteAct->setChecked(false);
-	banAct->setEnabled(false);
-
-    if (selectedItems.size())
+    muteAct->setEnabled(false);
+    muteAct->setChecked(false);
+    votePositiveAct->setEnabled(false);
+    voteNeutralAct->setEnabled(false);
+    voteNegativeAct->setEnabled(false);
+	showinpeopleAct->setEnabled(selectedItems.count()==1);
+    if(selectedItems.count()==1)
     {
-        RsGxsId nickName;
-        rsMsgs->getIdentityForChatLobby(lobbyId, nickName);
+        RsGxsId gxsid(selectedItems.at(0)->text(COLUMN_ID).toStdString());
 
-        if(selectedItems.count()>1 || (RsGxsId(selectedItems.at(0)->text(COLUMN_ID).toStdString())!=nickName))
-        {
-            muteAct->setEnabled(true);
-	    banAct->setEnabled(true);
-
-            QList<QTreeWidgetItem*>::iterator item;
-            for (item = selectedItems.begin(); item != selectedItems.end(); ++item) {
-
-                RsGxsId gxsid ;
-                if ( dynamic_cast<GxsIdRSTreeWidgetItem*>(*item)->getId(gxsid) && isParticipantMuted(gxsid))
-                {
-                    muteAct->setChecked(true);
-                    break;
-                }
-            }
-        }
-    distantChatAct->setEnabled(selectedItems.count()==1 && RsGxsId(selectedItems.front()->text(COLUMN_ID).toStdString())!=nickName) ;
+		if(!gxsid.isNull() && !rsIdentity->isOwnId(gxsid))
+		{
+			distantChatAct->setEnabled(true);
+			votePositiveAct->setEnabled(rsReputations->overallReputationLevel(gxsid) != RsReputations::REPUTATION_LOCALLY_POSITIVE);
+			voteNeutralAct->setEnabled((rsReputations->overallReputationLevel(gxsid) == RsReputations::REPUTATION_LOCALLY_POSITIVE) || (rsReputations->overallReputationLevel(gxsid) == RsReputations::REPUTATION_LOCALLY_NEGATIVE) );
+			voteNegativeAct->setEnabled(rsReputations->overallReputationLevel(gxsid) != RsReputations::REPUTATION_LOCALLY_NEGATIVE);
+			muteAct->setEnabled(true);
+			muteAct->setChecked(isParticipantMuted(gxsid));
+		}
     }
-
 	contextMnu.exec(QCursor::pos());
 }
 
-/**
- * @brief Called when the "ban" menu is selected. Sets a negative reputation on the selected user.
- */
-void ChatLobbyDialog::banParticipant()
+void ChatLobbyDialog::voteParticipant()
 {
     QList<QTreeWidgetItem*> selectedItems = ui.participantsList->selectedItems();
-
-    if (selectedItems.isEmpty()) {
+    if (selectedItems.isEmpty())
 	    return;
+    QList<QTreeWidgetItem*>::iterator item;
+
+    QAction *act = dynamic_cast<QAction*>(sender()) ;
+    if(!act)
+    {
+        std::cerr << "No sender! Some bug in the code." << std::endl;
+        return ;
     }
 
-    QList<QTreeWidgetItem*>::iterator item;
-    for (item = selectedItems.begin(); item != selectedItems.end(); ++item) {
+	RsReputations::Opinion op = RsReputations::Opinion(act->data().toUInt()) ;
 
-	    RsGxsId nickname;
+    for (item = selectedItems.begin(); item != selectedItems.end(); ++item)
+	{
+		RsGxsId nickname;
 	    dynamic_cast<GxsIdRSTreeWidgetItem*>(*item)->getId(nickname) ;
 
-	    RsGxsId gxs_id;
-	    rsMsgs->getIdentityForChatLobby(lobbyId, gxs_id);
-
-	    // This test avoids to mute/ban your own identity
-
-	    if (gxs_id!=nickname)
-        {
-            std::cerr << "Giving negative opinion to GXS id " << nickname << std::endl;
-		    rsReputations->setOwnOpinion(nickname, RsReputations::OPINION_NEGATIVE);
-            
-	    dynamic_cast<GxsIdRSTreeWidgetItem*>(*item)->forceUpdate();
-           
-        }
+		rsReputations->setOwnOpinion(nickname, op);
+		std::cerr << "Giving opinion to GXS id " << nickname << " to " << op<< std::endl;
+		dynamic_cast<GxsIdRSTreeWidgetItem*>(*item)->forceUpdate();
     }
 }
 
+void ChatLobbyDialog::showInPeopleTab()
+{
+    QList<QTreeWidgetItem*> selectedItems = ui.participantsList->selectedItems();
+    if (selectedItems.count()!=1)
+        return;
+    RsGxsId nickname;
+    dynamic_cast<GxsIdRSTreeWidgetItem*>(*selectedItems.begin())->getId(nickname);
+    IdDialog *idDialog = dynamic_cast<IdDialog*>(MainWindow::getPage(MainWindow::People));
+    if (!idDialog)
+        return ;
+    MainWindow::showWindow(MainWindow::People);
+    idDialog->navigate(nickname);
+}
 
-void ChatLobbyDialog::init()
+void ChatLobbyDialog::init(const ChatId &/*id*/, const QString &/*title*/)
 {
     ChatLobbyInfo linfo ;
 
@@ -299,7 +315,7 @@ void ChatLobbyDialog::init()
     {
         title = QString::fromUtf8(linfo.lobby_name.c_str());
 
-        QString msg = tr("Welcome to lobby %1").arg(RsHtml::plainText(linfo.lobby_name));
+        QString msg = tr("Welcome to chat room %1").arg(RsHtml::plainText(linfo.lobby_name));
         _lobby_name = QString::fromUtf8(linfo.lobby_name.c_str()) ;
         if (!linfo.lobby_topic.empty()) {
             msg += "\n" + tr("Topic: %1").arg(RsHtml::plainText(linfo.lobby_topic));
@@ -457,7 +473,6 @@ void ChatLobbyDialog::addChatMsg(const ChatMessage& msg)
 
         ui.chatWidget->addChatMsg(msg.incoming, name, gxs_id, sendTime, recvTime, message, ChatWidget::MSGTYPE_NORMAL);
         emit messageReceived(msg.incoming, id(), sendTime, name, message) ;
-        SoundManager::play(SOUND_NEW_LOBBY_MESSAGE);
 
         // This is a trick to translate HTML into text.
         QTextEdit editor;
@@ -465,9 +480,9 @@ void ChatLobbyDialog::addChatMsg(const ChatMessage& msg)
         QString notifyMsg = name + ": " + editor.toPlainText();
 
         if(notifyMsg.length() > 30)
-            MainWindow::displayLobbySystrayMsg(tr("Lobby chat") + ": " + _lobby_name, notifyMsg.left(30) + QString("..."));
+            MainWindow::displayLobbySystrayMsg(tr("Room chat") + ": " + _lobby_name, notifyMsg.left(30) + QString("..."));
         else
-            MainWindow::displayLobbySystrayMsg(tr("Lobby chat") + ": " + _lobby_name, notifyMsg);
+            MainWindow::displayLobbySystrayMsg(tr("Room chat") + ": " + _lobby_name, notifyMsg);
     }
 
 	// also update peer list.
@@ -775,12 +790,12 @@ void ChatLobbyDialog::displayLobbyEvent(int event_type, const RsGxsId& gxs_id, c
     {
     case RS_CHAT_LOBBY_EVENT_PEER_LEFT:
         qsParticipant=gxs_id;
-        ui.chatWidget->addChatMsg(true, tr("Lobby management"), QDateTime::currentDateTime(), QDateTime::currentDateTime(), tr("%1 has left the lobby.").arg(RsHtml::plainText(name)), ChatWidget::MSGTYPE_SYSTEM);
+        ui.chatWidget->addChatMsg(true, tr("Lobby management"), QDateTime::currentDateTime(), QDateTime::currentDateTime(), tr("%1 has left the room.").arg(RsHtml::plainText(name)), ChatWidget::MSGTYPE_SYSTEM);
         emit peerLeft(id()) ;
         break;
     case RS_CHAT_LOBBY_EVENT_PEER_JOINED:
         qsParticipant=gxs_id;
-        ui.chatWidget->addChatMsg(true, tr("Lobby management"), QDateTime::currentDateTime(), QDateTime::currentDateTime(), tr("%1 joined the lobby.").arg(RsHtml::plainText(name)), ChatWidget::MSGTYPE_SYSTEM);
+        ui.chatWidget->addChatMsg(true, tr("Lobby management"), QDateTime::currentDateTime(), QDateTime::currentDateTime(), tr("%1 joined the room.").arg(RsHtml::plainText(name)), ChatWidget::MSGTYPE_SYSTEM);
         emit peerJoined(id()) ;
         break;
     case RS_CHAT_LOBBY_EVENT_PEER_STATUS:
@@ -812,10 +827,10 @@ void ChatLobbyDialog::displayLobbyEvent(int event_type, const RsGxsId& gxs_id, c
     }
         break;
     case RS_CHAT_LOBBY_EVENT_KEEP_ALIVE:
-        //std::cerr << "Received keep alive packet from " << nickname.toStdString() << " in lobby " << getPeerId() << std::endl;
+        //std::cerr << "Received keep alive packet from " << nickname.toStdString() << " in chat room " << getPeerId() << std::endl;
         break;
     default:
-        std::cerr << "ChatLobbyDialog::displayLobbyEvent() Unhandled lobby event type " << event_type << std::endl;
+        std::cerr << "ChatLobbyDialog::displayLobbyEvent() Unhandled chat room event type " << event_type << std::endl;
     }
 
     if (!qsParticipant.isNull())
@@ -839,7 +854,7 @@ bool ChatLobbyDialog::canClose()
 	}
     */
 
-	if (QMessageBox::Yes == QMessageBox::question(this, tr("Unsubscribe to lobby"), tr("Do you want to unsubscribe to this chat lobby?"), QMessageBox::Yes | QMessageBox::No)) {
+	if (QMessageBox::Yes == QMessageBox::question(this, tr("Unsubscribe from chat room"), tr("Do you want to unsubscribe to this chat room?"), QMessageBox::Yes | QMessageBox::No)) {
 		return true;
 	}
 

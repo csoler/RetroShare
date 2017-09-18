@@ -1,6 +1,8 @@
 #ifndef GXSFORUMTHREADWIDGET_H
 #define GXSFORUMTHREADWIDGET_H
 
+#include <QMap>
+
 #include "gui/gxs/GxsMessageFrameWidget.h"
 #include <retroshare/rsgxsforums.h>
 #include "gui/gxs/GxsIdDetails.h"
@@ -51,7 +53,7 @@ public:
 	unsigned int newCount() { return mNewCount; }
 	unsigned int unreadCount() { return mUnreadCount; }
 
-	QTreeWidgetItem *convertMsgToThreadWidget(const RsGxsForumMsg &msg, bool useChildTS, uint32_t filterColumn, QTreeWidgetItem *parent = NULL);
+	QTreeWidgetItem *convertMsgToThreadWidget(const RsGxsForumMsg &msg, bool useChildTS, uint32_t filterColumn, QTreeWidgetItem *parent);
 	QTreeWidgetItem *generateMissingItem(const RsGxsMessageId &msgId);
 
 	// Callback for all Loads.
@@ -73,14 +75,18 @@ private slots:
 	void contextMenuTextBrowser(QPoint point);
 
 	void changedThread();
+	void changedVersion();
 	void clickedThread (QTreeWidgetItem *item, int column);
 
-	void replytomessage();
+	void reply_with_private_message();
 	void replytoforummessage();
+	void editforummessage();
 
 	void replyMessageData(const RsGxsForumMsg &msg);
+	void editForumMessageData(const RsGxsForumMsg &msg);
 	void replyForumMessageData(const RsGxsForumMsg &msg);
-	
+	void showAuthorInPeople(const RsGxsForumMsg& msg);
+
 	void saveImage();
 
 
@@ -94,6 +100,7 @@ private slots:
 	void markMsgAsUnreadChildren();
 
 	void copyMessageLink();
+	void showInPeopleTab();
 
 	/* handle splitter */
 	void togglethreadview();
@@ -108,7 +115,7 @@ private slots:
 	void downloadAllFiles();
 
 	void changedViewBox();
-    	void flagpersonasbad();
+	void flagperson();
 
 	void filterColumnChanged(int column);
 	void filterItems(const QString &text);
@@ -145,17 +152,22 @@ private:
     static void loadAuthorIdCallback(GxsIdDetailsType type, const RsIdentityDetails &details, QObject *object, const QVariant &/*data*/);
 
 	void requestMessageData(const RsGxsGrpMsgIdPair &msgId);
-	void loadMessageData(const uint32_t &token);
-	void requestMsgData_ReplyMessage(const RsGxsGrpMsgIdPair &msgId);
-	void loadMsgData_ReplyMessage(const uint32_t &token);
-	
+	void requestMsgData_ReplyWithPrivateMessage(const RsGxsGrpMsgIdPair &msgId);
+	void requestMsgData_ShowAuthorInPeople(const RsGxsGrpMsgIdPair &msgId);
 	void requestMsgData_ReplyForumMessage(const RsGxsGrpMsgIdPair &msgId);
+	void requestMsgData_EditForumMessage(const RsGxsGrpMsgIdPair &msgId);
+
+	void loadMessageData(const uint32_t &token);
+	void loadMsgData_ReplyMessage(const uint32_t &token);
 	void loadMsgData_ReplyForumMessage(const uint32_t &token);
-  void loadMsgData_BanAuthor(const uint32_t &token);
+	void loadMsgData_EditForumMessage(const uint32_t &token);
+	void loadMsgData_ShowAuthorInPeople(const uint32_t &token);
+	void loadMsgData_SetAuthorOpinion(const uint32_t &token, RsReputations::Opinion opinion);
 
 private:
 	RsGxsGroupId mLastForumID;
 	RsGxsMessageId mThreadId;
+	RsGxsMessageId mOrigThreadId;
     RsGxsForumGroup mForumGroup;
 	QString mForumDescription;
 	int mSubscribeFlags;
@@ -173,7 +185,11 @@ private:
 	uint32_t mTokenTypeMessageData;
 	uint32_t mTokenTypeReplyMessage;
 	uint32_t mTokenTypeReplyForumMessage;
-	uint32_t mTokenTypeBanAuthor;
+	uint32_t mTokenTypeEditForumMessage;
+	uint32_t mTokenTypeShowAuthorInPeople;
+	uint32_t mTokenTypeNegativeAuthor;
+	uint32_t mTokenTypePositiveAuthor;
+	uint32_t mTokenTypeNeutralAuthor;
 
 	/* Color definitions (for standard see qss.default) */
 	QColor mTextColorRead;
@@ -184,6 +200,8 @@ private:
 
 	RsGxsMessageId mNavigatePendingMsgId;
 	QList<RsGxsMessageId> mIgnoredMsgId;
+
+    QMap<RsGxsMessageId,QVector<QPair<time_t,RsGxsMessageId> > > mPostVersions ;	// holds older versions of posts
 
     Ui::GxsForumThreadWidget *ui;
 };

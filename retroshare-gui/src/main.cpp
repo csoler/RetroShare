@@ -32,7 +32,6 @@
 #include "gui/NetworkView.h"
 #include "gui/QuickStartWizard.h"
 #include "gui/RetroShareLink.h"
-#include "gui/SharedFilesDialog.h"
 #include "gui/SoundManager.h"
 #include "gui/StartDialog.h"
 #include "gui/chat/ChatDialog.h"
@@ -56,6 +55,23 @@
 #if QT_VERSION >= QT_VERSION_CHECK (5, 0, 0)
 #ifdef WINDOWS_SYS
 #include <QFileDialog>
+#endif
+#endif
+
+#ifdef Q_OS_WIN
+#if QT_VERSION >= QT_VERSION_CHECK (5, 7, 0)
+// see INSTALL.W32 in openssl
+// Needed as workaround for gcc 5.3.0 because the call to GetProcAddress in cryptlib.c finds an function pointer
+// to the not existing function _OPENSSL_isservice in the executable running on Windows 7.
+extern "C" {
+__declspec(dllexport) __cdecl BOOL _OPENSSL_isservice(void)
+{
+	DWORD sess;
+	if (ProcessIdToSessionId(GetCurrentProcessId(),&sess))
+		return sess==0;
+	return FALSE;
+}
+}
 #endif
 #endif
 
@@ -171,6 +187,17 @@ feenableexcept(FE_INVALID | FE_DIVBYZERO);
 
     Q_INIT_RESOURCE(images);
     Q_INIT_RESOURCE(icons);
+
+	// Loop through all command-line args/values to get help wanted before RsInit exit.
+	for (int i = 0; i < args.size(); ++i) {
+		QString arg;
+		/* Get the argument name and set a blank value */
+		arg = args.at(i);
+		if ((arg.toLower() == "-h") || (arg.toLower() == "--help")) {
+			QApplication dummyApp (argc, argv); // needed for QMessageBox
+			Rshare::showUsageMessageBox();
+		}
+	}
 
 	// This is needed to allocate rsNotify, so that it can be used to ask for PGP passphrase
 	//
@@ -369,7 +396,6 @@ feenableexcept(FE_INVALID | FE_DIVBYZERO);
 		uint32_t token = 0;
 		rsIdentity->createIdentity(token, params);
 	}
-
 	// I'm using a signal to transfer the hashing info to the mainwindow, because Qt schedules signals properly to
 	// avoid clashes between infos from threads.
 	//
@@ -414,6 +440,11 @@ feenableexcept(FE_INVALID | FE_DIVBYZERO);
 #ifdef ENABLE_WEBUI
     WebuiPage::checkStartWebui();
 #endif // ENABLE_WEBUI
+
+	// This is done using a timer, because the passphrase request from notify is asynchrouneous and therefore clearing the
+	// passphrase here makes it request for a passphrase when creating the default chat identity.
+
+	QTimer::singleShot(10000, notify, SLOT(resetCachedPassphrases())) ;
 
 	/* dive into the endless loop */
 	int ti = rshare.exec();
