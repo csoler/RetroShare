@@ -109,8 +109,8 @@ const 	RsPeerId& p3ServiceControl::getOwnId()
 
 bool p3ServiceControl::getServiceItemNames(uint32_t serviceId,std::map<uint8_t,std::string>& names)
 {
-    if(mServiceServer != NULL)
-        return mServiceServer->getServiceItemNames(serviceId,names) ;
+    if(mSrv != NULL)
+        return mSrv->getServiceItemNames(serviceId,names) ;
 
     return false ;
 }

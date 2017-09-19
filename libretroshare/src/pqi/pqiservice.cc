@@ -54,9 +54,6 @@ p3ServiceServer::p3ServiceServer(pqiPublisher *pub, p3ServiceControl *ctrl) : mP
 	pqioutput(PQL_DEBUG_BASIC, pqiservicezone, 
 		"p3ServiceServer::p3ServiceServer()");
 #endif
-    mServiceControl->setServiceServer(this);
-
-	return;
 }
 
 int	p3ServiceServer::addService(pqiService *ts, bool defaultOn)

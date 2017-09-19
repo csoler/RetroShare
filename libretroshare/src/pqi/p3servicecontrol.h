@@ -205,8 +205,6 @@ private:
 
     // Below here is saved in Configuration.
     std::map<uint32_t, RsServicePermissions> mServicePermissionMap;
-
-    p3ServiceServer *mServiceServer ;
 };
 
 
