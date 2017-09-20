@@ -185,6 +185,7 @@ void p3ServiceServer::switchService(uint32_t service_id,bool on)
     RsStackMutex stack(srvMtx); /********* LOCKED *********/
     std::map<uint32_t,pqiService*>::const_iterator it = services.find(service_id) ;
 
+	std::cerr << "(II) switching service " << (void *)(intptr_t)service_id << ": " << ( on?"ON":"OFF") << std::endl;
     if(it == services.end())
     {
         std::cerr << "(EE) Cannot switch off service " << (void *)(intptr_t)service_id << " because it does not exist!" << std::endl;

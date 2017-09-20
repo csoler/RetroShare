@@ -56,7 +56,6 @@ RsItem *p3Service::recvItem()
 	return item;
 }
 
-
 bool    p3Service::receivedItems()
 {
 	RsStackMutex stack(srvMtx);  /*****   LOCK MUTEX *****/
@@ -224,4 +223,18 @@ int p3FastService::sendItem(RsItem *si)
 	}
 }
 
+
+void p3ThreadedService::powerOn()
+{
+	std::cerr << "Starting service thread..." << std::endl;
+	p3Service::powerOn() ;
+	start();
+}
+
+void p3ThreadedService::powerOff()
+{
+	std::cerr << "Stopping service thread..." << std::endl;
+	shutdown() ;
+	p3Service::powerOff() ;
+}
 

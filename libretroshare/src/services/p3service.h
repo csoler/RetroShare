@@ -162,8 +162,8 @@ class p3ThreadedService: public p3Service, public RsTickingThread
 	p3ThreadedService() 
 	:p3Service() { return; }
 
-    virtual void powerOn() { start() ; p3Service::powerOn() ;}
-    virtual void powerOff() { shutdown() ; p3Service::powerOff() ;}
+    virtual void powerOn() ;
+    virtual void powerOff() ;
 
     public:
 

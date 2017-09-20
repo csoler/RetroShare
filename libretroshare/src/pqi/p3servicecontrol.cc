@@ -1091,6 +1091,8 @@ void p3ServiceControl::switchServiceOnOff(const uint32_t serviceId, bool enabled
     if(!getServicePermissions(serviceId,serv_perms))
         return ;
 
+	std::cerr << "Switching service " << std::hex << serviceId << std::dec << ": " << (enabled?"ON":"OFF") << std::endl;
+
     if(serv_perms.mDefaultAllowed)
     {
         serv_perms.mPeersAllowed.clear() ;
@@ -1102,7 +1104,10 @@ void p3ServiceControl::switchServiceOnOff(const uint32_t serviceId, bool enabled
         serv_perms.mPeersDenied.clear() ;
     }
 
+	std::cerr << "  Switching service permissions..." << std::endl;
     updateServicePermissions(serviceId,serv_perms);
+
+	std::cerr << "  Switching service state..." << std::endl;
     mSrv->switchService(serviceId,enabled) ;
 }
 
