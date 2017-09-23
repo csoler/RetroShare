@@ -32,6 +32,7 @@ before_install:
   fi
 - if [ $TRAVIS_OS_NAME == osx ]; then ln -s /usr/local/opt/openssl/lib/*.dylib /usr/local/lib/;
   fi
+
 before_script:
 # no_sqlcipher removed from build command. Apparently MacOS can handle it. To be tested.
 - chmod +x ./travis_setupVersionNumber.sh && ./travis_setupVersionNumber.sh
