@@ -952,10 +952,8 @@ bool InternalFileHierarchyStorage::recursRemoveDirectory(DirectoryStorage::Entry
     return true ;
 }
 
-bool InternalFileHierarchyStorage::save(const std::string& fname)
+bool InternalFileHierarchyStorage::save(unsigned char *& buffer,uint32_t& buffer_size)
 {
-    unsigned char *buffer = NULL ;
-    uint32_t buffer_size = 0 ;
     uint32_t buffer_offset = 0 ;
 
     unsigned char *tmp_section_data = (unsigned char*)rs_malloc(FL_BASE_TMP_SECTION_SIZE) ;
@@ -1020,12 +1018,10 @@ bool InternalFileHierarchyStorage::save(const std::string& fname)
                 if(!FileListIO::writeField(buffer,buffer_size,buffer_offset,FILE_LIST_IO_TAG_LOCAL_DIR_ENTRY,tmp_section_data,dir_section_offset)) throw std::runtime_error("Write error") ;
             }
 
-        bool res = FileListIO::saveEncryptedDataToFile(fname,buffer,buffer_offset) ;
+		free(tmp_section_data) ;
+		buffer_size = buffer_offset ;
 
-        free(buffer) ;
-        free(tmp_section_data) ;
-
-        return res ;
+        return true ;
     }
     catch(std::exception& e)
     {
@@ -1037,6 +1033,8 @@ bool InternalFileHierarchyStorage::save(const std::string& fname)
         if(tmp_section_data != NULL)
 			free(tmp_section_data) ;
 
+		buffer = NULL ;
+		buffer_size = 0 ;
         return false;
     }
 }
@@ -1057,10 +1055,8 @@ private:
     std::string err_string ;
 };
 
-bool InternalFileHierarchyStorage::load(const std::string& fname)
+bool InternalFileHierarchyStorage::load(unsigned char *buffer,uint32_t buffer_size)
 {
-    unsigned char *buffer = NULL ;
-    uint32_t buffer_size = 0 ;
     uint32_t buffer_offset = 0 ;
 
     mFreeNodes.clear();
@@ -1069,9 +1065,6 @@ bool InternalFileHierarchyStorage::load(const std::string& fname)
 
     try
     {
-        if(!FileListIO::loadEncryptedDataFromFile(fname,buffer,buffer_size) )
-            throw read_error("Cannot decrypt") ;
-
         // Read some header
 
         uint32_t version, n_nodes ;
@@ -1195,7 +1188,6 @@ bool InternalFileHierarchyStorage::load(const std::string& fname)
 
             free(node_section_data) ;
         }
-        free(buffer) ;
 
         return true ;
     }
@@ -1204,9 +1196,6 @@ bool InternalFileHierarchyStorage::load(const std::string& fname)
 #ifdef DEBUG_DIRECTORY_STORAGE
         std::cerr << "Error while reading: " << e.what() << std::endl;
 #endif
-
-        if(buffer != NULL)
-            free(buffer) ;
         return false;
     }
 }

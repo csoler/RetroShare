@@ -403,7 +403,7 @@ bool RsCollectionEditor::openNewColl(QWidget *parent)
 			return false;
 		}
 
-	}//if(file.exists())
+	}
 
 	_fileName=fileName;
 	std::vector<ColFileInfo> colFileInfos ;
@@ -433,7 +433,7 @@ bool RsCollectionEditor::openColl(const QString& fileName, bool readOnly /* = fa
 		delete rcd;
 
 		return _saved;
-	}//if (load(fileName, showError))
+	}
 	return false;
 }
 

@@ -89,8 +89,8 @@ public:
     // class stuff
     InternalFileHierarchyStorage() ;
 
-    bool load(const std::string& fname) ;
-    bool save(const std::string& fname) ;
+    bool load(unsigned char *buffer, uint32_t buffer_size) ;
+    bool save(unsigned char*& buffer, uint32_t& buffer_size) ;
 
     int parentRow(DirectoryStorage::EntryIndex e);
     bool isIndexValid(DirectoryStorage::EntryIndex e) const;

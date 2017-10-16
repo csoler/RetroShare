@@ -38,34 +38,16 @@ class RsTlvBinaryData ;
 class InternalFileHierarchyStorage ;
 class RsTlvBinaryData ;
 
-class DirectoryStorage
+class DirHierarchy: public DirectoryTree
 {
 	public:
-        DirectoryStorage(const RsPeerId& pid, const std::string& fname) ;
-        virtual ~DirectoryStorage() {}
+		DirHierarchy() ;
+		virtual ~DirHierarchy();
 
         typedef uint32_t EntryIndex ;
         static const EntryIndex NO_INDEX = 0xffffffff;
 
-		void save() const ;
-
-        // These functions are to be used by file transfer and file search.
-
-        virtual int searchTerms(const std::list<std::string>& terms, std::list<EntryIndex> &results) const ;
-        virtual int searchBoolExp(RsRegularExpression::Expression * exp, std::list<EntryIndex> &results) const ;
-
-        // gets/sets the various time stamps:
-        //
-        bool getDirectoryRecursModTime(EntryIndex index,time_t& recurs_max_modf_TS) const ;		// last modification time, computed recursively over all subfiles and directories
-        bool getDirectoryLocalModTime (EntryIndex index,time_t& motime_TS) const ;				// last modification time for that index only
-        bool getDirectoryUpdateTime   (EntryIndex index,time_t& update_TS) const ;				// last time the entry was updated. This is only used on the RemoteDirectoryStorage side.
-
-        bool setDirectoryRecursModTime(EntryIndex index,time_t  recurs_max_modf_TS) ;
-        bool setDirectoryLocalModTime (EntryIndex index,time_t  modtime_TS) ;
-        bool setDirectoryUpdateTime   (EntryIndex index,time_t  update_TS) ;
-
         uint32_t getEntryType(const EntryIndex& indx) ;	                     // WARNING: returns DIR_TYPE_*, not the internal directory storage stuff.
-        virtual bool extractData(const EntryIndex& indx,DirDetails& d);
 
 		// This class allows to abstractly browse the stored directory hierarchy in a depth-first manner.
         // It gives access to sub-files and sub-directories below. When using it, the client should make sure
@@ -75,7 +57,7 @@ class DirectoryStorage
 		{
 			public:
                 DirIterator(const DirIterator& d) ;
-                DirIterator(DirectoryStorage *d,EntryIndex i) ;
+                DirIterator(DirHierarchy *d,EntryIndex i) ;
 
 				DirIterator& operator++() ;
                 EntryIndex operator*() const ;
@@ -92,13 +74,13 @@ class DirectoryStorage
                 uint32_t mDirTabIndex ;				// index in the vector of subdirs.
                 InternalFileHierarchyStorage *mStorage ;
 
-                friend class DirectoryStorage ;
+                friend class DirHierarchy ;
         };
 		class FileIterator
 		{
 			public:
                 FileIterator(DirIterator& d);	// crawls all files in specified directory
-                FileIterator(DirectoryStorage *d,EntryIndex e);		// crawls all files in specified directory
+                FileIterator(DirHierarchy* d, EntryIndex e);		// crawls all files in specified directory
 
 				FileIterator& operator++() ;
                 EntryIndex operator*() const ;	// current file entry
@@ -118,20 +100,63 @@ class DirectoryStorage
                 InternalFileHierarchyStorage *mStorage ;
         };
 
+        EntryIndex root() const ;								// returns the index of the root directory entry. This is generally 0.
+        int parentRow(EntryIndex e) const ;						// position of the current node, in the array of children at its parent node. Used by GUI for display.
+        bool getChildIndex(EntryIndex e,int row,EntryIndex& c) const;	// returns the index of the children node at position "row" in the children nodes. Used by GUI for display.
+
+        void getStatistics(SharedDirStats& stats) ;
+
+        void print();
+
+		// DirectoryTree overloaded methods
+
+		virtual std::string toRadix64() const { return std::string(); }
+		virtual bool getContent(uint32_t index,std::vector<uint32_t>& subdirs,std::vector<FileData>& subfiles) const { return false;}
+
+	protected:
+        // debug
+        void locked_check();
+
+        InternalFileHierarchyStorage *mFileHierarchy ;
+};
+
+class DirectoryStorage: public DirHierarchy
+{
+	public:
+        DirectoryStorage(const RsPeerId& pid, const std::string& fname) ;
+        virtual ~DirectoryStorage() {}
+
+		// Function to get data for GUI
+
+        virtual bool extractData(const EntryIndex& indx,DirDetails& d);
+
+        // These functions are to be used by file transfer and file search.
+
+        virtual int searchTerms(const std::list<std::string>& terms, std::list<EntryIndex> &results) const ;
+        virtual int searchBoolExp(RsRegularExpression::Expression * exp, std::list<EntryIndex> &results) const ;
+
+        // gets/sets the various time stamps:
+        //
+        bool getDirectoryRecursModTime(EntryIndex index,time_t& recurs_max_modf_TS) const ;		// last modification time, computed recursively over all subfiles and directories
+        bool getDirectoryLocalModTime (EntryIndex index,time_t& motime_TS) const ;				// last modification time for that index only
+        bool getDirectoryUpdateTime   (EntryIndex index,time_t& update_TS) const ;				// last time the entry was updated. This is only used on the RemoteDirectoryStorage side.
+
+        bool setDirectoryRecursModTime(EntryIndex index,time_t  recurs_max_modf_TS) ;
+        bool setDirectoryLocalModTime (EntryIndex index,time_t  modtime_TS) ;
+        bool setDirectoryUpdateTime   (EntryIndex index,time_t  update_TS) ;
+
+        const RsPeerId& peerId() const { return mPeerId ; }		// peer ID of who owns that file list.
+
+        // Sets the subdirectory/subfiles list of entry indx the supplied one, possible adding and removing directories (resp.files). New directories are set empty with
+        // just a name and need to be updated later on. New files are returned in a list so that they can be sent to hash cache.
+        //
+
         struct FileTS
         {
             uint64_t size ;
             time_t modtime;
         };
 
-        EntryIndex root() const ;								// returns the index of the root directory entry. This is generally 0.
-        const RsPeerId& peerId() const { return mPeerId ; }		// peer ID of who owns that file list.
-        int parentRow(EntryIndex e) const ;						// position of the current node, in the array of children at its parent node. Used by GUI for display.
-        bool getChildIndex(EntryIndex e,int row,EntryIndex& c) const;	// returns the index of the children node at position "row" in the children nodes. Used by GUI for display.
-
-        // Sets the subdirectory/subfiles list of entry indx the supplied one, possible adding and removing directories (resp.files). New directories are set empty with
-        // just a name and need to be updated later on. New files are returned in a list so that they can be sent to hash cache.
-        //
         bool updateSubDirectoryList(const EntryIndex& indx, const std::set<std::string>& subdirs, const RsFileHash &random_hash_salt) ;
         bool updateSubFilesList(const EntryIndex& indx, const std::map<std::string, FileTS> &subfiles, std::map<std::string, FileTS> &new_files) ;
         bool removeDirectory(const EntryIndex& indx) ;
@@ -144,9 +169,6 @@ class DirectoryStorage
 
         // gathers statistics from the internal directory structure
 
-        void getStatistics(SharedDirStats& stats) ;
-
-        void print();
         void cleanup();
 
 		/*!
@@ -163,17 +185,12 @@ class DirectoryStorage
 
     private:
 
-        // debug
-        void locked_check();
-
         // storage of internal structure. Totally hidden from the outside. EntryIndex is simply the index of the entry in the vector.
 
         RsPeerId mPeerId;
 
     protected:
         mutable RsMutex mDirStorageMtx ;
-
-        InternalFileHierarchyStorage *mFileHierarchy ;
 
 		time_t mLastSavedTime ;
 		bool mChanged ;

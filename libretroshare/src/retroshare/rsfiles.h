@@ -39,26 +39,26 @@ extern RsFiles  *rsFiles;
 namespace RsRegularExpression { class Expression; }
 
 /* These are used mainly by ftController at the moment */
-const uint32_t RS_FILE_CTRL_PAUSE	 		= 0x00000100;
-const uint32_t RS_FILE_CTRL_START	 		= 0x00000200;
-const uint32_t RS_FILE_CTRL_FORCE_CHECK	    = 0x00000400;
+const uint32_t RS_FILE_CTRL_PAUSE	 		                = 0x00000100;
+const uint32_t RS_FILE_CTRL_START	 		                = 0x00000200;
+const uint32_t RS_FILE_CTRL_FORCE_CHECK	                    = 0x00000400;
 
-const uint32_t RS_FILE_CTRL_ENCRYPTION_POLICY_STRICT     = 0x00000001 ;
-const uint32_t RS_FILE_CTRL_ENCRYPTION_POLICY_PERMISSIVE = 0x00000002 ;
+const uint32_t RS_FILE_CTRL_ENCRYPTION_POLICY_STRICT        = 0x00000001;
+const uint32_t RS_FILE_CTRL_ENCRYPTION_POLICY_PERMISSIVE    = 0x00000002;
 
-const uint32_t RS_FILE_PERM_DIRECT_DL_YES      = 0x00000001 ;
-const uint32_t RS_FILE_PERM_DIRECT_DL_NO       = 0x00000002 ;
-const uint32_t RS_FILE_PERM_DIRECT_DL_PER_USER = 0x00000003 ;
+const uint32_t RS_FILE_PERM_DIRECT_DL_YES                   = 0x00000001;
+const uint32_t RS_FILE_PERM_DIRECT_DL_NO                    = 0x00000002;
+const uint32_t RS_FILE_PERM_DIRECT_DL_PER_USER              = 0x00000003;
 
-const uint32_t RS_FILE_RATE_TRICKLE	 = 0x00000001;
-const uint32_t RS_FILE_RATE_SLOW	 = 0x00000002;
-const uint32_t RS_FILE_RATE_STANDARD	 = 0x00000003;
-const uint32_t RS_FILE_RATE_FAST	 = 0x00000004;
-const uint32_t RS_FILE_RATE_STREAM_AUDIO = 0x00000005;
-const uint32_t RS_FILE_RATE_STREAM_VIDEO = 0x00000006;
+const uint32_t RS_FILE_RATE_TRICKLE	                        = 0x00000001;
+const uint32_t RS_FILE_RATE_SLOW	                        = 0x00000002;
+const uint32_t RS_FILE_RATE_STANDARD	                    = 0x00000003;
+const uint32_t RS_FILE_RATE_FAST	                        = 0x00000004;
+const uint32_t RS_FILE_RATE_STREAM_AUDIO                    = 0x00000005;
+const uint32_t RS_FILE_RATE_STREAM_VIDEO                    = 0x00000006;
 
-const uint32_t RS_FILE_PEER_ONLINE 	 = 0x00001000;
-const uint32_t RS_FILE_PEER_OFFLINE 	 = 0x00002000;
+const uint32_t RS_FILE_PEER_ONLINE 	                        = 0x00001000;
+const uint32_t RS_FILE_PEER_OFFLINE 	                    = 0x00002000;
 
 const uint32_t RS_FILE_SHARE_FLAGS_IGNORE_PREFIXES          = 0x0001 ;
 const uint32_t RS_FILE_SHARE_FLAGS_IGNORE_SUFFIXES          = 0x0002 ;
@@ -132,6 +132,36 @@ struct SharedDirStats
 {
     uint32_t total_number_of_files ;
     uint64_t total_shared_size ;
+};
+
+// This class is used to interact with file transfer for downloading full hierarchies of files.
+// In the GUI it will be used to share hierarchies in the format of RS links.
+// The internal structure is full hidden.
+
+class DirectoryTree
+{
+public:
+	virtual ~DirectoryTree() {}
+
+	static DirectoryTree *create(const DirDetails&) ;
+	static DirectoryTree *create(const std::string& radix64_string) ;
+
+	virtual std::string toRadix64() const =0;
+
+	// These methods allow the user to browse the hierarchy
+
+	typedef uint32_t DirIndex ;
+
+	struct FileData {
+		std::string name ;
+		uint64_t size ;
+		RsFileHash hash ;
+	};
+	virtual DirIndex root() const =0;
+	virtual bool getContent(uint32_t index,std::vector<uint32_t>& subdirs,std::vector<FileData>& subfiles) const=0;
+
+protected:
+	DirectoryTree() {}
 };
 
 class RsFiles

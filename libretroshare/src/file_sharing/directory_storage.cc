@@ -39,14 +39,14 @@
 /*                                                      Iterators                                                 */
 /******************************************************************************************************************/
 
-DirectoryStorage::DirIterator::DirIterator(DirectoryStorage *s,DirectoryStorage::EntryIndex i)
+DirHierarchy::DirIterator::DirIterator(DirHierarchy* s, DirectoryStorage::EntryIndex i)
 {
     mStorage = s->mFileHierarchy ;
     mParentIndex = i;
     mDirTabIndex = 0;
 }
 
-DirectoryStorage::FileIterator::FileIterator(DirectoryStorage *s,DirectoryStorage::EntryIndex i)
+DirHierarchy::FileIterator::FileIterator(DirHierarchy *s,DirHierarchy::EntryIndex i)
 {
     mStorage = s->mFileHierarchy ;
     mParentIndex = i;
@@ -79,40 +79,34 @@ time_t      DirectoryStorage::FileIterator::modtime()  const { const InternalFil
 std::string DirectoryStorage::DirIterator::name()      const { const InternalFileHierarchyStorage::DirEntry *d = mStorage->getDirEntry(**this) ; return d?(d->dir_name):std::string(); }
 
 /******************************************************************************************************************/
-/*                                                 Directory Storage                                              */
+/*                                                Directory Hierarchy                                             */
 /******************************************************************************************************************/
 
-DirectoryStorage::DirectoryStorage(const RsPeerId &pid,const std::string& fname)
-    : mPeerId(pid), mDirStorageMtx("Directory storage "+pid.toStdString()),mLastSavedTime(0),mChanged(false),mFileName(fname)
+DirHierarchy::DirHierarchy()
 {
-	{
-		RS_STACK_MUTEX(mDirStorageMtx) ;
-		mFileHierarchy = new InternalFileHierarchyStorage();
-	}
-    load(fname) ;
+	mFileHierarchy = new InternalFileHierarchyStorage();
 }
 
-DirectoryStorage::EntryIndex DirectoryStorage::root() const
+DirHierarchy::~DirHierarchy()
+{
+	delete mFileHierarchy;
+}
+
+DirHierarchy::EntryIndex DirHierarchy::root() const
 {
     return EntryIndex(0) ;
 }
-int DirectoryStorage::parentRow(EntryIndex e) const
+int DirHierarchy::parentRow(EntryIndex e) const
 {
-    RS_STACK_MUTEX(mDirStorageMtx) ;
-
     return mFileHierarchy->parentRow(e) ;
 }
-bool DirectoryStorage::getChildIndex(EntryIndex e,int row,EntryIndex& c) const
+bool DirHierarchy::getChildIndex(EntryIndex e,int row,EntryIndex& c) const
 {
-    RS_STACK_MUTEX(mDirStorageMtx) ;
-
     return mFileHierarchy->getChildIndex(e,row,c) ;
 }
 
-uint32_t DirectoryStorage::getEntryType(const EntryIndex& indx)
+uint32_t DirHierarchy::getEntryType(const EntryIndex& indx)
 {
-    RS_STACK_MUTEX(mDirStorageMtx) ;
-
     switch(mFileHierarchy->getType(indx))
     {
     case InternalFileHierarchyStorage::FileStorageNode::TYPE_DIR:  return DIR_TYPE_DIR ;
@@ -120,6 +114,33 @@ uint32_t DirectoryStorage::getEntryType(const EntryIndex& indx)
     default:
         return DIR_TYPE_UNKNOWN;
     }
+}
+
+void DirHierarchy::locked_check()
+{
+    std::string error ;
+    if(!mFileHierarchy->check(error))
+        std::cerr << "Check error: " << error << std::endl;
+}
+
+void DirHierarchy::getStatistics(SharedDirStats& stats)
+{
+    mFileHierarchy->getStatistics(stats);
+}
+
+void DirHierarchy::print()
+{
+    mFileHierarchy->print();
+}
+
+/******************************************************************************************************************/
+/*                                                 Directory Storage                                              */
+/******************************************************************************************************************/
+
+DirectoryStorage::DirectoryStorage(const RsPeerId &pid,const std::string& fname)
+    : mPeerId(pid), mDirStorageMtx("Directory storage "+pid.toStdString()),mLastSavedTime(0),mChanged(false),mFileName(fname)
+{
+    load(fname) ;
 }
 
 bool DirectoryStorage::getDirectoryUpdateTime   (EntryIndex index,time_t& update_TS) const { RS_STACK_MUTEX(mDirStorageMtx) ; return mFileHierarchy->getTS(index,update_TS,&InternalFileHierarchyStorage::DirEntry::dir_update_time     ); }
@@ -153,36 +174,46 @@ bool DirectoryStorage::removeDirectory(const EntryIndex& indx)
     return res ;
 }
 
-void DirectoryStorage::locked_check()
+bool DirectoryStorage::getDirHashFromIndex(const EntryIndex& index,RsFileHash& hash) const
 {
-    std::string error ;
-    if(!mFileHierarchy->check(error))
-        std::cerr << "Check error: " << error << std::endl;
+    return mFileHierarchy->getDirHashFromIndex(index,hash) ;
 }
-
-void DirectoryStorage::getStatistics(SharedDirStats& stats)
+bool DirectoryStorage::getIndexFromDirHash(const RsFileHash& hash,EntryIndex& index) const
 {
-    RS_STACK_MUTEX(mDirStorageMtx) ;
-    mFileHierarchy->getStatistics(stats);
+    return mFileHierarchy->getIndexFromDirHash(hash,index) ;
 }
-
 bool DirectoryStorage::load(const std::string& local_file_name)
 {
     RS_STACK_MUTEX(mDirStorageMtx) ;
     mChanged = false ;
-    return mFileHierarchy->load(local_file_name);
+
+    unsigned char *buffer = NULL ;
+    uint32_t buffer_size = 0 ;
+
+	if(!FileListIO::loadEncryptedDataFromFile(local_file_name,buffer,buffer_size) )
+	{
+		std::cerr << "Cannot decrypt file " << local_file_name << std::endl;
+		free(buffer) ;
+		return false ;
+	}
+
+    bool res = mFileHierarchy->load(buffer,buffer_size);
+	free(buffer) ;
+
+	return res ;
 }
 void DirectoryStorage::save(const std::string& local_file_name)
 {
     RS_STACK_MUTEX(mDirStorageMtx) ;
-    mFileHierarchy->save(local_file_name);
-}
-void DirectoryStorage::print()
-{
-    RS_STACK_MUTEX(mDirStorageMtx) ;
-    mFileHierarchy->print();
-}
 
+	unsigned char *buffer = NULL ;
+    uint32_t buffer_size = 0 ;
+
+	if(!mFileHierarchy->save(buffer,buffer_size)|| !FileListIO::saveEncryptedDataToFile(local_file_name,buffer,buffer_size))
+		std::cerr << "Error while saving file " <<local_file_name << std::endl;
+
+	free(buffer) ;
+}
 int DirectoryStorage::searchTerms(const std::list<std::string>& terms, std::list<EntryIndex> &results) const
 {
     RS_STACK_MUTEX(mDirStorageMtx) ;
@@ -271,16 +302,6 @@ bool DirectoryStorage::extractData(const EntryIndex& indx,DirDetails& d)
     return true;
 }
 
-bool DirectoryStorage::getDirHashFromIndex(const EntryIndex& index,RsFileHash& hash) const
-{
-    RS_STACK_MUTEX(mDirStorageMtx) ;
-    return mFileHierarchy->getDirHashFromIndex(index,hash) ;
-}
-bool DirectoryStorage::getIndexFromDirHash(const RsFileHash& hash,EntryIndex& index) const
-{
-    RS_STACK_MUTEX(mDirStorageMtx) ;
-    return mFileHierarchy->getIndexFromDirHash(hash,index) ;
-}
 
 void DirectoryStorage::checkSave()
 {
