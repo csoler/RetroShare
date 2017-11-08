@@ -184,6 +184,8 @@ public:
     ToasterDisable *toasterDisableInstance();
     SysTrayStatus *sysTrayStatusInstance();
 
+    static bool hiddenmode;
+	
 public slots:
     void receiveNewArgs(QStringList args);
     void displayErrorMessage(int,int,const QString&) ;
@@ -198,6 +200,7 @@ public slots:
     //! Go to a specific part of the control panel.
     void setNewPage(int page);
     void setCompactStatusMode(bool compact);
+    void showBandwidthGraph();
 
     void toggleStatusToolTip(bool toggle);
 protected:

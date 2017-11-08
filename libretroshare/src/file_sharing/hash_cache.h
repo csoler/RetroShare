@@ -118,7 +118,8 @@ private:
 
     struct FileHashJob
     {
-        std::string full_path;
+        std::string full_path;		// canonicalized file name (means: symlinks removed, loops removed, etc)
+        std::string real_path;		// path supplied by the client.
         uint64_t size ;
         HashStorageClient *client;
         uint32_t client_param ;
@@ -139,5 +140,11 @@ private:
     uint64_t mTotalHashedSize ;
     uint64_t mTotalFilesToHash ;
     time_t mLastSaveTime ;
+
+	// The following is used to estimate hashing speed.
+
+	double mHashingTime ;
+	uint64_t mHashedBytes ;
+	uint32_t mCurrentHashingSpeed ; // in MB/s
 };
 

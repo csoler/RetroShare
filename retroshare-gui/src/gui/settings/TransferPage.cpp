@@ -59,6 +59,8 @@ TransferPage::TransferPage(QWidget * parent, Qt::WindowFlags flags)
 	QObject::connect(ui.prefixesIgnoreList_CB,       SIGNAL(toggled(bool)),    		this,SLOT(updateIgnoreLists())) ;
 	QObject::connect(ui.suffixesIgnoreList_LE,       SIGNAL(editingFinished()),  this,SLOT(updateIgnoreLists())) ;
 	QObject::connect(ui.suffixesIgnoreList_CB,       SIGNAL(toggled(bool)),    		this,SLOT(updateIgnoreLists())) ;
+	QObject::connect(ui.ignoreDuplicates_CB,         SIGNAL(toggled(bool)),    		this,SLOT(updateIgnoreDuplicates())) ;
+	QObject::connect(ui.maxDepth_SB,                 SIGNAL(valueChanged(int)),		this,SLOT(updateMaxShareDepth(int))) ;
 }
 
 void TransferPage::updateIgnoreLists()
@@ -68,8 +70,8 @@ void TransferPage::updateIgnoreLists()
 	if(ui.suffixesIgnoreList_CB->isChecked()) flags |= RS_FILE_SHARE_FLAGS_IGNORE_SUFFIXES ;
 
 	std::list<std::string> lp,ls ;
-	{ QStringList L = ui.prefixesIgnoreList_LE->text().split(';') ; for(QStringList::const_iterator it(L.begin());it!=L.end();++it) lp.push_back((*it).toStdString()) ; }
-	{ QStringList L = ui.suffixesIgnoreList_LE->text().split(';') ; for(QStringList::const_iterator it(L.begin());it!=L.end();++it) ls.push_back((*it).toStdString()) ; }
+	{ QStringList L = ui.prefixesIgnoreList_LE->text().split(';') ; for(QStringList::const_iterator it(L.begin());it!=L.end();++it) if(!(*it).isNull()) lp.push_back((*it).toStdString()) ; }
+	{ QStringList L = ui.suffixesIgnoreList_LE->text().split(';') ; for(QStringList::const_iterator it(L.begin());it!=L.end();++it) if(!(*it).isNull()) ls.push_back((*it).toStdString()) ; }
 
 	rsFiles->setIgnoreLists(lp,ls,flags) ;
 
@@ -116,6 +118,8 @@ void TransferPage::updateFilePermDirectDL(int i)
 
 void TransferPage::load()
 {
+	ui.ignoreDuplicates_CB->setEnabled(rsFiles->followSymLinks()) ;
+
     whileBlocking(ui.shareDownloadDirectoryCB)->setChecked(rsFiles->getShareDownloadDirectory());
 
 	int u = rsFiles->watchPeriod() ;
@@ -125,6 +129,8 @@ void TransferPage::load()
 	whileBlocking(ui.incomingDir)->setText(QString::fromUtf8(rsFiles->getDownloadDirectory().c_str()));
 	whileBlocking(ui.partialsDir)->setText(QString::fromUtf8(rsFiles->getPartialsDirectory().c_str()));
 	whileBlocking(ui.followSymLinks_CB)->setChecked(rsFiles->followSymLinks());
+	whileBlocking(ui.ignoreDuplicates_CB)->setChecked(rsFiles->ignoreDuplicates());
+	whileBlocking(ui.maxDepth_SB)->setValue(rsFiles->maxShareDepth());
 
 	whileBlocking(ui._queueSize_SB)->setValue(rsFiles->getQueueSize()) ;
 
@@ -199,6 +205,14 @@ void TransferPage::updateDiskSizeLimit(int s)
 {
 	rsFiles->setFreeDiskSpaceLimit(s) ;
 }
+void TransferPage::updateIgnoreDuplicates()
+{
+	rsFiles->setIgnoreDuplicates(ui.ignoreDuplicates_CB->isChecked());
+}
+void TransferPage::updateMaxShareDepth(int s)
+{
+	rsFiles->setMaxShareDepth(s) ;
+}
 
 void TransferPage::updateQueueSize(int s)
 {
@@ -243,4 +257,4 @@ void TransferPage::editDirectories()
 void TransferPage::updateAutoCheckDirectories()       {    rsFiles->setWatchEnabled(ui.autoCheckDirectories_CB->isChecked()) ; }
 void TransferPage::updateAutoScanDirectoriesPeriod()  {    rsFiles->setWatchPeriod(ui.autoCheckDirectoriesDelay_SB->value()); }
 void TransferPage::updateShareDownloadDirectory()     {    rsFiles->shareDownloadDirectory(ui.shareDownloadDirectoryCB->isChecked());}
-void TransferPage::updateFollowSymLinks()             {    rsFiles->setFollowSymLinks(ui.followSymLinks_CB->isChecked()); }
+void TransferPage::updateFollowSymLinks()             {    rsFiles->setFollowSymLinks(ui.followSymLinks_CB->isChecked()); ui.ignoreDuplicates_CB->setEnabled(ui.followSymLinks_CB->isChecked());}
