@@ -33,6 +33,7 @@ class  QTreeWidgetItem;
 
 class RSTreeWidgetItemCompareRole ;
 
+
 class NetworkDialog : public RsAutoUpdatePage
 {
   Q_OBJECT
