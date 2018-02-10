@@ -29,6 +29,7 @@
 #include <sys/unistd.h>
 #include <unistd.h>
 #include "rstime.h"
+#include <unistd.h>
 
 namespace rstime {
 
