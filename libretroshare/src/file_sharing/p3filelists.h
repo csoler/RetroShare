@@ -83,7 +83,7 @@ class p3FileDatabase: public p3Service, public p3Config, public ftSearch //, pub
             // [...] more to add here
         };
 
-        p3FileDatabase(p3ServiceControl *mpeers) ;
+        explicit p3FileDatabase(p3ServiceControl *mpeers) ;
         ~p3FileDatabase();
 
         /*!
@@ -130,6 +130,12 @@ class p3FileDatabase: public p3Service, public p3Config, public ftSearch //, pub
 		void setIgnoreLists(const std::list<std::string>& ignored_prefixes,const std::list<std::string>& ignored_suffixes, uint32_t ignore_flags) ;
 		bool getIgnoreLists(std::list<std::string>& ignored_prefixes,std::list<std::string>& ignored_suffixes, uint32_t& ignore_flags) ;
 
+		void setIgnoreDuplicates(bool i) ;
+		bool ignoreDuplicates() const ;
+
+		void setMaxShareDepth(int i) ;
+		int  maxShareDepth() const ;
+
         // computes/gathers statistics about shared directories
 
 		int getSharedDirStatistics(const RsPeerId& pid,SharedDirStats& stats);
@@ -153,7 +159,7 @@ class p3FileDatabase: public p3Service, public p3Config, public ftSearch //, pub
 
     protected:
 
-        int filterResults(const std::list<EntryIndex>& firesults,std::list<DirDetails>& results,FileSearchFlags flags,const RsPeerId& peer_id) const;
+        int filterResults(const std::list<void*>& firesults,std::list<DirDetails>& results,FileSearchFlags flags,const RsPeerId& peer_id) const;
         std::string makeRemoteFileName(const RsPeerId& pid) const;
 
         // Derived from p3Config

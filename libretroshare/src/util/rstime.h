@@ -1,5 +1,5 @@
 /*
- * libretroshare/src/util: rsscopetimer.cc
+ * libretroshare/src/util: rsscopetimer.h
  *
  * 3P/PQI network interface for RetroShare.
  *
@@ -23,37 +23,40 @@
  *
  */
 
-#include <iostream>
-#include <sys/time.h>
-#include "rsscopetimer.h"
+#include <string>
 
-RsScopeTimer::RsScopeTimer(const std::string& name)
-{
-	_name = name ;
-	start();
-}
+namespace rstime {
 
-RsScopeTimer::~RsScopeTimer()
-{
-	if (!_name.empty())
+	/*!
+	 * \brief This is a cross-system definition of usleep, which accepts any 32 bits number of micro-seconds.
+	 */
+
+	int rs_usleep(uint32_t micro_seconds);
+
+	/* Use this class to measure and display time duration of a given environment:
+
+	 {
+	     RsScopeTimer timer("callToMeasure()") ;
+
+	     callToMeasure() ;
+	 }
+
+	*/
+
+	class RsScopeTimer
 	{
-		std::cerr << "Time for \"" << _name << "\": " << duration() << std::endl;
-	}
-}
+	public:
+		RsScopeTimer(const std::string& name);
+		~RsScopeTimer();
 
-double RsScopeTimer::currentTime()
-{
-	timeval tv ;
-	gettimeofday(&tv,NULL) ;
-	return (tv.tv_sec % 10000) + tv.tv_usec/1000000.0f ;	// the %1000 is here to allow double precision to cover the decimals.
-}
+		void start();
+		double duration();
 
-void RsScopeTimer::start()
-{
-	_seconds = currentTime();
-}
+		static double currentTime();
 
-double RsScopeTimer::duration()
-{
-	return currentTime() - _seconds;
+	private:
+		std::string _name ;
+		double _seconds ;
+	};
+
 }

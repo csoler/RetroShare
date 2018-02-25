@@ -35,7 +35,7 @@ QProgressBar::chunk:horizontal {
 }
 
 QFrame#titleBarFrame, QFrame#toolBarFrame
-{       
+{
      background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                                        stop:0 #616161, stop: 0.5 #505050,
                                        stop: 0.6 #434343, stop:1 #656565);
@@ -44,7 +44,7 @@ QFrame#titleBarFrame, QFrame#toolBarFrame
 QToolTip
 {
     border: 1px solid #3A3939;
-    background-color: rgb(90, 102, 117);;
+    background-color: rgb(90, 102, 117);
     color: white;
     padding: 1px;
     opacity: 200;
@@ -72,6 +72,24 @@ QWidget:item:selected
 {
     background-color: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1,
     stop: 0 #78879b, stop: 1 #78879b);
+}
+
+QTableWidget::item {
+    color: #C0C0C0;
+    background-color: #201F1F;
+}
+
+QTableWidget::item:selected {
+    color: black;
+}
+
+ForumsDialog, GxsForumThreadWidget
+{
+	qproperty-textColorRead: darkgray;
+	qproperty-textColorUnread: white;
+	qproperty-textColorUnreadChildren: red;
+	qproperty-textColorNotSubscribed: white;
+	qproperty-textColorMissing: darkred;
 }
 
 QMenuBar
@@ -321,7 +339,7 @@ QTextEdit
 
 QPlainTextEdit
 {
-    background-color: #201F1F;;
+    background-color: #201F1F;
     color: silver;
     border-radius: 3px;
     border: 1px solid #3A3939;
@@ -815,10 +833,38 @@ QDockWidget::close-button:pressed, QDockWidget::float-button:pressed {
     background: rgba(255, 255, 255, 10);
 }
 
+FriendList {
+    qproperty-textColorStatusAway: lightgray;
+    qproperty-textColorStatusBusy: lightgray;
+    qproperty-textColorStatusOnline: green;
+    qproperty-textColorStatusInactive: lightgray;
+    qproperty-textColorStatusOffline: gray;
+}
+
 QTreeView, QListView
 {
     border: 1px solid #78879b;
     background-color: #201F1F;
+}
+
+QTreeView::item {
+    background-color: #201F1F;
+}
+
+QTreeView::item:selected {
+    color: black;
+}
+
+RSTreeWidget#idTreeWidget::item:!selected {
+    color: #C0C0C0;
+}
+
+NetworkDialog {
+    qproperty-backgroundColorSelf: darkred;
+    qproperty-backgroundColorOwnSign: darkred;
+    qproperty-backgroundColorAcceptConnection: black;
+    qproperty-backgroundColorHasSignedMe: darkred;
+    qproperty-backgroundColorDenied: #201F1F;
 }
 
 QTreeView:branch:selected, QTreeView:branch:hover
@@ -858,14 +904,14 @@ QTreeView::branch:open:has-children:has-siblings:hover  {
     image: url(qdarkstyle/branch_open-on.png);
     }
 
-QListView::item:!selected:hover, QListView::item:!selected:hover, QTreeView::item:!selected:hover  {
+QListView::item:!selected:hover, QTableView::item:!selected:hover, QTreeView::item:!selected:hover  {
     background: rgba(0, 0, 0, 0);
     outline: 0;
-    color: #FFFFFF
+    color: #FFFFFF;
 }
 
-QListView::item:selected:hover, QListView::item:selected:hover, QTreeView::item:selected:hover  {
-    background: #78879b;;
+QListView::item:selected:hover, QTableView::item:selected:hover, QTreeView::item:selected:hover  {
+    background: #78879b;
     color: #FFFFFF;
 }
 
@@ -1078,4 +1124,11 @@ OpModeStatus[opMode="Gaming"] {
 }
 OpModeStatus[opMode="Minimal"] {
 	background: #700000;
+}
+
+[new=false] {
+	background: #202020;
+}
+[new=true] {
+	background: #005000;
 }

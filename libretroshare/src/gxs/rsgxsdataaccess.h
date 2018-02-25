@@ -37,7 +37,7 @@ typedef std::map< RsGxsGroupId, RsGxsGrpMetaData* > GrpMetaFilter;
 class RsGxsDataAccess : public RsTokenService
 {
 public:
-    RsGxsDataAccess(RsGeneralDataService* ds);
+    explicit RsGxsDataAccess(RsGeneralDataService* ds);
     virtual ~RsGxsDataAccess() ;
 
 public:
@@ -209,7 +209,7 @@ public:
      * @param token request token to be redeemed
      * @param groupInfo
      */
-    bool getGroupSummary(const uint32_t &token, std::list<RsGxsGrpMetaData*> &groupInfo);
+    bool getGroupSummary(const uint32_t &token, std::list<const RsGxsGrpMetaData*>& groupInfo);
 
     /*!
      *

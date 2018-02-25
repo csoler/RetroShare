@@ -335,10 +335,29 @@ cleanup = true;
         rskv->tlvkvs.pairs.push_back(kv);
     }
 	{
+        std::string s ;
+        rs_sprintf(s, "%d", maxShareDepth()) ;
+
+        RsTlvKeyValue kv;
+
+        kv.key = MAX_SHARE_DEPTH;
+        kv.value = s ;
+
+        rskv->tlvkvs.pairs.push_back(kv);
+    }
+	{
         RsTlvKeyValue kv;
 
         kv.key = FOLLOW_SYMLINKS_SS;
         kv.value = followSymLinks()?"YES":"NO" ;
+
+        rskv->tlvkvs.pairs.push_back(kv);
+    }
+	{
+        RsTlvKeyValue kv;
+
+        kv.key = IGNORE_DUPLICATES;
+        kv.value = ignoreDuplicates()?"YES":"NO" ;
 
         rskv->tlvkvs.pairs.push_back(kv);
     }
@@ -400,6 +419,7 @@ bool p3FileDatabase::loadList(std::list<RsItem *>& load)
     std::list<SharedDirInfo> dirList;
 	std::list<std::string> ignored_prefixes,ignored_suffixes ;
 	uint32_t ignore_flags = RS_FILE_SHARE_FLAGS_IGNORE_PREFIXES | RS_FILE_SHARE_FLAGS_IGNORE_SUFFIXES ;
+	uint32_t max_share_depth = 0;
 
 	// OS-dependent default ignore lists
 #ifdef WINDOWS_SYS
@@ -417,14 +437,14 @@ bool p3FileDatabase::loadList(std::list<RsItem *>& load)
         if (NULL != (rskv = dynamic_cast<RsConfigKeyValueSet *>(*it)))
         {
             /* make into map */
-            std::map<std::string, std::string> configMap;
-            std::map<std::string, std::string>::const_iterator mit ;
+            //std::map<std::string, std::string> configMap;
+            //std::map<std::string, std::string>::const_iterator mit ;
 
             for(std::list<RsTlvKeyValue>::const_iterator kit = rskv->tlvkvs.pairs.begin(); kit != rskv->tlvkvs.pairs.end(); ++kit)
             if (kit->key == HASH_CACHE_DURATION_SS)
             {
                 uint32_t t=0 ;
-                if(sscanf(kit->value.c_str(),"%d",&t) == 1)
+                if(sscanf(kit->value.c_str(),"%u",&t) == 1)
                     mHashCache->setRememberHashFilesDuration(t);
             }
             else if(kit->key == WATCH_FILE_DURATION_SS)
@@ -433,9 +453,13 @@ bool p3FileDatabase::loadList(std::list<RsItem *>& load)
                 if(sscanf(kit->value.c_str(),"%d",&t) == 1)
                     setWatchPeriod(t);
             }
-            else if(kit->key == FOLLOW_SYMLINKS_SS)
+			else if(kit->key == FOLLOW_SYMLINKS_SS)
             {
                 setFollowSymLinks(kit->value == "YES") ;
+            }
+            else if(kit->key == IGNORE_DUPLICATES)
+            {
+                setIgnoreDuplicates(kit->value == "YES") ;
             }
             else if(kit->key == WATCH_FILE_ENABLED_SS)
             {
@@ -454,7 +478,9 @@ bool p3FileDatabase::loadList(std::list<RsItem *>& load)
 				for(uint32_t i=0;i<kit->value.size();++i)
 					if(kit->value[i] == ';')
 					{
-						ignored_prefixes.push_back(b) ;
+						if(!b.empty())		// security!
+							ignored_prefixes.push_back(b) ;
+
 						b.clear();
 					}
 					else
@@ -468,7 +494,8 @@ bool p3FileDatabase::loadList(std::list<RsItem *>& load)
 				for(uint32_t i=0;i<kit->value.size();++i)
 					if(kit->value[i] == ';')
 					{
-						ignored_suffixes.push_back(b) ;
+						if(!b.empty())		// security!
+							ignored_suffixes.push_back(b) ;
 						b.clear();
 					}
 					else
@@ -479,6 +506,12 @@ bool p3FileDatabase::loadList(std::list<RsItem *>& load)
                 int t=0 ;
                 if(sscanf(kit->value.c_str(),"%d",&t) == 1)
                     ignore_flags = (uint32_t)t ;
+			}
+			else if(kit->key == MAX_SHARE_DEPTH)
+			{
+                int t=0 ;
+                if(sscanf(kit->value.c_str(),"%d",&t) == 1)
+                    max_share_depth = (uint32_t)t ;
 			}
 
             delete *it ;
@@ -509,6 +542,7 @@ bool p3FileDatabase::loadList(std::list<RsItem *>& load)
     /* set directories */
     mLocalSharedDirs->setSharedDirectoryList(dirList);
 	mLocalDirWatcher->setIgnoreLists(ignored_prefixes,ignored_suffixes,ignore_flags) ;
+	mLocalDirWatcher->setMaxShareDepth(max_share_depth);
 
     load.clear() ;
 
@@ -1070,6 +1104,28 @@ bool p3FileDatabase::followSymLinks() const
     RS_STACK_MUTEX(mFLSMtx) ;
     return mLocalDirWatcher->followSymLinks() ;
 }
+void p3FileDatabase::setIgnoreDuplicates(bool i)
+{
+    RS_STACK_MUTEX(mFLSMtx) ;
+    mLocalDirWatcher->setIgnoreDuplicates(i) ;
+    IndicateConfigChanged();
+}
+bool p3FileDatabase::ignoreDuplicates() const
+{
+    RS_STACK_MUTEX(mFLSMtx) ;
+    return mLocalDirWatcher->ignoreDuplicates() ;
+}
+void p3FileDatabase::setMaxShareDepth(int i)
+{
+    RS_STACK_MUTEX(mFLSMtx) ;
+    mLocalDirWatcher->setMaxShareDepth(i) ;
+    IndicateConfigChanged();
+}
+int  p3FileDatabase::maxShareDepth() const
+{
+    RS_STACK_MUTEX(mFLSMtx) ;
+    return mLocalDirWatcher->maxShareDepth() ;
+}
 void p3FileDatabase::setWatchEnabled(bool b)
 {
     RS_STACK_MUTEX(mFLSMtx) ;
@@ -1099,6 +1155,8 @@ int p3FileDatabase::SearchKeywords(const std::list<std::string>& keywords, std::
     if(flags & RS_FILE_HINTS_LOCAL)
     {
         std::list<EntryIndex> firesults;
+        std::list<void *> pointers;
+
         {
             RS_STACK_MUTEX(mFLSMtx) ;
 
@@ -1108,16 +1166,16 @@ int p3FileDatabase::SearchKeywords(const std::list<std::string>& keywords, std::
             {
                 void *p=NULL;
                 convertEntryIndexToPointer<sizeof(void*)>(*it,0,p);
-                *it = (intptr_t)p ;
+				pointers.push_back(p) ;
             }
         }
 
-        filterResults(firesults,results,flags,client_peer_id) ;
+        filterResults(pointers,results,flags,client_peer_id) ;
     }
 
     if(flags & RS_FILE_HINTS_REMOTE)
     {
-        std::list<EntryIndex> firesults;
+		std::list<void*> pointers ;
 
         {
             RS_STACK_MUTEX(mFLSMtx) ;
@@ -1132,21 +1190,21 @@ int p3FileDatabase::SearchKeywords(const std::list<std::string>& keywords, std::
                     {
                         void *p=NULL;
                         convertEntryIndexToPointer<sizeof(void*)>(*it,i+1,p);
-                        firesults.push_back((intptr_t)p) ;
-                    }
+
+						pointers.push_back(p) ;
+					}
                 }
         }
 
-        for(std::list<EntryIndex>::const_iterator rit ( firesults.begin()); rit != firesults.end(); ++rit)
-        {
-            DirDetails dd;
+		for(auto it(pointers.begin());it!=pointers.end();++it)
+		{
+			DirDetails dd;
 
-            if(!RequestDirDetails ((void*)(intptr_t)*rit,dd,RS_FILE_HINTS_REMOTE))
-                continue ;
+			if(!RequestDirDetails (*it,dd,RS_FILE_HINTS_REMOTE))
+				continue ;
 
-            results.push_back(dd);
-        }
-
+			results.push_back(dd);
+		}
     }
 
     return !results.empty() ;
@@ -1157,6 +1215,7 @@ int p3FileDatabase::SearchBoolExp(RsRegularExpression::Expression *exp, std::lis
     if(flags & RS_FILE_HINTS_LOCAL)
     {
         std::list<EntryIndex> firesults;
+        std::list<void*> pointers;
         {
             RS_STACK_MUTEX(mFLSMtx) ;
 
@@ -1166,17 +1225,16 @@ int p3FileDatabase::SearchBoolExp(RsRegularExpression::Expression *exp, std::lis
             {
                 void *p=NULL;
                 convertEntryIndexToPointer<sizeof(void*)>(*it,0,p);
-                *it = (intptr_t)p ;
+                pointers.push_back(p);
             }
         }
 
-        filterResults(firesults,results,flags,client_peer_id) ;
+        filterResults(pointers,results,flags,client_peer_id) ;
     }
 
     if(flags & RS_FILE_HINTS_REMOTE)
     {
-        std::list<EntryIndex> firesults;
-
+		std::list<void*> pointers ;
         {
             RS_STACK_MUTEX(mFLSMtx) ;
 
@@ -1190,21 +1248,20 @@ int p3FileDatabase::SearchBoolExp(RsRegularExpression::Expression *exp, std::lis
                     {
                         void *p=NULL;
                         convertEntryIndexToPointer<sizeof(void*)>(*it,i+1,p);
-                        firesults.push_back((intptr_t)p) ;
-                    }
-
+						pointers.push_back(p) ;
+					}
                 }
         }
 
-        for(std::list<EntryIndex>::const_iterator rit ( firesults.begin()); rit != firesults.end(); ++rit)
-        {
-            DirDetails dd;
+		for(auto it(pointers.begin());it!=pointers.end();++it)
+		{
+			DirDetails dd;
 
-            if(!RequestDirDetails ((void*)(intptr_t)*rit,dd,RS_FILE_HINTS_REMOTE))
-                continue ;
+			if(!RequestDirDetails (*it,dd,RS_FILE_HINTS_REMOTE))
+				continue ;
 
-            results.push_back(dd);
-        }
+			results.push_back(dd);
+		}
     }
 
     return !results.empty() ;
@@ -1256,7 +1313,7 @@ bool p3FileDatabase::search(const RsFileHash &hash, FileSearchFlags hintflags, F
     return false;
 }
 
-int p3FileDatabase::filterResults(const std::list<EntryIndex>& firesults,std::list<DirDetails>& results,FileSearchFlags flags,const RsPeerId& peer_id) const
+int p3FileDatabase::filterResults(const std::list<void*>& firesults,std::list<DirDetails>& results,FileSearchFlags flags,const RsPeerId& peer_id) const
 {
     results.clear();
 
@@ -1264,17 +1321,17 @@ int p3FileDatabase::filterResults(const std::list<EntryIndex>& firesults,std::li
 
     /* translate/filter results */
 
-    for(std::list<EntryIndex>::const_iterator rit(firesults.begin()); rit != firesults.end(); ++rit)
+    for(std::list<void*>::const_iterator rit(firesults.begin()); rit != firesults.end(); ++rit)
     {
         DirDetails cdetails ;
 
-        if(!RequestDirDetails ((void*)(intptr_t)*rit,cdetails,RS_FILE_HINTS_LOCAL))
+        if(!RequestDirDetails (*rit,cdetails,RS_FILE_HINTS_LOCAL))
         {
-            P3FILELISTS_ERROR() << "(EE) Cannot get dir details for entry " << (void*)(intptr_t)*rit << std::endl;
+            P3FILELISTS_ERROR() << "(EE) Cannot get dir details for entry " << *rit << std::endl;
             continue ;
         }
 #ifdef DEBUG_P3FILELISTS
-        P3FILELISTS_DEBUG() << "Filtering candidate " << (void*)(intptr_t)(*rit) << ", flags=" << cdetails.flags << ", peer=" << peer_id ;
+        P3FILELISTS_DEBUG() << "Filtering candidate " << *rit << ", flags=" << cdetails.flags << ", peer=" << peer_id ;
 #endif
 
         if(!peer_id.isNull())
@@ -1688,7 +1745,7 @@ void p3FileDatabase::locked_recursSweepRemoteDirectory(RemoteDirectoryStorage *r
 {
    time_t now = time(NULL) ;
 
-   std::string indent(2*depth,' ') ;
+   //std::string indent(2*depth,' ') ;
 
    // if not up to date, request update, and return (content is not certified, so no need to recurs yet).
    // if up to date, return, because TS is about the last modif TS below, so no need to recurs either.

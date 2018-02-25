@@ -1,6 +1,6 @@
 /*
  * RetroShare Android QML App
- * Copyright (C) 2017  Gioacchino Mazzurco <gio@eigenlab.org>
+ * Copyright (C) 2017-2018  Gioacchino Mazzurco <gio@eigenlab.org>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -28,33 +28,51 @@ QtObject
 	property var tokens: ({})
 	function registerToken(token, callback)
 	{
-		if (Array.isArray(tokens[token]))
+		if(!maybeToken(token))
 		{
-			if(QT_DEBUG)
-			{
-				/* Haven't properly investigated yet if it may happen in normal
-				 * situations that a callback is registered more then once, so
-				 * if we are in a debug session and that happens print warning
-				 * and stacktrace */
-				var arrLen = tokens[token].length
-				for(var i=0; i<arrLen; ++i)
-				{
-					if(callback === tokens[token][i])
-					{
-						console.warn("tokensManager.registerToken(token," +
-									 " callback) Attempt to register same" +
-									 " callback twice for:",
-									 i, token, callback.name)
-						console.trace()
-					}
-				}
-			}
-			tokens[token].push(callback)
+			console.error("TokensManager attempt to register a non int token: ", token)
+			console.trace()
+			return
 		}
+
+		if (Array.isArray(tokens[token])) tokens[token].push(callback)
 		else tokens[token] = [callback]
+	}
+	function unRegisterToken(token, callback)
+	{
+		if(!maybeToken(token))
+		{
+			console.error("TokensManager attempt to unregister a non int token: ", token)
+			console.trace()
+			return
+		}
+
+		var remCount = 0;
+		var arrLen = tokens[token].length
+		for(var i=0; i<arrLen; ++i)
+		{
+			if(callback === tokens[token][i])
+			{
+				tokens[token].splice(i,1)
+				++remCount
+			}
+		}
+
+		if(remCount === 0)
+		{
+			console.warn("TokensManager attempt to unregister unregistered callback", token, callback.name)
+			console.trace()
+		}
 	}
 	function tokenExpire(token)
 	{
+		if(!maybeToken(token))
+		{
+			console.error("TokensManager attempt to expire a non int token: ", token)
+			console.trace()
+			return
+		}
+
 		if(Array.isArray(tokens[token]))
 		{
 			var arrLen = tokens[token].length
@@ -72,6 +90,7 @@ QtObject
 		delete tokens[token]
 	}
 	function isTokenValid(token) { return Array.isArray(tokens[token]) }
+	function maybeToken(value) { return Number(value) === parseInt(value) }
 
 	property alias refreshInterval: refreshTokensTimer.interval
 
@@ -81,16 +100,22 @@ QtObject
 
 		onResponseReceived:
 		{
+			/* TODO: This is vital enough and if some fails appens can create
+			 * difficult to debug unexpected behaviours in any place of the app.
+			 * We should do some more checking on the data received here
+			 */
 			var jsonData = JSON.parse(msg).data
+			// console.log("refreshTokensApi got expired tokens:", msg)
 			var arrayLength = jsonData.length
-			for (var i = 0; i < arrayLength; i++)
-			{
+			for (var i = 0; i < arrayLength; ++i)
 				tokensManager.tokenExpire(jsonData[i])
-			}
 		}
 
 		Component.onCompleted:
 		{
+			/* Disable debugging only for this instance of LibresapiLocalClient
+			 * as it is particularly noisy and repetitive, and not useful in
+			 * most of the cases */
 			if(QT_DEBUG) debug = false
 
 			openConnection(apiSocketPath)
@@ -99,8 +124,13 @@ QtObject
 
 		function refreshTokens()
 		{
-			request("/statetokenservice/*",
-					'['+Object.keys(tokensManager.tokens)+']')
+			var tokensArr = Object.keys(tokensManager.tokens)
+
+			// Filter to avoid "undefined" being sent toghether with tokens
+			var tokensStr = '['+ tokensArr.filter(maybeToken) +']'
+
+			// console.log("refreshTokensApi checking tokens:", tokensStr)
+			request("/statetokenservice/*", tokensStr)
 		}
 	}
 

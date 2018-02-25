@@ -26,6 +26,7 @@
 #include "RSTextEdit.h"
 #include "util/RsSyntaxHighlighter.h"
 
+//cppcheck-suppress noConstructor
 class MimeTextEdit : public RSTextEdit
 {
 	Q_OBJECT
@@ -49,6 +50,8 @@ public:
 
 	QColor textColorQuote() const { return highliter->textColorQuote();}
 	bool onlyPlainText() const {return mOnlyPlainText;}
+
+	void setMaxBytes(int limit) {mMaxBytes = limit;}
 
 public slots:
 	void setTextColorQuote(QColor textColorQuote) { highliter->setTextColorQuote(textColorQuote);}
@@ -83,6 +86,7 @@ private:
 	QList<QAction*> mContextMenuActions;
 	RsSyntaxHighlighter *highliter;
 	bool mOnlyPlainText;
+	int mMaxBytes = -1;	//limit content size, for pasting images
 };
 
 #endif // MIMETEXTEDIT_H

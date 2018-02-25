@@ -19,11 +19,14 @@
  *  Boston, MA  02110-1301, USA.
  ****************************************************************/
 
+#include "FilesDefs.h"
+
+#include "RsCollection.h"
+
 #include <QApplication>
 #include <QFileInfo>
 
-#include "FilesDefs.h"
-#include "RsCollectionFile.h"
+#include <map>
 
 static QString getInfoFromFilename(const QString& filename, bool anyForUnknown, bool image)
 {
@@ -54,7 +57,7 @@ static QString getInfoFromFilename(const QString& filename, bool anyForUnknown, 
 		return image ? ":/images/FileTypeDocument.png" : QApplication::translate("FilesDefs", "Document");
 	} else if (ext == "pdf") {
 		return image ? ":/images/mimetypes/pdf.png" : QApplication::translate("FilesDefs", "Document");
-	} else if (ext == RsCollectionFile::ExtensionString) {
+	} else if (ext == RsCollection::ExtensionString) {
 		return image ? ":/images/mimetypes/rscollection-16.png" : QApplication::translate("FilesDefs", "RetroShare collection file");
 	} else if (ext == "sub" || ext == "srt") {
 		return image ? ":/images/FileTypeAny.png" : QApplication::translate("FilesDefs", "Subtitles");
@@ -85,7 +88,19 @@ QString FilesDefs::getImageFromFilename(const QString& filename, bool anyForUnkn
 
 QIcon FilesDefs::getIconFromFilename(const QString& filename)
 {
-	return QIcon(getInfoFromFilename(filename, true, true));
+	QString sImage = getInfoFromFilename(filename, true, true);
+	static std::map<QString,QIcon> mIconCache;
+	QIcon icon;
+	auto item = mIconCache.find(sImage);
+	if (item == mIconCache.end())
+	{
+		icon = QIcon(sImage);
+		mIconCache[sImage] = icon;
+	}
+	else
+		icon = item->second;
+
+	return icon;
 }
 
 QString FilesDefs::getNameFromFilename(const QString &filename)

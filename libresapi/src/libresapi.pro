@@ -8,7 +8,9 @@ TARGET = resapi
 TARGET_PRL = libresapi
 DESTDIR = lib
 
+DEPENDPATH += ../../libretroshare/src/
 INCLUDEPATH += ../../libretroshare/src
+
 
 retroshare_android_service {
     win32 {
@@ -39,9 +41,6 @@ retroshare_android_service {
                 QMAKE_RC += --include-dir=$$_PRO_FILE_PWD_/../../libretroshare/src
         }
     }
-
-    DEPENDPATH += . ../../libretroshare/src/
-    INCLUDEPATH += ../../libretroshare/src/
 }
 
 libresapihttpserver {
@@ -182,7 +181,8 @@ SOURCES += \
     util/ContentTypes.cpp \
     api/ApiPluginHandler.cpp \
     api/ChannelsHandler.cpp \
-    api/StatsHandler.cpp
+    api/StatsHandler.cpp \
+    api/FileSharingHandler.cpp
 
 HEADERS += \
 	api/ApiServer.h \
@@ -209,7 +209,8 @@ HEADERS += \
     util/ContentTypes.h \
     api/ApiPluginHandler.h \
     api/ChannelsHandler.h \
-    api/StatsHandler.h
+    api/StatsHandler.h \
+    api/FileSharingHandler.h
 
 libresapilocalserver {
     CONFIG *= qt

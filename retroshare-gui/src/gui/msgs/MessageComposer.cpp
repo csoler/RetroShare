@@ -76,8 +76,6 @@
 #define ROLE_CONTACT_ID       Qt::UserRole
 #define ROLE_CONTACT_SORT     Qt::UserRole + 1
 
-#define COLOR_CONNECT Qt::blue
-
 #define COLUMN_RECIPIENT_TYPE  0
 #define COLUMN_RECIPIENT_ICON  1
 #define COLUMN_RECIPIENT_NAME  2
@@ -2777,12 +2775,12 @@ QString MessageComposer::inviteMessage()
     return tr("Hi,<br>I want to be friends with you on RetroShare.<br>");
 }
 
-void MessageComposer::sendInvite(const RsGxsId &to, const QString &/*msg*/, bool autoSend)
+void MessageComposer::sendInvite(const RsGxsId &to, bool autoSend)
 {
     /* create a message */
     MessageComposer *composer = MessageComposer::newMsg();
 
-    composer->setTitleText(tr("You have a friend invite"));
+    composer->setTitleText(tr("Invite message"));
     composer->msgFlags |= RS_MSG_USER_REQUEST;
 
 
@@ -2805,8 +2803,8 @@ void MessageComposer::sendInvite(const RsGxsId &to, const QString &/*msg*/, bool
             return;
         }
     }
-
-    //composer->show();
+	else
+		composer->show();
 
     /* window will destroy itself! */
 }

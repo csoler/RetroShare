@@ -24,6 +24,7 @@
 
 #include <set>
 #include "RsAutoUpdatePage.h"
+#include "gui/RetroShareLink.h"
 #include "ui_SharedFilesDialog.h"
 
 class RetroshareDirModel;
@@ -68,10 +69,6 @@ private slots:
   void collView();
   void collOpen();
 
-//==  void showFrame(bool show);
-//==  void showFrameRemote(bool show);
-//==  void showFrameSplitted(bool show);
-
   void recommendFilesToMsg();
 	
   void indicatorChanged(int index);
@@ -90,10 +87,10 @@ protected:
   Ui::SharedFilesDialog ui;
   virtual void processSettings(bool bLoad) = 0;
 
-  void recursRestoreExpandedItems(const QModelIndex& index,const std::string& path,const std::set<std::string>& exp,const std::set<std::string>& sel);
-  void recursSaveExpandedItems(const QModelIndex& index, const std::string &path, std::set<std::string> &exp, std::set<std::string>& sel);
-  void saveExpandedPathsAndSelection(std::set<std::string>& paths, std::set<std::string>& selected_indexes) ;
-  void restoreExpandedPathsAndSelection(const std::set<std::string>& paths, const std::set<std::string>& selected_indexes) ;
+  void recursRestoreExpandedItems(const QModelIndex& index, const std::string& path, const std::set<std::string>& exp, const std::set<std::string>& vis, const std::set<std::string>& sel);
+  void recursSaveExpandedItems(const QModelIndex& index, const std::string &path, std::set<std::string> &exp,std::set<std::string>& vis, std::set<std::string>& sel);
+  void saveExpandedPathsAndSelection(std::set<std::string>& paths,std::set<std::string>& visible_indexes, std::set<std::string>& selected_indexes) ;
+  void restoreExpandedPathsAndSelection(const std::set<std::string>& paths,const std::set<std::string>& visible_indexes, const std::set<std::string>& selected_indexes) ;
 
 protected:
   //now context menu are created again every time theu are called ( in some
@@ -103,11 +100,14 @@ protected:
 
   //QMenu* contextMnu2;
 
+  void copyLinks(const QModelIndexList& lst, bool remote, QList<RetroShareLink>& urls, bool& has_unhashed_files);
   void copyLink (const QModelIndexList& lst, bool remote);
 
   void FilterItems();
   bool tree_FilterItem(const QModelIndex &index, const QString &text, int level);
   bool flat_FilterItem(const QModelIndex &index, const QString &text, int level);
+
+  void restoreInvisibleItems();
 
   QModelIndexList getSelected();
 
@@ -134,6 +134,9 @@ protected:
   QString currentFile;
 
   QString lastFilterString;
+  QString mLastFilterText ;
+
+  QList<QModelIndex> mHiddenIndexes;
 };
 
 class LocalSharedFilesDialog : public SharedFilesDialog
@@ -161,6 +164,8 @@ class LocalSharedFilesDialog : public SharedFilesDialog
 		void runCommandForFile();
 		void tryToAddNewAssotiation();
 		void forceCheck();
+  		void shareOnChannel();
+  		void shareInForum();
 
 		QAction* fileAssotiationAction(const QString fileName);
 
@@ -187,6 +192,7 @@ class RemoteSharedFilesDialog : public SharedFilesDialog
 
 	private slots:
 		void downloadRemoteSelected();
+		void downloadRemoteSelectedInteractive();
         void expanded(const QModelIndex& indx);
 };
 

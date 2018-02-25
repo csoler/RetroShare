@@ -72,7 +72,7 @@ void RsCertificate::addPacket(uint8_t ptag, const unsigned char *mem, size_t siz
 
 std::string RsCertificate::toStdString() const
 {
-	std::string res ;
+	//std::string res ;
 	size_t BS = 1000 ;
 	size_t p = 0 ;
 	unsigned char *buf = new unsigned char[BS] ;
@@ -360,8 +360,9 @@ bool RsCertificate::initFromString(const std::string& instr,uint32_t& err_code)
 															  }
 															  break ;
 				default:
-															  err_code = CERTIFICATE_PARSING_ERROR_UNKNOWN_SECTION_PTAG ;
-															  return false ;
+															  std::cerr << "(WW) unknwown PTAG 0x" << std::hex << ptag << std::dec << " in certificate! Ignoring it." << std::endl;
+															  buf = &buf[s] ;
+															  break ;
 			}
 
 			total_s += s ;

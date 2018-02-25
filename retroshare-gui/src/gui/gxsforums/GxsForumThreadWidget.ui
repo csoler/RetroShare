@@ -84,15 +84,21 @@
             <property name="toolTip">
              <string>Start new Thread for Selected Forum</string>
             </property>
+            <property name="text">
+             <string>New Thread</string>
+            </property>
             <property name="icon">
-             <iconset resource="../images.qrc">
-              <normaloff>:/images/mail_new.png</normaloff>:/images/mail_new.png</iconset>
+             <iconset resource="../icons.qrc">
+              <normaloff>:/icons/png/add.png</normaloff>:/icons/png/add.png</iconset>
             </property>
             <property name="iconSize">
              <size>
               <width>24</width>
               <height>16</height>
              </size>
+            </property>
+            <property name="toolButtonStyle">
+             <enum>Qt::ToolButtonTextBesideIcon</enum>
             </property>
             <property name="autoRaise">
              <bool>true</bool>
@@ -306,8 +312,8 @@
           <widget class="QToolButton" name="newmessageButton">
            <property name="maximumSize">
             <size>
-             <width>24</width>
-             <height>24</height>
+             <width>16777215</width>
+             <height>16777215</height>
             </size>
            </property>
            <property name="focusPolicy">
@@ -316,9 +322,15 @@
            <property name="toolTip">
             <string>Reply Message</string>
            </property>
+           <property name="text">
+            <string>Reply</string>
+           </property>
            <property name="icon">
             <iconset resource="../images.qrc">
              <normaloff>:/images/mail_reply.png</normaloff>:/images/mail_reply.png</iconset>
+           </property>
+           <property name="toolButtonStyle">
+            <enum>Qt::ToolButtonTextBesideIcon</enum>
            </property>
            <property name="autoRaise">
             <bool>true</bool>
@@ -358,7 +370,7 @@
            </property>
           </widget>
          </item>
-         <item row="0" column="8">
+         <item row="0" column="9">
           <widget class="Line" name="lineRight">
            <property name="orientation">
             <enum>Qt::Vertical</enum>
@@ -471,7 +483,7 @@
            </property>
           </widget>
          </item>
-         <item row="0" column="9">
+         <item row="0" column="8">
           <widget class="QComboBox" name="versions_CB"/>
          </item>
          <item row="0" column="7">
@@ -527,9 +539,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>RSTextBrowser</class>
-   <extends>QTextBrowser</extends>
-   <header>gui/common/RSTextBrowser.h</header>
+   <class>GxsIdLabel</class>
+   <extends>QLabel</extends>
+   <header>gui/gxs/GxsIdLabel.h</header>
   </customwidget>
   <customwidget>
    <class>LineEditClear</class>
@@ -542,14 +554,14 @@
    <header>gui/common/SubscribeToolButton.h</header>
   </customwidget>
   <customwidget>
+   <class>RSTextBrowser</class>
+   <extends>QTextBrowser</extends>
+   <header>gui/common/RSTextBrowser.h</header>
+  </customwidget>
+  <customwidget>
    <class>RSTreeWidget</class>
    <extends>QTreeWidget</extends>
    <header>gui/common/RSTreeWidget.h</header>
-  </customwidget>
-  <customwidget>
-   <class>GxsIdLabel</class>
-   <extends>QLabel</extends>
-   <header>gui/gxs/GxsIdLabel.h</header>
   </customwidget>
   <customwidget>
    <class>ElidedLabel</class>
@@ -565,8 +577,8 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="../icons.qrc"/>
   <include location="../images.qrc"/>
+  <include location="../icons.qrc"/>
  </resources>
  <connections/>
 </ui>

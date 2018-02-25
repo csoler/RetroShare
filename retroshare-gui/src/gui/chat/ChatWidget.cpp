@@ -111,7 +111,7 @@ ChatWidget::ChatWidget(QWidget *parent) :
 	ui->searchButton->setFixedSize(buttonSize);
 	ui->searchButton->setIconSize(iconSize);
 	ui->sendButton->setFixedHeight(iconHeight);
-  ui->sendButton->setIconSize(iconSize);
+	ui->sendButton->setIconSize(iconSize);
   
 	//Initialize search
 	iCharToStartSearch=Settings->getChatSearchCharToStartSearch();
@@ -172,7 +172,7 @@ ChatWidget::ChatWidget(QWidget *parent) :
 
 	connect(ui->textBrowser, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(contextMenuTextBrowser(QPoint)));
 
-	connect(ui->chatTextEdit, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(contextMenu(QPoint)));
+	//connect(ui->chatTextEdit, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(contextMenu(QPoint)));
 	// reset text and color after removing all characters from the QTextEdit and after calling QTextEdit::clear
 	connect(ui->chatTextEdit, SIGNAL(currentCharFormatChanged(QTextCharFormat)), this, SLOT(chatCharFormatChanged()));
 	connect(ui->chatTextEdit, SIGNAL(textChanged()), this, SLOT(updateLenOfChatTextEdit()));
@@ -295,6 +295,7 @@ void ChatWidget::init(const ChatId &chat_id, const QString &title)
 	this->title = title;
 
 	ui->titleLabel->setText(RsHtml::plainText(title));
+	ui->chatTextEdit->setMaxBytes(this->maxMessageSize() - 200);
 
     RsPeerId ownId = rsPeers->getOwnId();
 	setName(QString::fromUtf8(rsPeers->getPeerName(ownId).c_str()));
@@ -452,6 +453,25 @@ void ChatWidget::processSettings(bool load)
 	Settings->endGroup();
 }
 
+uint32_t ChatWidget::maxMessageSize()
+{
+	uint32_t maxMessageSize = 0;
+	switch (chatType()) {
+	case CHATTYPE_UNKNOWN:
+		break;
+	case CHATTYPE_PRIVATE:
+		maxMessageSize = rsMsgs->getMaxMessageSecuritySize(RS_CHAT_TYPE_PRIVATE);
+		break;
+	case CHATTYPE_LOBBY:
+		maxMessageSize = rsMsgs->getMaxMessageSecuritySize(RS_CHAT_TYPE_LOBBY);
+		break;
+	case CHATTYPE_DISTANT:
+		maxMessageSize = rsMsgs->getMaxMessageSecuritySize(RS_CHAT_TYPE_DISTANT);
+		break;
+	}
+	return maxMessageSize;
+}
+
 bool ChatWidget::eventFilter(QObject *obj, QEvent *event)
 {
 	if (obj == ui->textBrowser || obj == ui->textBrowser->viewport()
@@ -479,7 +499,7 @@ bool ChatWidget::eventFilter(QObject *obj, QEvent *event)
 							bTextselected=true;
 						}
 					}
-					ui->searchButton->setChecked(!ui->searchButton->isChecked() | bTextselected);
+					ui->searchButton->setChecked(!ui->searchButton->isChecked() || bTextselected);
 					ui->leSearch->setVisible(bTextselected);//To discard re-selection of text
 					on_searchButton_clicked(ui->searchButton->isChecked());
 					return true; // eat event
@@ -711,15 +731,6 @@ bool ChatWidget::eventFilter(QObject *obj, QEvent *event)
 			}
 
 		}
-	} else {
-		if (event->type() == QEvent::WindowActivate) {
-			if (isVisible() && (window() == NULL || window()->isActiveWindow())) {
-				newMessages = false;
-				emit infoChanged(this);
-				focusDialog();
-                ChatUserNotify::clearWaitingChat(chatId);
-			}
-		}
 	}
 	// pass the event on to the parent class
 	return QWidget::eventFilter(obj, event);
@@ -869,7 +880,17 @@ void ChatWidget::showEvent(QShowEvent */*event*/)
 {
 	newMessages = false;
 	emit infoChanged(this);
-	focusDialog();
+	// if user waded through the jungle of history just let him on
+	// own decide whether to continue the journey or start typing
+	QScrollBar *scrollbar = ui->textBrowser->verticalScrollBar();
+	bool is_scrollbar_at_end = scrollbar->value() == scrollbar->maximum();
+	bool is_chat_text_edit_empty = ui->chatTextEdit->toPlainText().isEmpty();
+	if (is_scrollbar_at_end || !is_chat_text_edit_empty) {
+		focusDialog();
+	} else {
+		// otherwise focus will be get even not chat itself
+		ui->textBrowser->setFocus();
+	}
     ChatUserNotify::clearWaitingChat(chatId);
 
 	if (firstShow) {
@@ -1169,20 +1190,7 @@ void ChatWidget::updateLenOfChatTextEdit()
 	RsHtml::optimizeHtml(chatWidget, text);
 	std::wstring msg = text.toStdWString();
 
-	uint32_t maxMessageSize = 0;
-	switch (chatType()) {
-	case CHATTYPE_UNKNOWN:
-		break;
-	case CHATTYPE_PRIVATE:
-		maxMessageSize = rsMsgs->getMaxMessageSecuritySize(RS_CHAT_TYPE_PRIVATE);
-		break;
-	case CHATTYPE_LOBBY:
-		maxMessageSize = rsMsgs->getMaxMessageSecuritySize(RS_CHAT_TYPE_LOBBY);
-		break;
-	case CHATTYPE_DISTANT:
-		maxMessageSize = rsMsgs->getMaxMessageSecuritySize(RS_CHAT_TYPE_DISTANT);
-		break;
-	}
+	uint32_t maxMessageSize = this->maxMessageSize();
 
 	int charRemains = 0;
 	if (maxMessageSize > 0) {
@@ -1561,7 +1569,8 @@ void ChatWidget::addExtraPicture()
 	QString file;
 	if (misc::getOpenFileName(window(), RshareSettings::LASTDIR_IMAGES, tr("Load Picture File"), "Pictures (*.png *.xpm *.jpg *.jpeg)", file)) {
 		QString encodedImage;
-		if (RsHtml::makeEmbeddedImage(file, encodedImage, 640*480)) {
+		uint32_t maxMessageSize = this->maxMessageSize();
+		if (RsHtml::makeEmbeddedImage(file, encodedImage, 640*480, maxMessageSize - 200)) {		//-200 for the html stuff
 			QTextDocumentFragment fragment = QTextDocumentFragment::fromHtml(encodedImage);
 			ui->chatTextEdit->textCursor().insertFragment(fragment);
 		}
@@ -1581,10 +1590,9 @@ void ChatWidget::fileHashingFinished(QList<HashedFile> hashedFiles)
 
 		RetroShareLink link;
 
-		if(mDefaultExtraFileFlags & RS_FILE_REQ_ANONYMOUS_ROUTING)
-			link = RetroShareLink::createFile(hashedFile.filename, hashedFile.size, QString::fromStdString(hashedFile.hash.toStdString()));
-		else
-			link = RetroShareLink::createExtraFile(hashedFile.filename, hashedFile.size, QString::fromStdString(hashedFile.hash.toStdString()),QString::fromStdString(rsPeers->getOwnId().toStdString()));
+		// We dont use extra links anymore, since files in the extra list can always be accessed using anonymous+encrypted FT.
+
+		link = RetroShareLink::createFile(hashedFile.filename, hashedFile.size, QString::fromStdString(hashedFile.hash.toStdString()));
 
 		if (hashedFile.flag & HashedFile::Picture) {
 			message += QString("<img src=\"file:///%1\" width=\"100\" height=\"100\">").arg(hashedFile.filepath);
