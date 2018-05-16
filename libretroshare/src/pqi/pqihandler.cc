@@ -36,6 +36,7 @@
 #include "retroshare/rsconfig.h"  // for RSTrafficClue
 #include "retroshare/rsids.h"     // for t_RsGenericIdType
 #include "retroshare/rspeers.h"   // for RsPeers, rsPeers
+#include "retroshare/rsnetwork.h" // for RsNetwork
 #include "serialiser/rsserial.h"  // for RsItem, RsRawItem
 #include "util/rsdebug.h"         // for pqioutput, PQL_DEBUG_BASIC, PQL_ALERT
 #include "util/rsstring.h"        // for rs_sprintf_append
@@ -137,7 +138,7 @@ int	pqihandler::tick()
 			// This is rather inelegant, but pqihandler has searchModules that are dynamically allocated, so the max rates
 			// need to be updated from inside.
 			uint32_t maxUp = 0,maxDn =0 ;
-			if (rsPeers->getPeerMaximumRates(it->first,maxUp,maxDn) )
+			if (rsNetwork->getPeerMaximumRates(it->first,maxUp,maxDn) )
 				it->second->pqi->setRateCap(maxDn,maxUp);// mind the order! Dn first, than Up.
 		}
 

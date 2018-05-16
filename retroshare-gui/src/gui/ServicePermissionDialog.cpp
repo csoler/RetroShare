@@ -24,6 +24,7 @@
 #include "ServicePermissionDialog.h"
 #include "ui_ServicePermissionDialog.h"
 #include "settings/rsharesettings.h"
+#include "retroshare/rsnetwork.h"
 
 static ServicePermissionDialog *servicePermissionDialog = NULL;
 
@@ -139,7 +140,7 @@ void ServicePermissionDialog::setPermissions()
 			}
 		}
 
-        rsPeers->setServicePermissionFlags(RsPgpId(ui->servicePermissionList->idFromItem(item)), flags);
+        rsNetwork->setServicePermissionFlags(RsPgpId(ui->servicePermissionList->idFromItem(item)), flags);
 	}
 
 	done(Accepted);

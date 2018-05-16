@@ -55,7 +55,7 @@ const std::string CERT_DYNDNS = "--DYNDNS--";
 
 #include "pqi/authssl.h"
 
-
+RsNetwork *rsNetwork = NULL;
 RsPeers *rsPeers = NULL;
 
 /*******
@@ -891,6 +891,19 @@ bool p3Peers::isHiddenNode(const RsPeerId &id)
 	return mPeerMgr->isHiddenNode(id) ;
 }
 
+bool 	p3Peers::setHiddenNode(const std::string &address, uint16_t port)
+{
+#ifdef P3PEERS_DEBUG
+        std::cerr << "p3Peers::setHiddenNode() " << id << std::endl;
+#endif
+        std::cerr << "p3Peers::setHiddenNode() Domain: " << address << " Port: " << port;
+	std::cerr << std::endl;
+
+	mPeerMgr->setNetworkMode(getOwnId(), RS_NET_MODE_HIDDEN);
+	mPeerMgr->setHiddenDomainPort(getOwnId(), address, port);
+	return true;
+}
+
 bool 	p3Peers::setHiddenNode(const RsPeerId &id, const std::string &address, uint16_t port)
 {
 #ifdef P3PEERS_DEBUG
@@ -933,7 +946,13 @@ bool p3Peers::setExtAddress(const RsPeerId &id,
 			return mPeerMgr->setExtAddress(id, addr);
 	return false;
 }
-
+bool p3Peers::setDynDNS(const std::string &dyndns)
+{
+#ifdef P3PEERS_DEBUG
+        std::cerr << "p3Peers::setDynDNS() called with id: " << id << " dyndns: " << dyndns <<std::endl;
+#endif
+    return mPeerMgr->setDynDNS(getOwnId(), dyndns);
+}
 bool p3Peers::setDynDNS(const RsPeerId &id, const std::string &dyndns)
 {
 #ifdef P3PEERS_DEBUG
@@ -941,6 +960,38 @@ bool p3Peers::setDynDNS(const RsPeerId &id, const std::string &dyndns)
 #endif
     return mPeerMgr->setDynDNS(id, dyndns);
 }
+bool 	p3Peers::setNetworkMode(uint32_t extNetMode)
+{
+#ifdef P3PEERS_DEBUG
+        std::cerr << "p3Peers::setNetworkMode() " << id << std::endl;
+#endif
+
+	/* translate */
+	uint32_t netMode = 0;
+	switch(extNetMode)
+	{
+		case RS_NETMODE_EXT:
+			netMode = RS_NET_MODE_EXT;
+			break;
+		case RS_NETMODE_UPNP:
+			netMode = RS_NET_MODE_UPNP;
+			break;
+		case RS_NETMODE_UDP:
+			netMode = RS_NET_MODE_UDP;
+			break;
+		case RS_NETMODE_HIDDEN:
+			netMode = RS_NET_MODE_HIDDEN;
+			break;
+		case RS_NETMODE_UNREACHABLE:
+			netMode = RS_NET_MODE_UNREACHABLE;
+			break;
+		default:
+			break;
+	}
+
+	return mPeerMgr->setNetworkMode(getOwnId(), netMode);
+}
+
 
 bool 	p3Peers::setNetworkMode(const RsPeerId &id, uint32_t extNetMode)
 {
@@ -972,6 +1023,16 @@ bool 	p3Peers::setNetworkMode(const RsPeerId &id, uint32_t extNetMode)
 	}
 
 	return mPeerMgr->setNetworkMode(id, netMode);
+}
+
+bool p3Peers::setVisState(uint16_t vs_disc, uint16_t vs_dht)
+{
+#ifdef P3PEERS_DEBUG
+        std::cerr << "p3Peers::setVisState() " << id << std::endl;
+#endif
+	std::cerr << "p3Peers::setVisState() DISC: " << vs_disc << " DHT: " << vs_dht << std::endl;
+
+	return mPeerMgr->setVisState(getOwnId(), vs_disc, vs_dht);
 }
 
 

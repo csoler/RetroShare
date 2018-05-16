@@ -40,6 +40,7 @@
 
 #include "pqi/p3linkmgr.h"
 #include <retroshare/rspeers.h>
+#include <retroshare/rsnetwork.h>
 #include <retroshare/rsdht.h>
 #include <retroshare/rsbanlist.h>
 
@@ -1266,7 +1267,7 @@ int pqissl::Authorise_SSL_Connection()
 
     uint32_t check_result ;
     uint32_t checking_flags = RSBANLIST_CHECKING_FLAGS_BLACKLIST;
-    if (rsPeers->servicePermissionFlags(PeerId()) & RS_NODE_PERM_REQUIRE_WL)
+    if (rsNetwork->servicePermissionFlags(PeerId()) & RS_NODE_PERM_REQUIRE_WL)
         checking_flags |= RSBANLIST_CHECKING_FLAGS_WHITELIST;
 
     if(rsBanList!=NULL && !rsBanList->isAddressAccepted(remote_addr,checking_flags,&check_result))
@@ -1321,7 +1322,7 @@ int	pqissl::accept_locked( SSL *ssl, int fd,
 	uint32_t check_result;
 	uint32_t checking_flags = RSBANLIST_CHECKING_FLAGS_BLACKLIST;
 
-	if (rsPeers->servicePermissionFlags(PeerId()) & RS_NODE_PERM_REQUIRE_WL)
+	if (rsNetwork->servicePermissionFlags(PeerId()) & RS_NODE_PERM_REQUIRE_WL)
 		checking_flags |= RSBANLIST_CHECKING_FLAGS_WHITELIST;
 
 	if( rsBanList && !rsBanList->isAddressAccepted( foreign_addr,

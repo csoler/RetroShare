@@ -36,13 +36,14 @@
 #endif
 
 #include "retroshare/rspeers.h"
+#include "retroshare/rsnetwork.h"
 
 class p3LinkMgr;
 class p3PeerMgr;
 class p3NetMgr;
 
 
-class p3Peers: public RsPeers 
+class p3Peers: public RsPeers,public RsNetwork
 {
 public:
 
@@ -96,11 +97,17 @@ public:
 	virtual bool setHiddenNode(const RsPeerId &id, const std::string &address, uint16_t port);
 	virtual bool isHiddenNode(const RsPeerId &id);
 
+	virtual bool setHiddenNode(const std::string &address, uint16_t port);
+
 	virtual	bool setLocalAddress(const RsPeerId &id, const std::string &addr, uint16_t port);
 	virtual	bool setExtAddress(const RsPeerId &id, const std::string &addr, uint16_t port);
 	virtual	bool setDynDNS(const RsPeerId &id, const std::string &dyndns);
 	virtual	bool setNetworkMode(const RsPeerId &id, uint32_t netMode);
 	virtual bool setVisState(const RsPeerId &id, uint16_t vs_disc, uint16_t vs_dht);
+
+	virtual	bool setDynDNS(const std::string &addr);				// these will be moved to p3netmgr
+	virtual	bool setNetworkMode(uint32_t netMode);
+	virtual bool setVisState(uint16_t vs_disc, uint16_t vs_dht);
 
 	virtual bool getProxyServer(const uint32_t type, std::string &addr, uint16_t &port,uint32_t& status);
 	virtual bool setProxyServer(const uint32_t type, const std::string &addr, const uint16_t port);

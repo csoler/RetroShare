@@ -26,6 +26,7 @@
 #include <util/rsthreads.h>
 
 class RsPeers;
+class RsNetwork;
 class RsMsgs;
 
 namespace resource_api
@@ -34,7 +35,7 @@ namespace resource_api
 class PeersHandler: public ResourceRouter, NotifyClient, Tickable, public UnreadMsgNotify
 {
 public:
-	PeersHandler(StateTokenServer* sts, RsNotify* notify, RsPeers* peers, RsMsgs* msgs);
+	PeersHandler(StateTokenServer* sts, RsNotify* notify, RsPeers* peers, RsNetwork* network, RsMsgs* msgs);
 	virtual ~PeersHandler();
 
 	// from NotifyClient
@@ -97,6 +98,7 @@ private:
 	StateTokenServer* mStateTokenServer;
 	RsNotify* mNotify;
 	RsPeers* mRsPeers;
+	RsNetwork* mRsNetwork;
 	RsMsgs* mRsMsgs; // required for avatar data
 
 	std::list<RsPeerId> mOnlinePeers;

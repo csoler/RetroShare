@@ -31,6 +31,7 @@
 #include <retroshare/rsfiles.h>
 #include <retroshare/rsconfig.h>
 #include <retroshare/rspeers.h>
+#include <retroshare/rsnetwork.h>
 #include <retroshare/rstypes.h>
 #include "settings/rsharesettings.h"
 #include "util/QtVersion.h"
@@ -120,7 +121,7 @@ void QuickStartWizard::on_pushButtonConnectionNext_clicked()
                         break;
         }
         std::cerr << "ui.netModeComboBox->currentIndex()" << ui.netModeComboBox->currentIndex() << std::endl;
-        rsPeers->setNetworkMode(rsPeers->getOwnId(), netMode);
+        rsNetwork->setNetworkMode(netMode);
 
         /* Check if vis has changed */
 		uint16_t vs_disc = 0;
@@ -149,13 +150,10 @@ void QuickStartWizard::on_pushButtonConnectionNext_clicked()
 
         RsPeerDetails detail;
         if (!rsPeers->getPeerDetails(rsPeers->getOwnId(), detail))
-        {
                 return;
-        }
+
 		if ((vs_disc != detail.vs_disc) || (vs_dht != detail.vs_dht))
-		{
-			rsPeers->setVisState(rsPeers->getOwnId(), vs_disc, vs_dht);
-		}
+			rsNetwork->setVisState(vs_disc, vs_dht);
 	
         rsConfig->SetMaxDataRates( ui.doubleSpinBoxDownloadSpeed->value(), ui.doubleSpinBoxUploadSpeed->value() );
 
@@ -531,7 +529,7 @@ void QuickStartWizard::saveChanges()
 			break;
 	}
     
-	rsPeers->setNetworkMode(ownId, netMode);
+	rsNetwork->setNetworkMode(netMode);
 
 	/* Check if vis has changed */
 	uint16_t vs_disc = 0;
@@ -558,9 +556,7 @@ void QuickStartWizard::saveChanges()
 	}
 		
 	if ((vs_disc != detail.vs_disc) || (vs_dht != detail.vs_dht))
-	{
-		rsPeers->setVisState(ownId, vs_disc, vs_dht);
-	}
+		rsNetwork->setVisState(vs_disc, vs_dht);
 
 	/*if (0 != netIndex)
 	{

@@ -31,6 +31,7 @@
 #include <string>
 #include <vector>
 #include "retroshare/rspeers.h"
+#include "retroshare/rsnetwork.h"
 #include "retroshare/rsfiles.h"
 #include "retroshare/rsversion.h"
 #include "util/rsinitedptr.h"
@@ -109,6 +110,7 @@ class RsPluginHandler;
 class RsPlugInInterfaces {
 public:
     RsUtil::inited_ptr<RsPeers>  mPeers;
+    RsUtil::inited_ptr<RsNetwork>mNetwork;
     RsUtil::inited_ptr<RsFiles>  mFiles;
     RsUtil::inited_ptr<RsMsgs>   mMsgs;
     RsUtil::inited_ptr<RsTurtle> mTurtle;

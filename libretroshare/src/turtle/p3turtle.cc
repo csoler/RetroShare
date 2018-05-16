@@ -38,6 +38,7 @@
 #include "pqi/authssl.h"
 #include "pqi/p3linkmgr.h"
 #include "retroshare/rspeers.h"
+#include "retroshare/rsnetwork.h"
 
 #include "ft/ftserver.h"
 #include "ft/ftdatamultiplex.h"

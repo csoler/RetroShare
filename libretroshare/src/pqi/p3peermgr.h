@@ -27,6 +27,8 @@
 #define MRK_PQI_PEER_MANAGER_HEADER
 
 #include <retroshare/rspeers.h>
+#include <retroshare/rsnetwork.h>
+
 #include "pqi/pqimonitor.h"
 #include "pqi/pqiipset.h"
 #include "pqi/pqiassist.h"

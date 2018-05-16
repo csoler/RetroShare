@@ -231,7 +231,7 @@ class ApiServerMainModules
 {
 public:
     ApiServerMainModules(ResourceRouter& router, StateTokenServer* sts, const RsPlugInInterfaces &ifaces):
-        mPeersHandler(sts, ifaces.mNotify, ifaces.mPeers, ifaces.mMsgs),
+        mPeersHandler(sts, ifaces.mNotify, ifaces.mPeers,ifaces.mNetwork, ifaces.mMsgs),
         mIdentityHandler(sts, ifaces.mNotify, ifaces.mIdentity),
         mForumHandler(ifaces.mGxsForums),
         mServiceControlHandler(ifaces.mServiceControl),

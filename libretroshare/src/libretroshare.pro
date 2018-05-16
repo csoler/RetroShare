@@ -132,6 +132,7 @@ PUBLIC_HEADERS =	retroshare/rsdisc.h \
 					retroshare/rsmsgs.h \
 					retroshare/rsnotify.h \
 					retroshare/rspeers.h \
+					retroshare/rsnetwork.h \
 					retroshare/rsrank.h \
 					retroshare/rsstatus.h \
 					retroshare/rsturtle.h \

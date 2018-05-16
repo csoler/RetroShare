@@ -973,7 +973,9 @@ int RsServer::StartupRetroShare()
 	mLinkMgr = new p3LinkMgrIMPL(mPeerMgr, mNetMgr);
 
 	/* Setup Notify Early - So we can use it. */
-	rsPeers = new p3Peers(mLinkMgr, mPeerMgr, mNetMgr);
+	p3Peers *p3peers = new p3Peers(mLinkMgr, mPeerMgr, mNetMgr);
+	rsPeers = p3peers ;
+	rsNetwork = p3peers ;	// for now. When we have some time, we should make p3Peers split into p3Network+p3Peers
 
 	mPeerMgr->setManagers(mLinkMgr, mNetMgr);
 	mNetMgr->setManagers(mPeerMgr, mLinkMgr);
@@ -1507,7 +1509,8 @@ int RsServer::StartupRetroShare()
 	//
 	RsPlugInInterfaces interfaces;
 	interfaces.mFiles  = rsFiles;
-	interfaces.mPeers  = rsPeers;
+	interfaces.mPeers  = p3peers;
+	interfaces.mNetwork= p3peers;
 	interfaces.mMsgs   = rsMsgs;
 	interfaces.mTurtle = rsTurtle;
 	interfaces.mDisc   = rsDisc;

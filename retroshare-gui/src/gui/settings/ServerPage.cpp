@@ -33,6 +33,7 @@
 #include <retroshare/rsconfig.h>
 #include <retroshare/rsdht.h>
 #include <retroshare/rspeers.h>
+#include <retroshare/rsnetwork.h>
 #include <retroshare/rsturtle.h>
 
 #include <QCheckBox>
@@ -127,12 +128,12 @@ ServerPage::ServerPage(QWidget * parent, Qt::WindowFlags flags)
     //load();
     updateStatus();
 
-    bool b = rsPeers->getAllowServerIPDetermination() ;
+    bool b = rsNetwork->getAllowServerIPDetermination() ;
     ui.allowIpDeterminationCB->setChecked(b) ;
     ui.IPServersLV->setEnabled(b) ;
 
     std::list<std::string> ip_servers ;
-    rsPeers->getIPServersList(ip_servers) ;
+    rsNetwork->getIPServersList(ip_servers) ;
 
     for(std::list<std::string>::const_iterator it(ip_servers.begin());it!=ip_servers.end();++it)
         ui.IPServersLV->addItem(QString::fromStdString(*it)) ;
@@ -299,14 +300,14 @@ void ServerPage::addIpRangeToWhiteList()
 
 void ServerPage::clearKnownAddressList()
 {
-    rsPeers->resetOwnExternalAddressList() ;
+    rsNetwork->resetOwnExternalAddressList() ;
 
     load() ;
 }
 
 void ServerPage::toggleIpDetermination(bool b)
 {
-    rsPeers->allowServerIPDetermination(b) ;
+    rsNetwork->allowServerIPDetermination(b) ;
     ui.IPServersLV->setEnabled(b) ;
 }
 
@@ -428,11 +429,11 @@ void ServerPage::load()
         uint16_t proxyport;
         uint32_t status ;
         // Tor
-        rsPeers->getProxyServer(RS_HIDDEN_TYPE_TOR, proxyaddr, proxyport, status);
+        rsNetwork->getProxyServer(RS_HIDDEN_TYPE_TOR, proxyaddr, proxyport, status);
         whileBlocking(ui.hiddenpage_proxyAddress_tor) -> setText(QString::fromStdString(proxyaddr));
         whileBlocking(ui.hiddenpage_proxyPort_tor) -> setValue(proxyport);
         // I2P
-        rsPeers->getProxyServer(RS_HIDDEN_TYPE_I2P, proxyaddr, proxyport, status);
+        rsNetwork->getProxyServer(RS_HIDDEN_TYPE_I2P, proxyaddr, proxyport, status);
         whileBlocking(ui.hiddenpage_proxyAddress_i2p) -> setText(QString::fromStdString(proxyaddr));
         whileBlocking(ui.hiddenpage_proxyPort_i2p) -> setValue(proxyport);
 
@@ -957,7 +958,7 @@ void ServerPage::saveAddresses()
     }
 
     if (detail.netMode != netMode)
-        rsPeers->setNetworkMode(ownId, netMode);
+        rsNetwork->setNetworkMode(netMode);
 
     uint16_t vs_disc = 0;
     uint16_t vs_dht = 0;
@@ -984,18 +985,22 @@ void ServerPage::saveAddresses()
     }
 
     if ((vs_disc != detail.vs_disc) || (vs_dht != detail.vs_dht))
-        rsPeers->setVisState(ownId, vs_disc, vs_dht);
+        rsNetwork->setVisState(vs_disc, vs_dht);
 
     if (0 != netIndex)
         saveAddr = true;
 
+#ifdef TO_BE_REMOVED
+	// This code shouldn't be needed because local and ext address canot be "set" by the user and text fields are disabled.
+
     if (saveAddr)
     {
-        rsPeers->setLocalAddress(ownId, ui.localAddress->text().toStdString(), ui.localPort->value());
-        rsPeers->setExtAddress(ownId, ui.extAddress->text().toStdString(), ui.extPort->value());
+        rsNetwork->setLocalAddress(ownId, ui.localAddress->text().toStdString(), ui.localPort->value());
+        rsNetwork->setExtAddress(ownId, ui.extAddress->text().toStdString(), ui.extPort->value());
     }
+#endif
 
-    rsPeers->setDynDNS(ownId, ui.dynDNS->text().toStdString());
+    rsNetwork->setDynDNS(ui.dynDNS->text().toStdString());
 
     load();
 }
@@ -1143,11 +1148,11 @@ void ServerPage::loadHiddenNode()
     uint16_t proxyport;
     uint32_t status ;
     // Tor
-    rsPeers->getProxyServer(RS_HIDDEN_TYPE_TOR, proxyaddr, proxyport, status);
+    rsNetwork->getProxyServer(RS_HIDDEN_TYPE_TOR, proxyaddr, proxyport, status);
     whileBlocking(ui.hiddenpage_proxyAddress_tor) -> setText(QString::fromStdString(proxyaddr));
     whileBlocking(ui.hiddenpage_proxyPort_tor) -> setValue(proxyport);
     // I2P
-    rsPeers->getProxyServer(RS_HIDDEN_TYPE_I2P, proxyaddr, proxyport, status);
+    rsNetwork->getProxyServer(RS_HIDDEN_TYPE_I2P, proxyaddr, proxyport, status);
     whileBlocking(ui.hiddenpage_proxyAddress_i2p) -> setText(QString::fromStdString(proxyaddr));
     whileBlocking(ui.hiddenpage_proxyPort_i2p) -> setValue(proxyport);
 
@@ -1266,19 +1271,23 @@ void ServerPage::saveAddressesHiddenNode()
     }
 
     if ((vs_disc != detail.vs_disc) || (vs_dht != detail.vs_dht))
-        rsPeers->setVisState(ownId, vs_disc, vs_dht);
+        rsNetwork->setVisState(vs_disc, vs_dht);
 
+#ifdef TO_BE_REMOVED
+	//
     if (detail.localPort != ui.hiddenpage_localPort->value())
     {
         // Set Local Address - force to 127.0.0.1
-        rsPeers->setLocalAddress(ownId, "127.0.0.1", ui.hiddenpage_localPort->value());
+        rsNetwork->setLocalAddress(ownId, "127.0.0.1", ui.hiddenpage_localPort->value());
     }
+#endif
 
     std::string hiddenAddr = ui.hiddenpage_serviceAddress->text().toStdString();
     uint16_t    hiddenPort = ui.hiddenpage_servicePort->value();
+
     if ((hiddenAddr != detail.hiddenNodeAddress) || (hiddenPort != detail.hiddenNodePort))
     {
-        rsPeers->setHiddenNode(ownId, hiddenAddr, hiddenPort);
+        rsNetwork->setHiddenNode(hiddenAddr, hiddenPort);
     }
 
     rsConfig->SetMaxDataRates( ui.totalDownloadRate->value(), ui.totalUploadRate->value() );
@@ -1559,12 +1568,12 @@ void ServerPage::loadCommon()
     uint32_t status ;
 
     // Tor
-    rsPeers->getProxyServer(RS_HIDDEN_TYPE_TOR, proxyaddr, proxyport, status);
+    rsNetwork->getProxyServer(RS_HIDDEN_TYPE_TOR, proxyaddr, proxyport, status);
     whileBlocking(ui.hiddenpage_proxyAddress_tor)->setText(QString::fromStdString(proxyaddr));
     whileBlocking(ui.hiddenpage_proxyPort_tor)->setValue(proxyport);
 
     // I2P
-    rsPeers->getProxyServer(RS_HIDDEN_TYPE_I2P, proxyaddr, proxyport, status);
+    rsNetwork->getProxyServer(RS_HIDDEN_TYPE_I2P, proxyaddr, proxyport, status);
     whileBlocking(ui.hiddenpage_proxyAddress_i2p) -> setText(QString::fromStdString(proxyaddr));
     whileBlocking(ui.hiddenpage_proxyAddress_i2p_2)->setText(QString::fromStdString(proxyaddr)); // this one is for bob tab
     whileBlocking(ui.hiddenpage_proxyPort_i2p) -> setValue(proxyport);
@@ -1586,13 +1595,13 @@ void ServerPage::saveCommon()
     uint16_t orig_proxyport, new_proxyport;
     uint32_t status ;
     // Tor
-    rsPeers->getProxyServer(RS_HIDDEN_TYPE_TOR, orig_proxyaddr, orig_proxyport, status);
+    rsNetwork->getProxyServer(RS_HIDDEN_TYPE_TOR, orig_proxyaddr, orig_proxyport, status);
 
     new_proxyaddr = ui.hiddenpage_proxyAddress_tor -> text().toStdString();
     new_proxyport = ui.hiddenpage_proxyPort_tor -> value();
 
     if ((new_proxyaddr != orig_proxyaddr) || (new_proxyport != orig_proxyport)) {
-        rsPeers->setProxyServer(RS_HIDDEN_TYPE_TOR, new_proxyaddr, new_proxyport);
+        rsNetwork->setProxyServer(RS_HIDDEN_TYPE_TOR, new_proxyaddr, new_proxyport);
     }
 
     saveBob();
@@ -1604,13 +1613,13 @@ void ServerPage::saveBob()
     uint16_t orig_proxyport, new_proxyport;
     uint32_t status;
     // I2P
-    rsPeers->getProxyServer(RS_HIDDEN_TYPE_I2P, orig_proxyaddr, orig_proxyport, status);
+    rsNetwork->getProxyServer(RS_HIDDEN_TYPE_I2P, orig_proxyaddr, orig_proxyport, status);
 
     new_proxyaddr = ui.hiddenpage_proxyAddress_i2p -> text().toStdString();
     new_proxyport = ui.hiddenpage_proxyPort_i2p -> value();
 
     if ((new_proxyaddr != orig_proxyaddr) || (new_proxyport != orig_proxyport)) {
-        rsPeers->setProxyServer(RS_HIDDEN_TYPE_I2P, new_proxyaddr, new_proxyport);
+        rsNetwork->setProxyServer(RS_HIDDEN_TYPE_I2P, new_proxyaddr, new_proxyport);
     }
 }
 

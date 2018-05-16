@@ -43,6 +43,7 @@
 #include "gui/msgs/MessageComposer.h"
 
 #include <retroshare/rsiface.h>
+#include <retroshare/rsnetwork.h>
 #include <retroshare/rsbanlist.h>
 #include <retroshare/rsconfig.h>
 
@@ -922,7 +923,7 @@ void ConnectFriendWizard::accept()
 	{
 		std::cerr << "ConclusionPage::validatePage() accepting GPG key for connection." << std::endl;
         rsPeers->addFriend(peerDetails.id, peerDetails.gpg_id,serviceFlags()) ;
-        rsPeers->setServicePermissionFlags(peerDetails.gpg_id,serviceFlags()) ;
+        rsNetwork->setServicePermissionFlags(peerDetails.gpg_id,serviceFlags()) ;
 
     if(ui->_addIPToWhiteList_CB_2->isChecked())
     {
@@ -938,7 +939,7 @@ void ConnectFriendWizard::accept()
 		{
 			std::cerr << "ConclusionPage::validatePage() signing GPG key." << std::endl;
 			rsPeers->signGPGCertificate(peerDetails.gpg_id); //bye default sign set accept_connection to true;
-			rsPeers->setServicePermissionFlags(peerDetails.gpg_id,serviceFlags()) ;
+			rsNetwork->setServicePermissionFlags(peerDetails.gpg_id,serviceFlags()) ;
 		} 
 
 		if (!groupId.isEmpty()) 

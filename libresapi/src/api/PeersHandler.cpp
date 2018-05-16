@@ -21,6 +21,7 @@
 #include "PeersHandler.h"
 
 #include <retroshare/rspeers.h>
+#include <retroshare/rsnetwork.h>
 #include <retroshare/rsmsgs.h>
 #include <util/radix64.h>
 #include <retroshare/rsstatus.h>
@@ -234,8 +235,8 @@ std::string connectStateString(RsPeerDetails &details)
 }
 
 PeersHandler::PeersHandler( StateTokenServer* sts, RsNotify* notify,
-                            RsPeers *peers, RsMsgs* msgs ) :
-    mStateTokenServer(sts), mNotify(notify), mRsPeers(peers), mRsMsgs(msgs),
+                            RsPeers *peers, RsNetwork *network,RsMsgs* msgs ) :
+    mStateTokenServer(sts), mNotify(notify), mRsPeers(peers),mRsNetwork(network), mRsMsgs(msgs),
     status(0), mMtx("PeersHandler Mutex")
 {
 	mNotify->registerNotifyClient(this);
@@ -886,7 +887,7 @@ void PeersHandler::handleGetNetworkOptions(Request& /*req*/, Response& resp)
 	resp.mDataStream << makeKeyValue("download_limit", dlrate);
 	resp.mDataStream << makeKeyValue("upload_limit", ulrate);
 
-	bool checkIP = mRsPeers->getAllowServerIPDetermination();
+	bool checkIP = mRsNetwork->getAllowServerIPDetermination();
 	resp.mDataStream << makeKeyValue("check_ip", checkIP);
 
 	StreamBase& previousIPsStream = resp.mDataStream.getStreamToMember("previous_ips");
@@ -895,7 +896,7 @@ void PeersHandler::handleGetNetworkOptions(Request& /*req*/, Response& resp)
 		previousIPsStream.getStreamToMember() << makeKeyValue("ip_address", *it);
 
 	std::list<std::string> ip_servers;
-	mRsPeers->getIPServersList(ip_servers);
+	mRsNetwork->getIPServersList(ip_servers);
 
 	StreamBase& websitesStream = resp.mDataStream.getStreamToMember("websites");
 	websitesStream.getStreamToMember();
@@ -907,12 +908,12 @@ void PeersHandler::handleGetNetworkOptions(Request& /*req*/, Response& resp)
 	uint16_t proxyport;
 	uint32_t status ;
 	// Tor
-	mRsPeers->getProxyServer(RS_HIDDEN_TYPE_TOR, proxyaddr, proxyport, status);
+	mRsNetwork->getProxyServer(RS_HIDDEN_TYPE_TOR, proxyaddr, proxyport, status);
 	resp.mDataStream << makeKeyValue("tor_address", proxyaddr);
 	resp.mDataStream << makeKeyValue("tor_port", (int)proxyport);
 
 	// I2P
-	mRsPeers->getProxyServer(RS_HIDDEN_TYPE_I2P, proxyaddr, proxyport, status);
+	mRsNetwork->getProxyServer(RS_HIDDEN_TYPE_I2P, proxyaddr, proxyport, status);
 	resp.mDataStream << makeKeyValue("i2p_address", proxyaddr);
 	resp.mDataStream << makeKeyValue("i2p_port", (int)proxyport);
 
@@ -1006,21 +1007,21 @@ void PeersHandler::handleSetNetworkOptions(Request& req, Response& resp)
 
 	bool checkIP;
 	req.mStream << makeKeyValueReference("check_ip", checkIP);
-	mRsPeers->allowServerIPDetermination(checkIP) ;
+	mRsNetwork->allowServerIPDetermination(checkIP) ;
 
 	// Tor
 	std::string toraddr;
 	int torport;
 	req.mStream << makeKeyValueReference("tor_address", toraddr);
 	req.mStream << makeKeyValueReference("tor_port", torport);
-	mRsPeers->setProxyServer(RS_HIDDEN_TYPE_TOR, toraddr, (uint16_t)torport);
+	mRsNetwork->setProxyServer(RS_HIDDEN_TYPE_TOR, toraddr, (uint16_t)torport);
 
 	// I2P
 	std::string i2paddr;
 	int i2pport;
 	req.mStream << makeKeyValueReference("i2p_address", i2paddr);
 	req.mStream << makeKeyValueReference("i2p_port", i2pport);
-	mRsPeers->setProxyServer(RS_HIDDEN_TYPE_I2P, i2paddr, (uint16_t)i2pport);
+	mRsNetwork->setProxyServer(RS_HIDDEN_TYPE_I2P, i2paddr, (uint16_t)i2pport);
 
 	resp.mStateToken = getCurrentStateToken();
 	resp.setOk();
@@ -1055,7 +1056,7 @@ void PeersHandler::handleGetPGPOptions(Request& req, Response& resp)
 	uint32_t max_upload_speed = 0;
 	uint32_t max_download_speed = 0;
 
-	mRsPeers->getPeerMaximumRates(pgp, max_upload_speed, max_download_speed);
+	mRsNetwork->getPeerMaximumRates(pgp, max_upload_speed, max_download_speed);
 
 	resp.mDataStream << makeKeyValueReference("maxUploadSpeed", max_upload_speed);
 	resp.mDataStream << makeKeyValueReference("maxDownloadSpeed", max_download_speed);
@@ -1108,7 +1109,7 @@ void PeersHandler::handleSetPGPOptions(Request& req, Response& resp)
 	req.mStream << makeKeyValueReference("max_upload_speed", max_upload_speed);
 	req.mStream << makeKeyValueReference("max_download_speed", max_download_speed);
 
-	mRsPeers->setPeerMaximumRates(pgp, (uint32_t)max_upload_speed, (uint32_t)max_download_speed);
+	mRsNetwork->setPeerMaximumRates(pgp, (uint32_t)max_upload_speed, (uint32_t)max_download_speed);
 
 	bool direct_transfer;
 	bool allow_push;
@@ -1127,7 +1128,7 @@ void PeersHandler::handleSetPGPOptions(Request& req, Response& resp)
 	if(require_WL)
 		flags = flags | RS_NODE_PERM_REQUIRE_WL;
 
-	mRsPeers->setServicePermissionFlags(pgp, flags);
+	mRsNetwork->setServicePermissionFlags(pgp, flags);
 
 	bool own_sign;
 	req.mStream << makeKeyValueReference("own_sign", own_sign);

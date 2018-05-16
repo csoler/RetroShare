@@ -31,6 +31,7 @@
 
 #include "rsserver/rsaccounts.h"
 #include "retroshare/rspeers.h"
+#include "retroshare/rsnetwork.h"
 
 #include "GroupDefs.h"
 #include "gui/chat/ChatDialog.h"

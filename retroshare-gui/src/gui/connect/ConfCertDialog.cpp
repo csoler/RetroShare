@@ -30,6 +30,7 @@
 #include <iostream>
 
 #include <retroshare/rspeers.h>
+#include <retroshare/rsnetwork.h>
 #include <retroshare/rsdisc.h>
 #include <retroshare/rsmsgs.h>
 
@@ -353,15 +354,19 @@ void ConfCertDialog::applyDialog()
 	    if ((detail.dyndns != ui.dynDNS->text().toStdString()))
 		    dnsChanged = true;
 
+#ifdef TO_REMOVE
+		// These should never been changed by the user. It would risk some inconsistency.
+
 	    /* now we can action the changes */
 	    if (localChanged)
-		    rsPeers->setLocalAddress(peerId, ui.localAddress->text().toStdString(), ui.localPort->value());
+		    rsNetwork->setLocalAddress(peerId, ui.localAddress->text().toStdString(), ui.localPort->value());
 
 	    if (extChanged)
-		    rsPeers->setExtAddress(peerId,ui.extAddress->text().toStdString(), ui.extPort->value());
+		    rsNetwork->setExtAddress(peerId,ui.extAddress->text().toStdString(), ui.extPort->value());
+#endif
 
 	    if (dnsChanged)
-		    rsPeers->setDynDNS(peerId, ui.dynDNS->text().toStdString());
+		    rsNetwork->setDynDNS(ui.dynDNS->text().toStdString());
 
 	    if(localChanged || extChanged || dnsChanged)
 		    emit configChanged();

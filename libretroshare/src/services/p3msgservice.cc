@@ -26,6 +26,7 @@
 
 #include "retroshare/rsiface.h"
 #include "retroshare/rspeers.h"
+#include "retroshare/rsnetwork.h"
 #include "retroshare/rsidentity.h"
 
 #include "pqi/pqibin.h"
@@ -222,7 +223,7 @@ void p3MsgService::processIncomingMsg(RsMsgItem *mi)
 	}
 
 		// If the peer is allowed to push files, then auto-download the recommended files.
-		if(rsPeers->servicePermissionFlags(mi->PeerId()) & RS_NODE_PERM_ALLOW_PUSH)
+		if(rsNetwork->servicePermissionFlags(mi->PeerId()) & RS_NODE_PERM_ALLOW_PUSH)
 		{
 			std::list<RsPeerId> srcIds;
 			srcIds.push_back(mi->PeerId());

@@ -30,6 +30,7 @@
 #include <iostream>
 
 #include <retroshare/rspeers.h>
+#include <retroshare/rsnetwork.h>
 #include <retroshare/rsdisc.h>
 #include <retroshare/rsmsgs.h>
 
@@ -173,7 +174,7 @@ void PGPKeyDialog::load()
     uint32_t max_upload_speed = 0 ;
     uint32_t max_download_speed = 0 ;
     
-    rsPeers->getPeerMaximumRates(pgpId,max_upload_speed,max_download_speed);
+    rsNetwork->getPeerMaximumRates(pgpId,max_upload_speed,max_download_speed);
     
     ui.maxUploadSpeed_SB->setValue(max_upload_speed) ;
     ui.maxDownloadSpeed_SB->setValue(max_download_speed) ;
@@ -339,7 +340,7 @@ void PGPKeyDialog::applyDialog()
     uint32_t max_upload_speed = ui.maxUploadSpeed_SB->value() ;
     uint32_t max_download_speed = ui.maxDownloadSpeed_SB->value();
 
-    rsPeers->setPeerMaximumRates(pgpId,max_upload_speed,max_download_speed);
+    rsNetwork->setPeerMaximumRates(pgpId,max_upload_speed,max_download_speed);
 
     ServicePermissionFlags flags(0) ;
 
@@ -347,7 +348,7 @@ void PGPKeyDialog::applyDialog()
     if(  ui._allow_push_CB->isChecked()) flags = flags | RS_NODE_PERM_ALLOW_PUSH ;
     if(  ui._require_WL_CB->isChecked()) flags = flags | RS_NODE_PERM_REQUIRE_WL ;
 
-    rsPeers->setServicePermissionFlags(pgpId,flags) ;
+    rsNetwork->setServicePermissionFlags(pgpId,flags) ;
     
      //setServiceFlags() ;
 

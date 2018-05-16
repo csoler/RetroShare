@@ -60,30 +60,6 @@ const uint32_t SELF_SIGNATURE_RESULT_PENDING = 0x00;
 const uint32_t SELF_SIGNATURE_RESULT_SUCCESS = 0x01;
 const uint32_t SELF_SIGNATURE_RESULT_FAILED  = 0x02;
 
-/* Net Mode */
-const uint32_t RS_NETMODE_UDP		= 0x0001;
-const uint32_t RS_NETMODE_UPNP		= 0x0002;
-const uint32_t RS_NETMODE_EXT		= 0x0003;
-const uint32_t RS_NETMODE_HIDDEN	= 0x0004;
-const uint32_t RS_NETMODE_UNREACHABLE	= 0x0005;
-
-/* Hidden Type */
-const uint32_t RS_HIDDEN_TYPE_NONE	= 0x0000;
-const uint32_t RS_HIDDEN_TYPE_UNKNOWN	= 0x0001;
-const uint32_t RS_HIDDEN_TYPE_TOR	= 0x0002;
-const uint32_t RS_HIDDEN_TYPE_I2P	= 0x0004;
-/* mask to match all valid hidden types */
-const uint32_t RS_HIDDEN_TYPE_MASK	= RS_HIDDEN_TYPE_I2P | RS_HIDDEN_TYPE_TOR;
-
-/* Visibility */
-const uint32_t RS_VS_DISC_OFF		= 0x0000;
-const uint32_t RS_VS_DISC_MINIMAL	= 0x0001;
-const uint32_t RS_VS_DISC_FULL		= 0x0002;
-
-const uint32_t RS_VS_DHT_OFF		= 0x0000;
-const uint32_t RS_VS_DHT_PASSIVE	= 0x0001;
-const uint32_t RS_VS_DHT_FULL		= 0x0002;
-
 /* State */
 const uint32_t RS_PEER_STATE_FRIEND	= 0x0001;
 const uint32_t RS_PEER_STATE_ONLINE	= 0x0002;
@@ -137,49 +113,6 @@ const uint32_t PGP_KEYRING_REMOVAL_ERROR_CANT_REMOVE_SECRET_KEYS   = 0x21 ;
 const uint32_t PGP_KEYRING_REMOVAL_ERROR_CANNOT_CREATE_BACKUP      = 0x22 ;
 const uint32_t PGP_KEYRING_REMOVAL_ERROR_CANNOT_WRITE_BACKUP       = 0x23 ;
 const uint32_t PGP_KEYRING_REMOVAL_ERROR_DATA_INCONSISTENCY        = 0x24 ;
-
-/* LinkType Flags */
-
-// CONNECTION
-const uint32_t RS_NET_CONN_TRANS_MASK			= 0x0000ffff;
-const uint32_t RS_NET_CONN_TRANS_TCP_MASK		= 0x0000000f;
-const uint32_t RS_NET_CONN_TRANS_TCP_UNKNOWN		= 0x00000001;
-const uint32_t RS_NET_CONN_TRANS_TCP_LOCAL		= 0x00000002;
-const uint32_t RS_NET_CONN_TRANS_TCP_EXTERNAL		= 0x00000004;
-
-const uint32_t RS_NET_CONN_TRANS_UDP_MASK		= 0x000000f0;
-const uint32_t RS_NET_CONN_TRANS_UDP_UNKNOWN		= 0x00000010;
-const uint32_t RS_NET_CONN_TRANS_UDP_DIRECT		= 0x00000020;
-const uint32_t RS_NET_CONN_TRANS_UDP_PROXY		= 0x00000040;
-const uint32_t RS_NET_CONN_TRANS_UDP_RELAY		= 0x00000080;
-
-const uint32_t RS_NET_CONN_TRANS_OTHER_MASK		= 0x00000f00;
-
-const uint32_t RS_NET_CONN_TRANS_UNKNOWN		= 0x00001000;
-
-
-const uint32_t RS_NET_CONN_SPEED_MASK			= 0x000f0000;
-const uint32_t RS_NET_CONN_SPEED_UNKNOWN		= 0x00000000;
-const uint32_t RS_NET_CONN_SPEED_TRICKLE		= 0x00010000;
-const uint32_t RS_NET_CONN_SPEED_LOW			= 0x00020000;
-const uint32_t RS_NET_CONN_SPEED_NORMAL			= 0x00040000;
-const uint32_t RS_NET_CONN_SPEED_HIGH			= 0x00080000;
-
-const uint32_t RS_NET_CONN_QUALITY_MASK			= 0x00f00000;
-const uint32_t RS_NET_CONN_QUALITY_UNKNOWN		= 0x00000000;
-
-// THIS INFO MUST BE SUPPLIED BY PEERMGR....
-const uint32_t RS_NET_CONN_TYPE_MASK			= 0x0f000000;
-const uint32_t RS_NET_CONN_TYPE_UNKNOWN			= 0x00000000;
-const uint32_t RS_NET_CONN_TYPE_ACQUAINTANCE		= 0x01000000;
-const uint32_t RS_NET_CONN_TYPE_FRIEND			= 0x02000000;
-const uint32_t RS_NET_CONN_TYPE_SERVER			= 0x04000000;
-const uint32_t RS_NET_CONN_TYPE_CLIENT			= 0x08000000;
-
-// working state of proxy
-
-const uint32_t RS_NET_PROXY_STATUS_UNKNOWN  = 0x0000 ;
-const uint32_t RS_NET_PROXY_STATUS_OK  	    = 0x0001 ;
 
 // Potential certificate parsing errors.
 
@@ -362,13 +295,21 @@ public:
 	/* keyring management */
 	virtual bool removeKeysFromPGPKeyring(const std::set<RsPgpId>& pgp_ids,std::string& backup_file,uint32_t& error_code) = 0;
 
-	/* Network Stuff */
-	virtual	bool connectAttempt(const RsPeerId& ssl_id) = 0;
-	virtual bool setLocation(const RsPeerId &ssl_id, const std::string &location) = 0; // location is shown in the gui to differentiate ssl certs
+	/* Auth Stuff */
+	virtual	std::string GetRetroshareInvite(const RsPeerId& ssl_id,bool include_signatures) = 0;
+	virtual	std::string getPGPKey(const RsPgpId& pgp_id,bool include_signatures) = 0;
+	virtual bool GetPGPBase64StringAndCheckSum(const RsPgpId& gpg_id,std::string& gpg_base64_string,std::string& gpg_base64_checksum) = 0;
+	virtual	std::string GetRetroshareInvite(bool include_signatures) = 0;
+	virtual  bool hasExportMinimal() = 0;
 
+	/* peers hidden node state */
 	virtual bool setHiddenNode(const RsPeerId &id, const std::string &hidden_node_address) = 0;
 	virtual bool setHiddenNode(const RsPeerId &id, const std::string &address, uint16_t port) = 0;
 	virtual bool isHiddenNode(const RsPeerId &id) = 0;
+
+	/* peers network information */
+	virtual	bool connectAttempt(const RsPeerId& ssl_id) = 0;
+	virtual bool setLocation(const RsPeerId &ssl_id, const std::string &location) = 0; // location is shown in the gui to differentiate ssl certs
 
 	virtual	bool setLocalAddress(const RsPeerId &ssl_id, const std::string &addr, uint16_t port) = 0;
 	virtual	bool setExtAddress(  const RsPeerId &ssl_id, const std::string &addr, uint16_t port) = 0;
@@ -376,20 +317,6 @@ public:
 	virtual	bool setNetworkMode(const RsPeerId &ssl_id, uint32_t netMode) = 0;
 	virtual bool setVisState(const RsPeerId &ssl_id, uint16_t vs_disc, uint16_t vs_dht)	= 0;
 
-	virtual bool getProxyServer(const uint32_t type, std::string &addr, uint16_t &port,uint32_t& status_flags) = 0;
-	virtual bool setProxyServer(const uint32_t type, const std::string &addr, const uint16_t port) = 0;
-
-	virtual void getIPServersList(std::list<std::string>& ip_servers) = 0;
-	virtual void allowServerIPDetermination(bool) = 0;
-	virtual bool resetOwnExternalAddressList() = 0;
-	virtual bool getAllowServerIPDetermination() = 0 ;
-
-	/* Auth Stuff */
-	virtual	std::string GetRetroshareInvite(const RsPeerId& ssl_id,bool include_signatures) = 0;
-	virtual	std::string getPGPKey(const RsPgpId& pgp_id,bool include_signatures) = 0;
-	virtual bool GetPGPBase64StringAndCheckSum(const RsPgpId& gpg_id,std::string& gpg_base64_string,std::string& gpg_base64_checksum) = 0;
-	virtual	std::string GetRetroshareInvite(bool include_signatures) = 0;
-	virtual  bool hasExportMinimal() = 0;
 
 	// Add keys to the keyring
 	virtual	bool loadCertificateFromString(const std::string& cert, RsPeerId& ssl_id,RsPgpId& pgp_id, std::string& error_string) = 0;
@@ -427,19 +354,8 @@ public:
 	// ... computes the sharing file permission hint flags set for this peer, that is a combination of
 	// 		RS_FILE_HINTS_NETWORK_WIDE and RS_FILE_HINTS_BROWSABLE.
 	//
-	virtual FileSearchFlags computePeerPermissionFlags(
-			const RsPeerId& peer_id, FileStorageFlags file_sharing_flags,
-            const std::list<RsNodeGroupId>& file_parent_groups) = 0;
+	virtual FileSearchFlags computePeerPermissionFlags( const RsPeerId& peer_id, FileStorageFlags file_sharing_flags, const std::list<RsNodeGroupId>& file_parent_groups) = 0;
 
-	/* Service permission flags */
-
-	virtual ServicePermissionFlags servicePermissionFlags(const RsPgpId& gpg_id) = 0;
-	virtual ServicePermissionFlags servicePermissionFlags(const RsPeerId& ssl_id) = 0;
-	virtual void setServicePermissionFlags(const RsPgpId& gpg_id,const ServicePermissionFlags& flags) = 0;
-    
-    	virtual bool setPeerMaximumRates(const RsPgpId& pid,uint32_t maxUploadRate,uint32_t maxDownloadRate) =0;
-    	virtual bool getPeerMaximumRates(const RsPeerId& pid,uint32_t& maxUploadRate,uint32_t& maxDownloadRate) =0;
-    	virtual bool getPeerMaximumRates(const RsPgpId& pid,uint32_t& maxUploadRate,uint32_t& maxDownloadRate) =0;
 };
 
 #endif
