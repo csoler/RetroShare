@@ -1,44 +1,31 @@
 /*******************************************************************************
- * libresapi/util/ContentTypes.h                                               *
+ * libretroshare: retroshare core library                                      *
  *                                                                             *
- * LibResAPI: API for local socket server                                      *
- *                                                                             *
- * Copyright 2018 by Retroshare Team <retroshare.project@gmail.com>            *
+ * Copyright (C) 2018  Gioacchino Mazzurco <gio@eigenlab.org>                  *
  *                                                                             *
  * This program is free software: you can redistribute it and/or modify        *
- * it under the terms of the GNU Affero General Public License as              *
+ * it under the terms of the GNU Lesser General Public License as              *
  * published by the Free Software Foundation, either version 3 of the          *
  * License, or (at your option) any later version.                             *
  *                                                                             *
  * This program is distributed in the hope that it will be useful,             *
  * but WITHOUT ANY WARRANTY; without even the implied warranty of              *
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the                *
- * GNU Affero General Public License for more details.                         *
+ * GNU Lesser General Public License for more details.                         *
  *                                                                             *
- * You should have received a copy of the GNU Affero General Public License    *
+ * You should have received a copy of the GNU Lesser General Public License    *
  * along with this program. If not, see <https://www.gnu.org/licenses/>.       *
  *                                                                             *
  *******************************************************************************/
-#ifndef CONTENTTYPES_H
-#define CONTENTTYPES_H
 
-#include <util/rsthreads.h>
-#include <map>
-#include <string>
+#include "serialiser/rsserializable.h"
 
-#define DEFAULTCT "application/octet-stream"
+#include <iostream>
 
-class ContentTypes
+std::ostream& operator<<(std::ostream& out, const RsSerializable& serializable)
 {
-public:
-	static std::string cTypeFromExt(const std::string& extension);
-
-private:
-	static std::map<std::string, std::string> cache;
-	static RsMutex ctmtx;
-	static const char* filename;
-	static bool inited;
-	static void addBasic();
-};
-
-#endif // CONTENTTYPES_H
+	RsGenericSerializer::SerializeContext ctx;
+	const_cast<RsSerializable&>(serializable) // safe with TO_JSON
+	        .serial_process(RsGenericSerializer::TO_JSON, ctx);
+	return out << ctx.mJson;
+}
