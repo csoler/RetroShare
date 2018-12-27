@@ -3,6 +3,10 @@ Upstream-Name: retroshare
 Upstream-Contact: retroshare.team@gmail.com
 Source: https://github.com/retroshare/retroshare
 
+Files: *
+Copyright: 2007-2018, Retroshare Team <retroshare.team@gmail.com>
+License: AGPL-3+
+
 Files: openpgpsdk/*
 Copyright: 2005-2008 Ben Laurie, Rachel Willmer, Retroshare Team <retroshare.team@gmail.com>
 License: Apache-2.0
@@ -11,7 +15,7 @@ Files: libretroshare/*
 Copyright: 2007-2018, Retroshare Team <retroshare.team@gmail.com>
 License: LGPL-3+
 
-Files: src/retroshare-gui/src/TorControl/
+Files: src/retroshare-gui/src/TorControl/*
 Copyright: 2014, John Brooks <john.brooks@dereferenced.net>
 License: BSD-New
 
@@ -22,18 +26,6 @@ Files: src/libresapi/src/api/json.h                \
 		 src/retroshare-gui/src/qss/qdarkstyle.qss
 Copyright: 2013 Jeff Weinstein <jeff.weinstein@gmail.com>
 License: MIT
-
-Files: *
-Copyright: 2007-2018, Retroshare Team <retroshare.team@gmail.com>
-License: AGPL-3+
-
-#######
-# TODO
-#######
-# src/libretroshare/src/tcponudp/bss_tou.c
-# src/retroshare-gui/src/help/content/*
-#######
-
 
 License: Apache-2.0
   Contributors: . The Contributors have asserted

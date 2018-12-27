@@ -89,6 +89,7 @@ removeIrrelevantFiles() {
 	rm -rf ${workdir}/src/libbitdht/src/example/
 	rm -rf ${workdir}/src/retroshare-gui/src/gui/WikiPoos/
 	rm -rf ${workdir}/src/retroshare-gui/src/Unused/
+	rm -rf ${workdir}/src/retroshare-gui/src/gui/unfinished/
 	rm -f ${workdir}/debian/*~
 	rm -f ${workdir}/debian/.*.sw?
 	rm -f ${workdir}/src/retroshare-gui/src/gui/qss/chat/Bubble_Compact/private/images.sh
