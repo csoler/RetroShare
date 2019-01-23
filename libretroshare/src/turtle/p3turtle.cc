@@ -42,7 +42,7 @@
 
 #include <iostream>
 #include <errno.h>
-#include <cmath>
+#include <math.h>
 
 #include <stdio.h>
 

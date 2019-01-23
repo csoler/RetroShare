@@ -18,6 +18,8 @@
  *                                                                             *
  *******************************************************************************/
 
+#include <math.h>
+
 #include "imageutil.h"
 #include "util/misc.h"
 #include "util/rstime.h"
@@ -32,7 +34,6 @@
 #include <QBuffer>
 #include <QtGlobal>
 #include <QSet>
-#include <cmath>
 #include <iostream>
 
 ImageUtil::ImageUtil() {}

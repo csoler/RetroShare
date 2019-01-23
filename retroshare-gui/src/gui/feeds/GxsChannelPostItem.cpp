@@ -18,6 +18,8 @@
  *                                                                             *
  *******************************************************************************/
 
+#include <math.h>
+
 #include <QTimer>
 #include <QFileInfo>
 #include <QStyle>
@@ -36,7 +38,6 @@
 #include "gui/gxschannels/CreateGxsChannelMsg.h"
 
 #include <iostream>
-#include <cmath>
 
 /****
  * #define DEBUG_ITEM 1

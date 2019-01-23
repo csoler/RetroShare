@@ -21,9 +21,9 @@
  *******************************************************************************/
 #include "TerminalApiClient.h"
 
+#include <math.h>
 #include <unistd.h>
 #include <sstream>
-#include <cmath>
 #include <iomanip>
 
 #include <api/JsonStream.h>
