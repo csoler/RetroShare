@@ -22,6 +22,9 @@
 #pragma once
 
 #include <stdint.h>
+
+// math.h is needed before unordered_map on OSX because the later includes cmath
+#include <math.h>
 #include <unordered_map>
 #include <map>
 
