@@ -23,8 +23,11 @@
 
 #include <stdint.h>
 
+#ifdef __APPLE__
 // math.h is needed before unordered_map on OSX because the later includes cmath
-#include <math.h>
+// See https://software.intel.com/en-us/forums/intel-c-compiler/topic/748661
+#define __ISO_C_VISIBLE 1999
+#endif
 #include <unordered_map>
 #include <map>
 
