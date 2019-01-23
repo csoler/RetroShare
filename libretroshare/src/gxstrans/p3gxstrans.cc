@@ -38,7 +38,9 @@ p3GxsTrans::~p3GxsTrans()
 
 	{
 		RS_STACK_MUTEX(mIngoingMutex);
-		for ( auto& kv : mIncomingQueue) delete kv.second;
+		for ( auto& kv : mIncomingQueue)
+            for(auto it(kv.second.begin());it!=kv.second.end();++it)
+                delete *it;
 	}
 }
 
@@ -294,7 +296,7 @@ void p3GxsTrans::handleResponse(uint32_t token, uint32_t req_type)
 					if(mb)
 					{
 						RS_STACK_MUTEX(mIngoingMutex);
-						mIncomingQueue.insert(inMap::value_type(mb->mailId,mb));
+						mIncomingQueue[mb->mailId].push_back(mb);
 
 						changed = true ;
 					}
@@ -561,74 +563,79 @@ void p3GxsTrans::service_tick()
 	{
 		RS_STACK_MUTEX(mIngoingMutex);
 		for( auto it = mIncomingQueue.begin(); it != mIncomingQueue.end(); )
-		{
-			switch(static_cast<GxsTransItemsSubtypes>( it->second->PacketSubType()))
+			for( auto it2 = it->second.begin();it2!=it->second.end();)
 			{
-			case GxsTransItemsSubtypes::GXS_TRANS_SUBTYPE_MAIL:
-			{
-				RsGxsTransMailItem* msg = dynamic_cast<RsGxsTransMailItem*>(it->second);
+				switch(static_cast<GxsTransItemsSubtypes>( (*it2)->PacketSubType()))
+				{
+				case GxsTransItemsSubtypes::GXS_TRANS_SUBTYPE_MAIL:
+				{
+					RsGxsTransMailItem* msg = dynamic_cast<RsGxsTransMailItem*>(*it2);
 
-				if(!msg)
-				{
-					std::cerr << "p3GxsTrans::service_tick() (EE) "
-					          << "GXS_MAIL_SUBTYPE_MAIL dynamic_cast failed, "
-					          << "something really wrong is happening!"
-					          << std::endl;
-				}
-				else
-				{
+					if(!msg)
+					{
+						std::cerr << "p3GxsTrans::service_tick() (EE) "
+						          << "GXS_MAIL_SUBTYPE_MAIL dynamic_cast failed, "
+						          << "something really wrong is happening!"
+						          << std::endl;
+					}
+					else
+					{
 #ifdef DEBUG_GXSTRANS
-					std::cout << "p3GxsTrans::service_tick() "
-					          << "GXS_MAIL_SUBTYPE_MAIL handling: "
-					          << msg->meta.mMsgId
-					          << " with cryptoType: "
-					          << static_cast<uint32_t>(msg->cryptoType)
-					          << " recipientHint: " << msg->recipientHint
-					          << " mailId: "<< msg->mailId
-					          << " payload.size(): " << msg->payload.size()
-					          << std::endl;
+						std::cout << "p3GxsTrans::service_tick() "
+						          << "GXS_MAIL_SUBTYPE_MAIL handling: "
+						          << msg->meta.mMsgId
+						          << " with cryptoType: "
+						          << static_cast<uint32_t>(msg->cryptoType)
+						          << " recipientHint: " << msg->recipientHint
+						          << " mailId: "<< msg->mailId
+						          << " payload.size(): " << msg->payload.size()
+						          << std::endl;
 #endif
-					handleEncryptedMail(msg);
+						handleEncryptedMail(msg);
+					}
+					break;
 				}
-				break;
-			}
-			case GxsTransItemsSubtypes::GXS_TRANS_SUBTYPE_RECEIPT:
-			{
-				RsGxsTransPresignedReceipt* rcpt = dynamic_cast<RsGxsTransPresignedReceipt*>(it->second);
+				case GxsTransItemsSubtypes::GXS_TRANS_SUBTYPE_RECEIPT:
+				{
+					RsGxsTransPresignedReceipt* rcpt = dynamic_cast<RsGxsTransPresignedReceipt*>(*it2);
 
-				if(!rcpt)
-				{
-					std::cerr << "p3GxsTrans::service_tick() (EE) "
-					          << "GXS_MAIL_SUBTYPE_RECEIPT dynamic_cast failed,"
-					          << " something really wrong is happening!"
-					          << std::endl;
-				}
-				else if(mIdService.isOwnId(rcpt->meta.mAuthorId))
-				{
-					/* It is a receipt for a mail sent by this node live it in
+					if(!rcpt)
+					{
+						std::cerr << "p3GxsTrans::service_tick() (EE) "
+						          << "GXS_MAIL_SUBTYPE_RECEIPT dynamic_cast failed,"
+						          << " something really wrong is happening!"
+						          << std::endl;
+					}
+					else if(mIdService.isOwnId(rcpt->meta.mAuthorId))
+					{
+						/* It is a receipt for a mail sent by this node live it in
 					 * ingoingQueue so processOutgoingRecord(...) will take care
 					 * of it at next tick */
-					++it;
-					continue;
-				}
-				else
-				{
-					/* TODO: It is a receipt for a message sent by someone else
+						++it2;
+						continue;
+					}
+					else
+					{
+						/* TODO: It is a receipt for a message sent by someone else
 					 * we can delete original mail from our GXS DB without
 					 * waiting for GXS_STORAGE_PERIOD */
+					}
+					break;
 				}
-				break;
-			}
-			default:
-				std::cerr << "p3GxsTrans::service_tick() (EE) got something "
-				          << "really unknown into ingoingQueue!!" << std::endl;
-				break;
-			}
+				default:
+					std::cerr << "p3GxsTrans::service_tick() (EE) got something "
+					          << "really unknown into ingoingQueue!!" << std::endl;
+					break;
+				}
 
-			delete it->second ;
-			it = mIncomingQueue.erase(it);
-			changed = true ;
-		}
+				delete *it2;
+				it2 = it->second.erase(it2);
+
+				if(it->second.empty())
+					it = mIncomingQueue.erase(it);
+
+				changed = true ;
+			}
 	}
 
 	if(changed)
@@ -1030,24 +1037,36 @@ void p3GxsTrans::locked_processOutgoingRecord(OutgoingRecord& pr)
 	case GxsTransSendStatus::PENDING_RECEIPT_RECEIVE:
 	{
 		RS_STACK_MUTEX(mIngoingMutex);
-		auto range = mIncomingQueue.equal_range(pr.mailItem.mailId);
-		bool changed = false ;
 
-		for( auto it = range.first; it != range.second; ++it)
+        auto itt = mIncomingQueue.find(pr.mailItem.mailId) ;
+
+		if(itt != mIncomingQueue.end())
 		{
-			RsGxsTransPresignedReceipt* rt = dynamic_cast<RsGxsTransPresignedReceipt*>(it->second);
+			auto range = itt->second; //mIncomingQueue.equal_range(pr.mailItem.mailId);
+			bool changed = false ;
 
-			if(rt && mIdService.isOwnId(rt->meta.mAuthorId))
+			for( auto it = range.begin(); it != range.end();)
 			{
-				mIncomingQueue.erase(it); delete rt;
-				pr.status = GxsTransSendStatus::RECEIPT_RECEIVED;
+				RsGxsTransPresignedReceipt* rt = dynamic_cast<RsGxsTransPresignedReceipt*>(*it);
 
-				changed = true ;
-				break;
+				if(rt && mIdService.isOwnId(rt->meta.mAuthorId))
+				{
+					it = itt->second.erase(it) ;//mIncomingQueue.erase(it);
+                    delete rt;
+                    if(itt->second.empty())
+                        mIncomingQueue.erase(itt) ;
+
+					pr.status = GxsTransSendStatus::RECEIPT_RECEIVED;
+
+					changed = true ;
+					break;
+				}
+                else
+                    ++it;
 			}
+			if(changed)
+				IndicateConfigChanged();
 		}
-		if(changed)
-			IndicateConfigChanged();
 
 		// TODO: Resend message if older then treshold
 		break;
@@ -1114,11 +1133,12 @@ bool p3GxsTrans::saveList(bool &cleanup, std::list<RsItem *>& saveList)
 		saveList.push_back(&kv.second);
 	}
 	for ( auto& kv : mIncomingQueue )
+        for(auto it(kv.second.begin());it!=kv.second.end();++it)
 	{
 #ifdef DEBUG_GXSTRANS
 		std::cerr << "Saving incoming item, ID " << std::hex << std::setfill('0') << std::setw(16) << kv.first << std::endl;
 #endif
-		saveList.push_back(kv.second);
+		saveList.push_back(*it);
 	}
 
 #ifdef DEBUG_GXSTRANS
@@ -1153,7 +1173,7 @@ bool p3GxsTrans::loadList(std::list<RsItem *>&loadList)
 			if(mi)
 			{
 				RS_STACK_MUTEX(mIngoingMutex);
-				mIncomingQueue.insert(inMap::value_type(mi->mailId, mi));
+				mIncomingQueue[mi->mailId].push_back(mi);
 			}
 			break;
 		}
