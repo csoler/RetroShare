@@ -23,12 +23,13 @@
 
 #include <stdint.h>
 
-#ifdef __APPLE__
+#ifndef __APPLE__
+#include <cmath>
+using namespace std;
 // math.h is needed before unordered_map on OSX because the later includes cmath
 // See https://software.intel.com/en-us/forums/intel-c-compiler/topic/748661
-#define __ISO_C_VISIBLE 1999
 #endif
-#include <unordered_map>
+//#include <unordered_map>
 #include <map>
 
 #include "retroshare/rsgxsifacetypes.h" // For RsGxsId, RsGxsCircleId
@@ -224,7 +225,7 @@ private:
 	 * item to not being processed and memleaked multimap is used instead of map
 	 * for incoming queue.
 	 */
-	typedef std::unordered_multimap<RsGxsTransId, RsGxsTransBaseMsgItem*> inMap;
+	typedef std::map<RsGxsTransId, RsGxsTransBaseMsgItem*> inMap;
 	inMap mIncomingQueue;
 	RsMutex mIngoingMutex;
 
