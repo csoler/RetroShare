@@ -79,6 +79,6 @@ deploy:
   file: retroshare-gui/src/retroshare.dmg
   skip_cleanup: true
   on:
-    repo: retroshare/RetroShare
+    repo: csoler/RetroShare
     branch: v0.6-MacOS-Travis-Deploy2
 
