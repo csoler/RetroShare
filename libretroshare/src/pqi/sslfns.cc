@@ -31,6 +31,7 @@
 #include "pqi/pqi_base.h"
 #include "util/rsdir.h"
 #include "util/rsstring.h"
+#include "pqi/authgpg.h"
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -747,13 +748,17 @@ int	LoadCheckX509(const char *cert_file, RsPgpId& issuerName, std::string &locat
 	if (valid)
 	{
 		// extract the name.
+        std::string issuer_name_str ;
+
 #if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
-		issuerName = RsPgpId(std::string(getX509CNString(x509->cert_info->issuer)));
+		issuer_name_str = std::string(getX509CNString(x509->cert_info->issuer));
 		location = getX509LocString(x509->cert_info->subject);
 #else
-		issuerName = RsPgpId(std::string(getX509CNString(X509_get_issuer_name(x509))));
+		issuer_name_str = std::string(getX509CNString(X509_get_issuer_name(x509)));
 		location = getX509LocString(X509_get_subject_name(x509));
 #endif
+
+        issuerName = AuthGPG::getAuthGPG()->pgpIdFromString(issuer_name_str);
 	}
 
 #ifdef AUTHSSL_DEBUG

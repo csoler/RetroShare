@@ -89,7 +89,7 @@ ops_parse_cb_return_t cb_get_passphrase(const ops_parser_content_t *content_,ops
 
 			if(cbinfo->cryptinfo.keydata->nuids > 0)
 				uid_hint = std::string((const char *)cbinfo->cryptinfo.keydata->uids[0].user_id) ;
-			uid_hint += "(" + RsPgpId(cbinfo->cryptinfo.keydata->key_id).toStdString()+")" ;
+			uid_hint += "(" + RsPgpId(cbinfo->cryptinfo.keydata->fingerprint.fingerprint).toStdString()+")" ;
 
 			bool cancelled = false ;
 			passwd = PGPHandler::passphraseCallback()(NULL,"",uid_hint.c_str(),NULL,prev_was_bad,&cancelled) ;
@@ -158,7 +158,8 @@ PGPHandler::PGPHandler(const std::string& pubring, const std::string& secring,co
 	int i=0 ;
 	while( (keydata = ops_keyring_get_key_by_index(_pubring,i)) != NULL )
 	{
-		PGPCertificateInfo& cert(_public_keyring_map[ RsPgpId(keydata->key_id) ]) ;
+		PGPCertificateInfo& cert(_public_keyring_map[ RsPgpId(keydata->fingerprint.fingerprint) ]) ;
+        _short_to_long_pgp_id_map[RsShortPgpId(keydata->key_id)] = RsPgpId(keydata->fingerprint.fingerprint);
 
 		// Init all certificates.
 	
@@ -184,7 +185,7 @@ PGPHandler::PGPHandler(const std::string& pubring, const std::string& secring,co
 	i=0 ;
 	while( (keydata = ops_keyring_get_key_by_index(_secring,i)) != NULL )
 	{
-		initCertificateInfo(_secret_keyring_map[ RsPgpId(keydata->key_id) ],keydata,i) ;
+		initCertificateInfo(_secret_keyring_map[ RsPgpId(keydata->fingerprint.fingerprint) ],keydata,i) ;
 		++i ;
 	}
 	_secring_last_update_time = time(NULL) ;
@@ -353,6 +354,31 @@ bool PGPHandler::haveSecretKey(const RsPgpId& id) const
 	return locked_getSecretKey(id) != NULL ;
 }
 
+RsPgpId PGPHandler::pgpIdFromString(const std::string& fingerprint_or_64bits_id) const
+{
+	RsStackMutex mtx(pgphandlerMtx) ;				// lock access to PGP memory structures.
+
+    if(fingerprint_or_64bits_id.length() == 40)
+        return RsPgpId(fingerprint_or_64bits_id);
+
+    if(fingerprint_or_64bits_id.length() == 16)
+    {
+        RsShortPgpId short_id(fingerprint_or_64bits_id);
+
+        auto it = _short_to_long_pgp_id_map.find(short_id);
+
+        if(it != _short_to_long_pgp_id_map.end())
+        {
+            std::cerr << "(II) converted 64bits PGP id " << short_id << " to fingerprint " << it->second << std::endl;
+            return it->second;
+        }
+    }
+
+    std::cerr << "(EE) Unknwown or inconsistent ID string for PGP key \"" << fingerprint_or_64bits_id << "\"" << std::endl;
+
+    return RsPgpId();
+}
+
 const PGPCertificateInfo *PGPHandler::getCertificateInfo(const RsPgpId& id) const
 {
 	RsStackMutex mtx(pgphandlerMtx) ;				// lock access to PGP memory structures.
@@ -382,10 +408,10 @@ bool PGPHandler::availableGPGCertificatesWithPrivateKeys(std::list<RsPgpId>& ids
 #else
 			if(keydata->key.pkey.algorithm == OPS_PKA_RSA)
 #endif
-				ids.push_back(RsPgpId(keydata->key_id)) ;
+				ids.push_back(RsPgpId(keydata->fingerprint.fingerprint)) ;
 #ifdef DEBUG_PGPHANDLER
 			else
-				std::cerr << "Skipping keypair " << RsPgpId(keydata->key_id).toStdString() << ", unsupported algorithm: " <<  keydata->key.pkey.algorithm << std::endl;
+				std::cerr << "Skipping keypair " << RsPgpId(keydata->fingerprint.fingerprint).toStdString() << ", unsupported algorithm: " <<  keydata->key.pkey.algorithm << std::endl;
 #endif
 		}
 
@@ -963,7 +989,7 @@ bool PGPHandler::checkAndImportKeyPair(ops_keyring_t *tmp_keyring, RsPgpId &impo
 	{
 		RsStackMutex mtx(pgphandlerMtx) ;					// lock access to PGP memory structures.
 
-		imported_key_id = RsPgpId(pubkey->key_id) ;
+		imported_key_id = RsPgpId(pubkey->fingerprint.fingerprint) ;
 
 		if(locked_getSecretKey(imported_key_id) == NULL)
 		{
@@ -1136,7 +1162,7 @@ bool PGPHandler::LoadCertificateFromString(const std::string& pgp_cert,RsPgpId& 
 bool PGPHandler::locked_addOrMergeKey(ops_keyring_t *keyring,std::map<RsPgpId,PGPCertificateInfo>& kmap,const ops_keydata_t *keydata)
 {
 	bool ret = false ;
-	RsPgpId id(keydata->key_id) ;
+	RsPgpId id(keydata->fingerprint.fingerprint) ;
 
 #ifdef DEBUG_PGPHANDLER
 	std::cerr << "AddOrMergeKey():" << std::endl;
@@ -1394,7 +1420,7 @@ bool PGPHandler::SignDataBin(const RsPgpId& id,const void *data, const uint32_t 
 	std::string uid_hint ;
 	if(key->nuids > 0)
 		uid_hint = std::string((const char *)key->uids[0].user_id) ;
-	uid_hint += "(" + RsPgpId(key->key_id).toStdString()+")" ;
+	uid_hint += "(" + RsPgpId(key->fingerprint.fingerprint).toStdString()+")" ;
 
 #ifdef DEBUG_PGPHANDLER
 	ops_fingerprint_t f ;
@@ -1505,7 +1531,7 @@ bool PGPHandler::privateSignCertificate(const RsPgpId& ownId,const RsPgpId& id_o
 	}
 
 	bool cancelled = false;
-	std::string passphrase = _passphrase_callback(NULL,"",RsPgpId(skey->key_id).toStdString().c_str(),"Please enter passwd for encrypting your key : ",false,&cancelled) ;
+	std::string passphrase = _passphrase_callback(NULL,"",RsPgpId(skey->fingerprint.fingerprint).toStdString().c_str(),"Please enter passwd for encrypting your key : ",false,&cancelled) ;
 
 	ops_secret_key_t *secret_key = ops_decrypt_secret_key_from_data(skey,passphrase.c_str()) ;
 
@@ -1713,7 +1739,7 @@ bool PGPHandler::mergeKeySignatures(ops_keydata_t *dst,const ops_keydata_t *src)
 	// First sort all signatures into lists to see which is new, which is not new
 
 #ifdef DEBUG_PGPHANDLER
-	std::cerr << "Merging signatures for key " << RsPgpId(dst->key_id).toStdString() << std::endl;
+	std::cerr << "Merging signatures for key " << RsPgpId(dst->fingerprint.fingerprint).toStdString() << std::endl;
 #endif
 	std::set<ops_packet_t> dst_packets ;
 
@@ -1809,17 +1835,25 @@ void PGPHandler::locked_readPrivateTrustDatabase()
 		std::cerr << "  private trust database not found. No trust info loaded." << std::endl ;
 		return ;
 	}
-	std::map<RsPgpId,PGPCertificateInfo>::iterator it ;
 	PrivateTrustPacket trustpacket;
 	int n_packets = 0 ;
 
 	while(fread((void*)&trustpacket,sizeof(PrivateTrustPacket),1,fdb) == 1)
 	{
-		it = _public_keyring_map.find(RsPgpId(trustpacket.user_id)) ;
+        RsShortPgpId short_id(trustpacket.user_id);
+
+        auto it2 = _short_to_long_pgp_id_map.find(short_id);
+
+        if(it2 == _short_to_long_pgp_id_map.end())
+        {
+			std::cerr << "  (WW) no fingerprint known for key id " << short_id << std::endl;
+			continue ;
+        }
+		auto it = _public_keyring_map.find(it2->second);
 
 		if(it == _public_keyring_map.end())
 		{
-			std::cerr << "  (WW) Trust packet found for unknown key id " << RsPgpId(trustpacket.user_id).toStdString() << std::endl;
+			std::cerr << "  (WW) Trust packet found for unknown key id " << it2->second << std::endl;
 			continue ;
 		}
 		if(trustpacket.trust_level > 6)
@@ -2099,7 +2133,7 @@ bool PGPHandler::removeKeysFromPGPKeyring(const std::set<RsPgpId>& keys_to_remov
 		const ops_keydata_t *keydata ;
 		while( (keydata = ops_keyring_get_key_by_index(_pubring,i)) != NULL )
 		{
-			PGPCertificateInfo& cert(_public_keyring_map[ RsPgpId(keydata->key_id) ]) ;
+			PGPCertificateInfo& cert(_public_keyring_map[ RsPgpId(keydata->fingerprint.fingerprint) ]) ;
 			cert._key_index = i ;
 			++i ;
 		}

@@ -120,6 +120,7 @@ RsItem *RsPeerConfigSerialiser::create_item(uint8_t item_type,uint8_t item_subty
 
     switch(item_subtype)
     {
+    case RS_PKT_SUBTYPE_PEER_NET_deprecated: return new RsPeerNetItem_deprecated();
     case RS_PKT_SUBTYPE_PEER_NET: return new RsPeerNetItem();
     case RS_PKT_SUBTYPE_PEER_STUN: return new RsPeerStunItem();
     case RS_PKT_SUBTYPE_NODE_GROUP: return new RsNodeGroupItem() ;
@@ -153,6 +154,31 @@ void RsPeerNetItem::clear()
 	domain_addr.clear();
 	domain_port = 0;
 }
+void RsPeerNetItem_deprecated::serial_process(RsGenericSerializer::SerializeJob j,RsGenericSerializer::SerializeContext& ctx)
+{
+	RsTypeSerializer::serial_process(j,ctx,nodePeerId,"peerId") ;
+	RsTypeSerializer::serial_process(j,ctx,pgpId,"pgpId") ;
+	RsTypeSerializer::serial_process(j,ctx,TLV_TYPE_STR_LOCATION,location,"location") ;
+
+	RsTypeSerializer::serial_process<uint32_t>(j,ctx,netMode,"netMode") ;
+	RsTypeSerializer::serial_process<uint16_t>(j,ctx,vs_disc,"vs_disc") ;
+	RsTypeSerializer::serial_process<uint16_t>(j,ctx,vs_dht,"vs_dht") ;
+	RsTypeSerializer::serial_process<uint32_t>(j,ctx,lastContact,"lastContact") ;
+
+	RsTypeSerializer::serial_process<RsTlvItem>(j,ctx,localAddrV4,"localAddrV4") ;
+	RsTypeSerializer::serial_process<RsTlvItem>(j,ctx,extAddrV4,"extAddrV4") ;
+	RsTypeSerializer::serial_process<RsTlvItem>(j,ctx,localAddrV6,"localAddrV6") ;
+	RsTypeSerializer::serial_process<RsTlvItem>(j,ctx,extAddrV6,"extAddrV6") ;
+
+	RsTypeSerializer::serial_process(j,ctx,TLV_TYPE_STR_DYNDNS,dyndns,"dyndns") ;
+
+	RsTypeSerializer::serial_process<RsTlvItem>(j,ctx,localAddrList,"localAddrList") ;
+	RsTypeSerializer::serial_process<RsTlvItem>(j,ctx,extAddrList,"extAddrList") ;
+
+	RsTypeSerializer::serial_process(j,ctx,TLV_TYPE_STR_DOMADDR,domain_addr,"domain_addr") ;
+	RsTypeSerializer::serial_process<uint16_t>(j,ctx,domain_port,"domain_port") ;
+}
+
 void RsPeerNetItem::serial_process(RsGenericSerializer::SerializeJob j,RsGenericSerializer::SerializeContext& ctx)
 {
 	RsTypeSerializer::serial_process(j,ctx,nodePeerId,"peerId") ;

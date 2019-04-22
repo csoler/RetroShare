@@ -1070,7 +1070,7 @@ bool p3PeerMgrIMPL::removeFriend(const RsPgpId &id)
 			if (mFriendList.end() != (it = mFriendList.find(*rit)))
 				mFriendList.erase(it);
 
-		std::map<RsPgpId,ServicePermissionFlags>::iterator it2 = mFriendsPermissionFlags.find(id) ;
+		std::map<RsShortPgpId,ServicePermissionFlags>::iterator it2 = mFriendsPermissionFlags.find(id) ;
 
 		if(it2 != mFriendsPermissionFlags.end())
 			mFriendsPermissionFlags.erase(it2);

@@ -242,6 +242,15 @@ isEmpty(RS_UPNP_LIB):RS_UPNP_LIB = upnp ixml threadutil
 #    Why:  Avoids sending probe packets
 #    BackwardCompat: old RS before Mai 2019 will not be able to distant chat.
 #
+#  V07_NON_BACKWARD_COMPATIBLE_CHANGE_005:
+#
+#    What: Do not accept connexions with issuer id that is not a full fingerprint.
+#
+#    Why:  In older versions, Retroshare would provide the issuer ID as a 64 bits ID. Because it is easier (doesn't mean feasible. Just easier)
+#          to create a key with the same 64 bits Id than a given key than forging a key with identical fingerprint, we chose to unsupport this.
+#
+#    BackwardCompat: old RS before May 2019 will not be able to connect anymore to newer RS versions.
+#
 ###########################################################################################################################################################
 
 #CONFIG += rs_v07_changes
@@ -250,6 +259,7 @@ rs_v07_changes {
     DEFINES += V07_NON_BACKWARD_COMPATIBLE_CHANGE_002
     DEFINES += V07_NON_BACKWARD_COMPATIBLE_CHANGE_003
     DEFINES += V07_NON_BACKWARD_COMPATIBLE_CHANGE_004
+    DEFINES += V07_NON_BACKWARD_COMPATIBLE_CHANGE_005
     DEFINES += V07_NON_BACKWARD_COMPATIBLE_CHANGE_UNNAMED
 }
 

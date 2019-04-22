@@ -51,11 +51,12 @@ const uint8_t RS_PKT_SUBTYPE_KEY_VALUE = 0x01;
 
 	/* PEER CONFIG SUBTYPES */
 const uint8_t RS_PKT_SUBTYPE_PEER_STUN             = 0x02;
-const uint8_t RS_PKT_SUBTYPE_PEER_NET              = 0x03;
+const uint8_t RS_PKT_SUBTYPE_PEER_NET_deprecated   = 0x03;
 const uint8_t RS_PKT_SUBTYPE_PEER_GROUP_deprecated = 0x04;
 const uint8_t RS_PKT_SUBTYPE_PEER_PERMISSIONS      = 0x05;
 const uint8_t RS_PKT_SUBTYPE_PEER_BANDLIMITS       = 0x06;
 const uint8_t RS_PKT_SUBTYPE_NODE_GROUP            = 0x07;
+const uint8_t RS_PKT_SUBTYPE_PEER_NET              = 0x08;
 
 	/* FILE CONFIG SUBTYPES */
 const uint8_t RS_PKT_SUBTYPE_FILE_TRANSFER            = 0x01;
@@ -63,6 +64,45 @@ const uint8_t RS_PKT_SUBTYPE_FILE_ITEM_deprecated     = 0x02;
 const uint8_t RS_PKT_SUBTYPE_FILE_ITEM                = 0x03;
 
 /**************************************************************************/
+
+class RsPeerNetItem_deprecated: public RsItem
+{
+public:
+	RsPeerNetItem_deprecated()
+	  :RsItem(RS_PKT_VERSION1, RS_PKT_CLASS_CONFIG,
+	          RS_PKT_TYPE_PEER_CONFIG,
+	          RS_PKT_SUBTYPE_PEER_NET_deprecated)
+	  , netMode(0), vs_disc(0), vs_dht(0), lastContact(0), domain_port(0)
+	{}
+
+    virtual ~RsPeerNetItem_deprecated(){}
+	virtual void clear();
+
+	virtual void serial_process(RsGenericSerializer::SerializeJob j,RsGenericSerializer::SerializeContext& ctx);
+
+	/* networking information */
+	RsPeerId    nodePeerId;                   /* Mandatory */
+	RsShortPgpId pgpId;                       /* Mandatory */
+	std::string location;                     /* Mandatory */
+	uint32_t    netMode;                      /* Mandatory */
+	uint16_t    vs_disc;                      /* Mandatory */
+	uint16_t    vs_dht;                       /* Mandatory */
+	uint32_t    lastContact;                  /* Mandatory */
+
+	RsTlvIpAddress localAddrV4;            	/* Mandatory */
+	RsTlvIpAddress extAddrV4;           	/* Mandatory */
+	RsTlvIpAddress localAddrV6;            	/* Mandatory */
+	RsTlvIpAddress extAddrV6;            	/* Mandatory */
+
+	std::string dyndns;
+
+	RsTlvIpAddrSet localAddrList;
+	RsTlvIpAddrSet extAddrList;
+
+	// for proxy connection.
+	std::string domain_addr;
+	uint16_t    domain_port;
+};
 
 class RsPeerNetItem: public RsItem
 {
@@ -81,7 +121,7 @@ public:
 
 	/* networking information */
 	RsPeerId    nodePeerId;                   /* Mandatory */
-	RsPgpId     pgpId;                        /* Mandatory */
+	RsPgpId 	pgpId;                        /* Mandatory */
 	std::string location;                     /* Mandatory */
 	uint32_t    netMode;                      /* Mandatory */
 	uint16_t    vs_disc;                      /* Mandatory */
@@ -119,7 +159,7 @@ class RsPeerServicePermissionItem : public RsItem
 
 
 		/* Mandatory */
-		std::vector<RsPgpId> pgp_ids ;
+		std::vector<RsShortPgpId> pgp_ids ;
 		std::vector<ServicePermissionFlags> service_flags ;
 };
 class RsPeerBandwidthLimitsItem : public RsItem
@@ -135,7 +175,7 @@ class RsPeerBandwidthLimitsItem : public RsItem
 		virtual void serial_process(RsGenericSerializer::SerializeJob j,RsGenericSerializer::SerializeContext& ctx);
 
 		/* Mandatory */
-		std::map<RsPgpId,PeerBandwidthLimits> peers ;
+		std::map<RsShortPgpId,PeerBandwidthLimits> peers ;
 };
 
 class RsNodeGroupItem: public RsItem

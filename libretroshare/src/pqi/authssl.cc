@@ -257,13 +257,14 @@ sslcert::sslcert(X509 *x509, const RsPeerId& pid)
 	name = getX509CNString(x509->cert_info->subject);
 	org = getX509OrgString(x509->cert_info->subject);
 	location = getX509LocString(x509->cert_info->subject);
-	issuer = RsPgpId(std::string(getX509CNString(x509->cert_info->issuer)));
+	std::string issuer_string(getX509CNString(x509->cert_info->issuer));
 #else
 	name = getX509CNString(X509_get_subject_name(x509));
 	org = getX509OrgString(X509_get_subject_name(x509));
 	location = getX509LocString(X509_get_subject_name(x509));
-	issuer = RsPgpId(std::string(getX509CNString(X509_get_issuer_name(x509))));
+	std::string issuer_string(getX509CNString(X509_get_issuer_name(x509)));
 #endif
+	issuer = AuthGPG::getAuthGPG()->pgpIdFromString(issuer_string);
 	email = "";
 
 	authed = false;
@@ -1004,10 +1005,20 @@ bool AuthSSLimpl::AuthX509WithGPG(X509 *x509,uint32_t& diagnostic)
 
 	/* extract CN for peer Id */
 #if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
-	RsPgpId issuer(std::string(getX509CNString(x509->cert_info->issuer)));
+    std::string issuer_string(getX509CNString(x509->cert_info->issuer)) ;
 #else
-	RsPgpId issuer(std::string(getX509CNString(X509_get_issuer_name(x509))));
+    std::string issuer_string(getX509CNString(X509_get_issuer_name(x509)));
 #endif
+
+#ifdef V07_NON_BACKWARD_COMPATIBLE_CHANGE_005
+    if(issuer_string.length() != 40)
+    {
+        std::cerr << "(EE) peer trying to authenticate SSL handshake with 64bits key Id. Only full fingerprints are accepted in this version." << std::endl;
+        return false;
+    }
+#endif
+	RsPgpId issuer = AuthGPG::getAuthGPG()->pgpIdFromString(issuer_string);
+
 	RsPeerDetails pd;
 #ifdef AUTHSSL_DEBUG
 	std::cerr << "Checking GPG issuer : " << issuer.toStdString() << std::endl ;

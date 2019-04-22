@@ -96,6 +96,10 @@ class PGPHandler
 		bool getGPGFilteredList(std::list<RsPgpId>& list,bool (*filter)(const PGPCertificateInfo&) = NULL) const ;
 		bool haveSecretKey(const RsPgpId& id) const ;
 
+        // convert a 16 chars or 40 chars string to PGP id. If the length is 16 chrs, the Id is a short 64bits ID and therefore the ID will only
+        // be returned if a corresponding full fingerprint matches.
+        RsPgpId pgpIdFromString(const std::string& fingerprint_or_64bits_id) const;
+
 		bool importGPGKeyPair(const std::string& filename,RsPgpId& imported_id,std::string& import_error) ;
 		bool importGPGKeyPairFromString(const std::string& data,RsPgpId& imported_id,std::string& import_error) ;
 		bool exportGPGKeyPair(const std::string& filename,const RsPgpId& exported_id) const ;
@@ -211,6 +215,7 @@ class PGPHandler
 
 		std::map<RsPgpId,PGPCertificateInfo> _public_keyring_map ;	// used for fast access to keys. Gives the index in the keyring.
 		std::map<RsPgpId,PGPCertificateInfo> _secret_keyring_map ;
+        std::map<RsShortPgpId,RsPgpId>       _short_to_long_pgp_id_map; // this is useful to convert back 64bits Ids into full fingerprint
 
 		const std::string _pubring_path ;
 		const std::string _secring_path ;

@@ -732,7 +732,7 @@ bool AuthGPG::loadList(std::list<RsItem*>& load)
 			std::list<RsTlvKeyValue>::iterator kit;
 			for(kit = vitem->tlvkvs.pairs.begin(); kit != vitem->tlvkvs.pairs.end(); ++kit)
 				if (kit->key != mOwnGpgId.toStdString())
-					PGPHandler::setAcceptConnexion(RsPgpId(kit->key), (kit->value == "TRUE"));
+					PGPHandler::setAcceptConnexion(pgpIdFromString(kit->key), (kit->value == "TRUE"));
 		}
 		delete (*it);
 	}
