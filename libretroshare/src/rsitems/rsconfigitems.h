@@ -50,13 +50,16 @@ const uint8_t RS_PKT_TYPE_HISTORY_CONFIG = 0x06;
 const uint8_t RS_PKT_SUBTYPE_KEY_VALUE = 0x01;
 
 	/* PEER CONFIG SUBTYPES */
-const uint8_t RS_PKT_SUBTYPE_PEER_STUN             = 0x02;
-const uint8_t RS_PKT_SUBTYPE_PEER_NET_deprecated   = 0x03;
-const uint8_t RS_PKT_SUBTYPE_PEER_GROUP_deprecated = 0x04;
-const uint8_t RS_PKT_SUBTYPE_PEER_PERMISSIONS      = 0x05;
-const uint8_t RS_PKT_SUBTYPE_PEER_BANDLIMITS       = 0x06;
-const uint8_t RS_PKT_SUBTYPE_NODE_GROUP            = 0x07;
-const uint8_t RS_PKT_SUBTYPE_PEER_NET              = 0x08;
+const uint8_t RS_PKT_SUBTYPE_PEER_STUN                   = 0x02;
+const uint8_t RS_PKT_SUBTYPE_PEER_NET_deprecated         = 0x03;
+const uint8_t RS_PKT_SUBTYPE_PEER_GROUP_deprecated       = 0x04;
+const uint8_t RS_PKT_SUBTYPE_PEER_PERMISSIONS_deprecated = 0x05;
+const uint8_t RS_PKT_SUBTYPE_PEER_BANDLIMITS_deprecated  = 0x06;
+const uint8_t RS_PKT_SUBTYPE_NODE_GROUP_deprecated       = 0x07;
+const uint8_t RS_PKT_SUBTYPE_PEER_NET                    = 0x08;
+const uint8_t RS_PKT_SUBTYPE_PEER_BANDLIMITS             = 0x09;
+const uint8_t RS_PKT_SUBTYPE_PEER_PERMISSIONS            = 0x0a;
+const uint8_t RS_PKT_SUBTYPE_NODE_GROUP                  = 0x0b;
 
 	/* FILE CONFIG SUBTYPES */
 const uint8_t RS_PKT_SUBTYPE_FILE_TRANSFER            = 0x01;
@@ -144,11 +147,11 @@ public:
 };
 
 // This item should be merged with the next item, but that is not backward compatible.
-class RsPeerServicePermissionItem : public RsItem
+class RsPeerServicePermissionItem_deprecated : public RsItem
 {
 	public:
-		RsPeerServicePermissionItem() : RsItem(RS_PKT_VERSION1, RS_PKT_CLASS_CONFIG, RS_PKT_TYPE_PEER_CONFIG, RS_PKT_SUBTYPE_PEER_PERMISSIONS) {}
-		virtual ~RsPeerServicePermissionItem() {}
+		RsPeerServicePermissionItem_deprecated() : RsItem(RS_PKT_VERSION1, RS_PKT_CLASS_CONFIG, RS_PKT_TYPE_PEER_CONFIG, RS_PKT_SUBTYPE_PEER_PERMISSIONS_deprecated) {}
+		virtual ~RsPeerServicePermissionItem_deprecated() {}
 
 		virtual void clear()
 		{
@@ -161,6 +164,36 @@ class RsPeerServicePermissionItem : public RsItem
 		/* Mandatory */
 		std::vector<RsShortPgpId> pgp_ids ;
 		std::vector<ServicePermissionFlags> service_flags ;
+};
+class RsPeerServicePermissionItem : public RsItem
+{
+	public:
+		RsPeerServicePermissionItem() : RsItem(RS_PKT_VERSION1, RS_PKT_CLASS_CONFIG, RS_PKT_TYPE_PEER_CONFIG, RS_PKT_SUBTYPE_PEER_PERMISSIONS) {}
+		virtual ~RsPeerServicePermissionItem() {}
+
+		virtual void clear()
+		{
+			peer_flags.clear() ;
+		}
+		virtual void serial_process(RsGenericSerializer::SerializeJob j,RsGenericSerializer::SerializeContext& ctx);
+
+		/* Mandatory */
+        std::map<RsPgpId,ServicePermissionFlags> peer_flags ;
+};
+class RsPeerBandwidthLimitsItem_deprecated : public RsItem
+{
+	public:
+		RsPeerBandwidthLimitsItem_deprecated() : RsItem(RS_PKT_VERSION1, RS_PKT_CLASS_CONFIG, RS_PKT_TYPE_PEER_CONFIG, RS_PKT_SUBTYPE_PEER_BANDLIMITS) {}
+		virtual ~RsPeerBandwidthLimitsItem_deprecated() {}
+
+		virtual void clear()
+		{
+			peers.clear() ;
+		}
+		virtual void serial_process(RsGenericSerializer::SerializeJob j,RsGenericSerializer::SerializeContext& ctx);
+
+		/* Mandatory */
+		std::map<RsShortPgpId,PeerBandwidthLimits> peers ;
 };
 class RsPeerBandwidthLimitsItem : public RsItem
 {
@@ -175,8 +208,34 @@ class RsPeerBandwidthLimitsItem : public RsItem
 		virtual void serial_process(RsGenericSerializer::SerializeJob j,RsGenericSerializer::SerializeContext& ctx);
 
 		/* Mandatory */
-		std::map<RsShortPgpId,PeerBandwidthLimits> peers ;
+		std::map<RsPgpId,PeerBandwidthLimits> peers ;
 };
+
+class RsNodeGroupItem_deprecated: public RsItem
+{
+public:
+    RsNodeGroupItem_deprecated(): RsItem(RS_PKT_VERSION1, RS_PKT_CLASS_CONFIG, RS_PKT_TYPE_PEER_CONFIG, RS_PKT_SUBTYPE_NODE_GROUP_deprecated), flag(0) {}
+    virtual ~RsNodeGroupItem_deprecated() {}
+
+    virtual void clear() { pgpList.TlvClear();}
+
+    explicit RsNodeGroupItem_deprecated(const RsGroupInfo&) ;
+
+	virtual void serial_process(RsGenericSerializer::SerializeJob j,RsGenericSerializer::SerializeContext& ctx);
+
+   // /* set data from RsGroupInfo to RsPeerGroupItem */
+   // void set(RsGroupInfo &groupInfo);
+   // /* get data from RsGroupInfo to RsPeerGroupItem */
+   // void get(RsGroupInfo &groupInfo);
+
+    /* Mandatory */
+    RsNodeGroupId id;
+    std::string name;
+    uint32_t    flag;
+
+    RsTlvShortPgpIdSet pgpList;
+};
+
 
 class RsNodeGroupItem: public RsItem
 {

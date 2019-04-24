@@ -354,6 +354,19 @@ bool PGPHandler::haveSecretKey(const RsPgpId& id) const
 	return locked_getSecretKey(id) != NULL ;
 }
 
+RsPgpId PGPHandler::pgpIdFromShortPgpId(const RsShortPgpId& s) const
+{
+    auto it = _short_to_long_pgp_id_map.find(s) ;
+
+    if(it == _short_to_long_pgp_id_map.end())
+    {
+        std::cerr << "(EE) Cannot find a key fingerprintfor ID " << s << ": convertion fails!!" << std::endl;
+        return RsPgpId();
+    }
+    else
+        return it->second;
+}
+
 RsPgpId PGPHandler::pgpIdFromString(const std::string& fingerprint_or_64bits_id) const
 {
 	RsStackMutex mtx(pgphandlerMtx) ;				// lock access to PGP memory structures.

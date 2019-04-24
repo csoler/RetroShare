@@ -34,7 +34,7 @@ void RsGxsPostedPostItem::serial_process(RsGenericSerializer::SerializeJob j,RsG
 	// of new RS with older posts.
 
     if(j == RsGenericSerializer::DESERIALIZE && ctx.mOffset == ctx.mSize)
-        return ;
+		return ;
 
 	if((j == RsGenericSerializer::SIZE_ESTIMATE || j == RsGenericSerializer::SERIALIZE) && mImage.empty())
 		return ;

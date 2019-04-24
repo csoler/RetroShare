@@ -99,6 +99,7 @@ class PGPHandler
         // convert a 16 chars or 40 chars string to PGP id. If the length is 16 chrs, the Id is a short 64bits ID and therefore the ID will only
         // be returned if a corresponding full fingerprint matches.
         RsPgpId pgpIdFromString(const std::string& fingerprint_or_64bits_id) const;
+        RsPgpId pgpIdFromShortPgpId(const RsShortPgpId& s) const;
 
 		bool importGPGKeyPair(const std::string& filename,RsPgpId& imported_id,std::string& import_error) ;
 		bool importGPGKeyPairFromString(const std::string& data,RsPgpId& imported_id,std::string& import_error) ;

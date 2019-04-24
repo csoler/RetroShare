@@ -195,12 +195,13 @@ const uint16_t TLV_TYPE_STRINGSET     = 0x1020; /* dummy non-existant */
 const uint16_t TLV_TYPE_PEERSET       = 0x1021;
 const uint16_t TLV_TYPE_HASHSET       = 0x1022;
 
-const uint16_t TLV_TYPE_PGPIDSET      = 0x1023;
+const uint16_t TLV_TYPE_SHORTPGPIDSET = 0x1023;
 const uint16_t TLV_TYPE_RECOGNSET     = 0x1024;
 const uint16_t TLV_TYPE_GXSIDSET      = 0x1025;
 const uint16_t TLV_TYPE_GXSCIRCLEIDSET= 0x1026;
 const uint16_t TLV_TYPE_NODEGROUPIDSET= 0x1027;
 const uint16_t TLV_TYPE_GXSMSGIDSET   = 0x1028;
+const uint16_t TLV_TYPE_PGPIDSET      = 0x1029;
 
 const uint16_t TLV_TYPE_SERVICESET    = 0x1030; 
 

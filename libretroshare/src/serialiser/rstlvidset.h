@@ -117,6 +117,7 @@ template<class ID_CLASS,uint32_t TLV_TYPE> class RS_DEPRECATED_FOR(std::set<>) t
 };
 
 typedef t_RsTlvIdSet<RsPeerId,      TLV_TYPE_PEERSET>	        RsTlvPeerIdSet ;
+typedef t_RsTlvIdSet<RsShortPgpId,  TLV_TYPE_SHORTPGPIDSET>	    RsTlvShortPgpIdSet ;
 typedef t_RsTlvIdSet<RsPgpId,       TLV_TYPE_PGPIDSET>	        RsTlvPgpIdSet ;
 typedef t_RsTlvIdSet<Sha1CheckSum,  TLV_TYPE_HASHSET> 	        RsTlvHashSet ;
 typedef t_RsTlvIdSet<RsGxsId,       TLV_TYPE_GXSIDSET>          RsTlvGxsIdSet ;

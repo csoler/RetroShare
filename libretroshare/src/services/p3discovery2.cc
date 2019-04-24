@@ -512,6 +512,11 @@ void p3discovery2::updatePeerAddressList(const RsDiscContactItem *item)
 	}
 }
 
+// This shouldn't be necessary but we still use this for backward compatibility reasons so that old peers can read the items we send.
+static RsShortPgpId makeShortId(const RsPgpId& id)
+{
+    return RsShortPgpId(id.toByteArray()+40 - 16);
+}
 
 // Starts the Discovery process.
 // should only be called it DISC2_STATUS_NOT_HIDDEN(OwnInfo.status).
@@ -533,7 +538,7 @@ void p3discovery2::sendPGPList(const SSLID &toId)
 	std::map<PGPID, DiscPgpInfo>::const_iterator it;
 	for(it = mFriendList.begin(); it != mFriendList.end(); ++it)
 	{
-        pkt->pgpIdSet.ids.insert(it->first);
+        pkt->pgpIdSet.ids.insert(makeShortId(it->first));
 	}
 
 	pkt->PeerId(toId);
@@ -699,22 +704,31 @@ void p3discovery2::processPGPList(const SSLID &fromId, const RsDiscPgpListItem *
 
 	if (requestUnknownPgpCerts)
 	{
-        std::set<PGPID>::const_iterator fit;
-		for(fit = item->pgpIdSet.ids.begin(); fit != item->pgpIdSet.ids.end(); ++fit)
+		for(auto fit = item->pgpIdSet.ids.begin(); fit != item->pgpIdSet.ids.end(); ++fit)
 		{
-			if (!AuthGPG::getAuthGPG()->isGPGId(*fit))
+            RsPgpId pgp_id = AuthGPG::getAuthGPG()->pgpIdFromShortPgpId(*fit);
+
+			if (!AuthGPG::getAuthGPG()->isGPGId(pgp_id))
 			{
 #ifdef P3DISC_DEBUG
 				std::cerr << "p3discovery2::processPGPList() requesting PgpId: " << *fit;
 				std::cerr << " from SslId: " << fromId;
 				std::cerr << std::endl;
 #endif
-				requestPGPCertificate(*fit, fromId);
+				requestPGPCertificate(pgp_id, fromId);
 			}
 		}
 	}
 
-	it->second.mergeFriendList(item->pgpIdSet.ids);
+	//it->second.mergeFriendList(item->pgpIdSet.ids);
+    for(auto it2(item->pgpIdSet.ids.begin());it2!=item->pgpIdSet.ids.end();++it2)
+    {
+        RsPgpId pgp_id = AuthGPG::getAuthGPG()->pgpIdFromShortPgpId(*it2);
+
+        if(!pgp_id.isNull())
+			it->second.mFriendSet.insert(pgp_id);
+    }
+
 	updatePeers_locked(fromId);
 
 	// cleanup.
@@ -1015,7 +1029,7 @@ void p3discovery2::requestPGPCertificate(const PGPID &aboutId, const SSLID &toId
 	RsDiscPgpListItem *pkt = new RsDiscPgpListItem();
 	
 	pkt->mode = DISC_PGP_LIST_MODE_GETCERT;
-    pkt->pgpIdSet.ids.insert(aboutId);
+    pkt->pgpIdSet.ids.insert(makeShortId(aboutId));
 	pkt->PeerId(toId);
 	
 #ifdef P3DISC_DEBUG
@@ -1035,15 +1049,14 @@ void p3discovery2::recvPGPCertificateRequest(const SSLID &fromId, const RsDiscPg
 	std::cerr << std::endl;
 #endif
 
-    std::set<RsPgpId>::const_iterator it;
-	for(it = item->pgpIdSet.ids.begin(); it != item->pgpIdSet.ids.end(); ++it)
+	for(auto it = item->pgpIdSet.ids.begin(); it != item->pgpIdSet.ids.end(); ++it)
 	{
+        RsPgpId pgp_id = AuthGPG::getAuthGPG()->pgpIdFromShortPgpId(*it);
+
 		// NB: This doesn't include own certificates? why not.
 		// shouldn't be a real problem. Peer must have own PgpCert already.
-		if (AuthGPG::getAuthGPG()->isGPGAccepted(*it))
-		{
-			sendPGPCertificate(*it, fromId);
-		}
+		if (AuthGPG::getAuthGPG()->isGPGAccepted(pgp_id))
+			sendPGPCertificate(pgp_id, fromId);
 	}
 	delete item;
 }

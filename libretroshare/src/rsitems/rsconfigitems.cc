@@ -120,17 +120,42 @@ RsItem *RsPeerConfigSerialiser::create_item(uint8_t item_type,uint8_t item_subty
 
     switch(item_subtype)
     {
-    case RS_PKT_SUBTYPE_PEER_NET_deprecated: return new RsPeerNetItem_deprecated();
-    case RS_PKT_SUBTYPE_PEER_NET: return new RsPeerNetItem();
-    case RS_PKT_SUBTYPE_PEER_STUN: return new RsPeerStunItem();
-    case RS_PKT_SUBTYPE_NODE_GROUP: return new RsNodeGroupItem() ;
-    case RS_PKT_SUBTYPE_PEER_PERMISSIONS: return new RsPeerServicePermissionItem();
-    case RS_PKT_SUBTYPE_PEER_BANDLIMITS: return new RsPeerBandwidthLimitsItem();
+    case RS_PKT_SUBTYPE_PEER_NET_deprecated:         return new RsPeerNetItem_deprecated();
+    case RS_PKT_SUBTYPE_PEER_NET:                    return new RsPeerNetItem();
+    case RS_PKT_SUBTYPE_PEER_STUN:                   return new RsPeerStunItem();
+    case RS_PKT_SUBTYPE_NODE_GROUP:                  return new RsNodeGroupItem() ;
+    case RS_PKT_SUBTYPE_NODE_GROUP_deprecated:       return new RsNodeGroupItem_deprecated() ;
+    case RS_PKT_SUBTYPE_PEER_PERMISSIONS:            return new RsPeerServicePermissionItem();
+    case RS_PKT_SUBTYPE_PEER_BANDLIMITS:             return new RsPeerBandwidthLimitsItem();
+    case RS_PKT_SUBTYPE_PEER_PERMISSIONS_deprecated: return new RsPeerServicePermissionItem_deprecated();
+    case RS_PKT_SUBTYPE_PEER_BANDLIMITS_deprecated:  return new RsPeerBandwidthLimitsItem_deprecated();
     default:
         return NULL ;
     }
 }
+void RsPeerNetItem_deprecated::clear()
+{
+	nodePeerId.clear();
+	pgpId.clear();
+	location.clear();
+	netMode = 0;
+	vs_disc = 0;
+	vs_dht = 0;
+	lastContact = 0;
 
+	localAddrV4.TlvClear();
+	extAddrV4.TlvClear();
+	localAddrV6.TlvClear();
+	extAddrV6.TlvClear();
+
+	dyndns.clear();
+
+	localAddrList.TlvClear();
+	extAddrList.TlvClear();
+
+	domain_addr.clear();
+	domain_port = 0;
+}
 void RsPeerNetItem::clear()
 {
 	nodePeerId.clear();
@@ -208,7 +233,10 @@ void RsPeerBandwidthLimitsItem::serial_process(RsGenericSerializer::SerializeJob
 {
     RsTypeSerializer::serial_process(j,ctx,peers,"peers") ;
 }
-
+void RsPeerBandwidthLimitsItem_deprecated::serial_process(RsGenericSerializer::SerializeJob j,RsGenericSerializer::SerializeContext& ctx)
+{
+    RsTypeSerializer::serial_process(j,ctx,peers,"peers") ;
+}
 void RsPeerStunItem::serial_process(RsGenericSerializer::SerializeJob j,RsGenericSerializer::SerializeContext& ctx)
 {
     RsTypeSerializer::serial_process<RsTlvItem>(j,ctx,stunList,"stunList") ;
@@ -223,7 +251,16 @@ RsNodeGroupItem::RsNodeGroupItem(const RsGroupInfo& g)
     flag = g.flag ;
     pgpList.ids = g.peerIds;
 }
+void RsNodeGroupItem_deprecated::serial_process(RsGenericSerializer::SerializeJob j,RsGenericSerializer::SerializeContext& ctx)
+{
+    uint32_t v=0 ;
 
+    RsTypeSerializer::serial_process<uint32_t>(j,ctx,v,"dummy field 0") ;
+    RsTypeSerializer::serial_process          (j,ctx,id,"id") ;
+    RsTypeSerializer::serial_process          (j,ctx,TLV_TYPE_STR_NAME,name,"name") ;
+    RsTypeSerializer::serial_process<uint32_t>(j,ctx,flag,"flag") ;
+    RsTypeSerializer::serial_process<RsTlvItem>(j,ctx,pgpList,"pgpList") ;
+}
 void RsNodeGroupItem::serial_process(RsGenericSerializer::SerializeJob j,RsGenericSerializer::SerializeContext& ctx)
 {
     uint32_t v=0 ;
@@ -234,8 +271,11 @@ void RsNodeGroupItem::serial_process(RsGenericSerializer::SerializeJob j,RsGener
     RsTypeSerializer::serial_process<uint32_t>(j,ctx,flag,"flag") ;
     RsTypeSerializer::serial_process<RsTlvItem>(j,ctx,pgpList,"pgpList") ;
 }
-
 void RsPeerServicePermissionItem::serial_process(RsGenericSerializer::SerializeJob j,RsGenericSerializer::SerializeContext& ctx)
+{
+	RsTypeSerializer::serial_process(j,ctx,peer_flags,"peer_flags") ;
+}
+void RsPeerServicePermissionItem_deprecated::serial_process(RsGenericSerializer::SerializeJob j,RsGenericSerializer::SerializeContext& ctx)
 {
     // We need to hack this because of backward compatibility. The correct way to do it would be:
     //

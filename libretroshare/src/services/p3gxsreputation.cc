@@ -816,7 +816,7 @@ bool p3GxsReputation::getReputationInfo(
         bool stamp )
 {
     if(gxsid.isNull())
-        return false ;
+		return false ;
         
 	rstime_t now = time(nullptr);
 

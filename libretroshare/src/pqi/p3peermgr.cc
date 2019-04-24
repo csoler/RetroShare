@@ -1070,7 +1070,7 @@ bool p3PeerMgrIMPL::removeFriend(const RsPgpId &id)
 			if (mFriendList.end() != (it = mFriendList.find(*rit)))
 				mFriendList.erase(it);
 
-		std::map<RsShortPgpId,ServicePermissionFlags>::iterator it2 = mFriendsPermissionFlags.find(id) ;
+		auto it2 = mFriendsPermissionFlags.find(id) ;
 
 		if(it2 != mFriendsPermissionFlags.end())
 			mFriendsPermissionFlags.erase(it2);
@@ -2050,6 +2050,20 @@ RsSerialiser *p3PeerMgrIMPL::setupSerialiser()
 	return rss;
 }
 
+template<class T> void convertShortToLongPgpIds(const std::map<RsShortPgpId,T> m,std::map<RsPgpId,T>& m2)
+{
+    m2.clear();
+
+    for(auto it(m.begin());it!=m.end();++it)
+    {
+        RsPgpId pgp_id = AuthGPG::getAuthGPG()->pgpIdFromShortPgpId(it->first);
+
+        if(!pgp_id.isNull())
+			m2[pgp_id] = it->second;
+
+        std::cerr << "Converting short ID " << it->first << " to long " << pgp_id << std::endl;
+    }
+}
 
 bool p3PeerMgrIMPL::saveList(bool &cleanup, std::list<RsItem *>& saveData)
 {
@@ -2149,16 +2163,12 @@ bool p3PeerMgrIMPL::saveList(bool &cleanup, std::list<RsItem *>& saveData)
 	}
 
 	RsPeerBandwidthLimitsItem *pblitem = new RsPeerBandwidthLimitsItem ;
-    	pblitem->peers = mPeerBandwidthLimits ;
+	pblitem->peers = mPeerBandwidthLimits;
+
 	saveData.push_back(pblitem) ;
 
 	RsPeerServicePermissionItem *sitem = new RsPeerServicePermissionItem ;
-
-	for(std::map<RsPgpId,ServicePermissionFlags>::const_iterator it(mFriendsPermissionFlags.begin());it!=mFriendsPermissionFlags.end();++it)
-	{
-		sitem->pgp_ids.push_back(it->first) ;
-		sitem->service_flags.push_back(it->second) ;
-	}
+    sitem->peer_flags = mFriendsPermissionFlags;
 
 	saveData.push_back(sitem) ;
 
@@ -2469,7 +2479,19 @@ bool  p3PeerMgrIMPL::loadList(std::list<RsItem *>& load)
 			delete *it ;
             continue;
         }
-	    RsPeerBandwidthLimitsItem *pblitem = dynamic_cast<RsPeerBandwidthLimitsItem*>(*it) ;
+	    RsPeerBandwidthLimitsItem_deprecated *pblitem2 = dynamic_cast<RsPeerBandwidthLimitsItem_deprecated*>(*it) ;
+
+	    if(pblitem2)
+	    {
+		    RsStackMutex stack(mPeerMtx); /****** STACK LOCK MUTEX *******/
+
+#ifdef PEER_DEBUG
+		    std::cerr << "Loaded service permission item: " << std::endl;
+#endif
+            std::cerr << "(WW) old peer bandwidth limit item found. Converting to new format." << std::endl;
+            convertShortToLongPgpIds(pblitem2->peers,mPeerBandwidthLimits);
+	    }
+		RsPeerBandwidthLimitsItem *pblitem = dynamic_cast<RsPeerBandwidthLimitsItem*>(*it) ;
 
 	    if(pblitem)
 	    {
@@ -2478,11 +2500,12 @@ bool  p3PeerMgrIMPL::loadList(std::list<RsItem *>& load)
 #ifdef PEER_DEBUG
 		    std::cerr << "Loaded service permission item: " << std::endl;
 #endif
-	    		mPeerBandwidthLimits = pblitem->peers ;
+			mPeerBandwidthLimits = pblitem->peers ;
 	    }
-	    RsPeerServicePermissionItem *sitem = dynamic_cast<RsPeerServicePermissionItem*>(*it) ;
 
-	    if(sitem)
+	    RsPeerServicePermissionItem_deprecated *sitem2 = dynamic_cast<RsPeerServicePermissionItem_deprecated*>(*it) ;
+
+	    if(sitem2)
 	    {
 		    RsStackMutex stack(mPeerMtx); /****** STACK LOCK MUTEX *******/
 
@@ -2490,10 +2513,13 @@ bool  p3PeerMgrIMPL::loadList(std::list<RsItem *>& load)
 		    std::cerr << "Loaded service permission item: " << std::endl;
 #endif
 
-		    for(uint32_t i=0;i<sitem->pgp_ids.size();++i)
-			    if(AuthGPG::getAuthGPG()->isGPGAccepted(sitem->pgp_ids[i]) || sitem->pgp_ids[i] == AuthGPG::getAuthGPG()->getGPGOwnId())
+		    for(uint32_t i=0;i<sitem2->pgp_ids.size();++i)
+            {
+                RsPgpId pgp_id = AuthGPG::getAuthGPG()->pgpIdFromShortPgpId(sitem2->pgp_ids[i]);
+
+			    if(AuthGPG::getAuthGPG()->isGPGAccepted(pgp_id) || pgp_id == AuthGPG::getAuthGPG()->getGPGOwnId())
 			    {
-				    mFriendsPermissionFlags[sitem->pgp_ids[i]] = sitem->service_flags[i] ;
+				    mFriendsPermissionFlags[pgp_id] = sitem2->service_flags[i] ;
 #ifdef PEER_DEBUG
 				    std::cerr << "   " << sitem->pgp_ids[i] << " - " << sitem->service_flags[i] << std::endl;
 #endif
@@ -2502,7 +2528,16 @@ bool  p3PeerMgrIMPL::loadList(std::list<RsItem *>& load)
 			    else
 				    std::cerr << "   " << sitem->pgp_ids[i] << " - Not a friend!" << std::endl;
 #endif
+            }
 	    }
+
+		RsPeerServicePermissionItem *sitem = dynamic_cast<RsPeerServicePermissionItem*>(*it) ;
+
+	    if(sitem)
+	    {
+		    RsStackMutex stack(mPeerMtx); /****** STACK LOCK MUTEX *******/
+            mFriendsPermissionFlags = sitem->peer_flags;
+        }
 
 	    delete (*it);
     }

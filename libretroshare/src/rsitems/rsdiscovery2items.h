@@ -65,7 +65,7 @@ public:
 	virtual void serial_process(RsGenericSerializer::SerializeJob /* j */,RsGenericSerializer::SerializeContext& /* ctx */);
 
 	uint32_t mode;
-	RsTlvPgpIdSet pgpIdSet;
+	RsTlvShortPgpIdSet pgpIdSet;
 };
 
 
