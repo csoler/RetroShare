@@ -29,8 +29,6 @@
 class RsGxsTunnelService
 {
 public:
-    typedef GXSTunnelId RsGxsTunnelId ;
-    
     enum {
 	RS_GXS_TUNNEL_ERROR_NO_ERROR          = 0x0000,
 	RS_GXS_TUNNEL_ERROR_UNKNOWN_GXS_ID    = 0x0001  
@@ -62,7 +60,7 @@ public:
         
         // Gives feedback about type of data that is allowed in. For security reasons, this always needs to be re-derived (Clients can return true on default)
         
-        virtual bool acceptDataFromPeer(const RsGxsId& gxs_id,const RsGxsTunnelId& tunnel_id,bool is_client_side) = 0 ;
+        virtual bool acceptDataFromPeer(const RsGxsId& gxs_id,const RsGxsTunnelId& tunnel_id,bool am_I_client_side) = 0 ;
     };
     
     class GxsTunnelInfo

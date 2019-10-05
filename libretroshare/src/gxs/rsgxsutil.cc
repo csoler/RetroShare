@@ -146,9 +146,16 @@ bool RsGxsMessageCleanUp::clean()
 }
 
 RsGxsIntegrityCheck::RsGxsIntegrityCheck(
-        RsGeneralDataService* const dataService, RsGenExchange* genex,
-        RsSerialType& serializer, RsGixs* gixs ) :
-    mDs(dataService), mGenExchangeClient(genex), mSerializer(serializer),
+    RsGeneralDataService* const dataService, RsGenExchange* genex,
+    RsSerialType&
+#ifdef RS_DEEP_SEARCH
+                  serializer
+#endif
+                            , RsGixs* gixs )
+  : mDs(dataService), mGenExchangeClient(genex),
+#ifdef RS_DEEP_SEARCH
+    mSerializer(serializer),
+#endif
     mDone(false), mIntegrityMutex("integrity"), mGixs(gixs) {}
 
 void RsGxsIntegrityCheck::run()
@@ -204,7 +211,10 @@ bool RsGxsIntegrityCheck::check()
 #ifdef DEBUG_GXSUTIL
 						GXSUTIL_DEBUG() << "TimeStamping group authors' key ID " << grp->metaData->mAuthorId << " in group ID " << grp->grpId << std::endl;
 #endif
-						if( rsReputations && rsReputations->overallReputationLevel(grp->metaData->mAuthorId ) > RsReputations::REPUTATION_LOCALLY_NEGATIVE )
+						if( rsReputations &&
+						        rsReputations->overallReputationLevel(
+						            grp->metaData->mAuthorId ) >
+						        RsReputationLevel::LOCALLY_NEGATIVE )
 							used_gxs_ids.insert(std::make_pair(grp->metaData->mAuthorId, RsIdentityUsage(mGenExchangeClient->serviceType(), RsIdentityUsage::GROUP_AUTHOR_KEEP_ALIVE,grp->grpId)));
 					}
 				}
@@ -388,7 +398,10 @@ bool RsGxsIntegrityCheck::check()
 #ifdef DEBUG_GXSUTIL
 					GXSUTIL_DEBUG() << "TimeStamping message authors' key ID " << msg->metaData->mAuthorId << " in message " << msg->msgId << ", group ID " << msg->grpId<< std::endl;
 #endif
-					if(rsReputations!=NULL && rsReputations->overallReputationLevel(msg->metaData->mAuthorId) > RsReputations::REPUTATION_LOCALLY_NEGATIVE)
+					if( rsReputations &&
+					        rsReputations->overallReputationLevel(
+					            msg->metaData->mAuthorId ) >
+					        RsReputationLevel::LOCALLY_NEGATIVE )
 						used_gxs_ids.insert(std::make_pair(msg->metaData->mAuthorId,RsIdentityUsage(mGenExchangeClient->serviceType(),RsIdentityUsage::MESSAGE_AUTHOR_KEEP_ALIVE,msg->metaData->mGroupId,msg->metaData->mMsgId))) ;
 				}
 			}

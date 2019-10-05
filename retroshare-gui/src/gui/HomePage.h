@@ -41,29 +41,33 @@ class HomePage : public MainPage
 public:
 	explicit HomePage(QWidget *parent);
 	~HomePage();
-	
-	  virtual QIcon iconPixmap() const { return QIcon(":/icons/png/home.png") ; } //MainPage
-    virtual QString pageName() const { return tr("Home") ; } //MainPage
-    virtual QString helpText() const { return ""; } //MainPage
+
+	virtual QIcon iconPixmap() const { return QIcon(":/icons/png/home.png") ; } //MainPage
+	virtual QString pageName() const { return tr("Home") ; } //MainPage
+	virtual QString helpText() const { return ""; } //MainPage
 
 private slots:
 	void certContextMenu(QPoint);
 	void updateOwnCert();
+	void updateOwnId();
 	void runEmailClient();
 	void copyCert();
+	void copyId();
 	void saveCert();
-  void addFriend();
-  void webMail();
-  void loadCert();
-	void runStartWizard() ;
+	void addFriend();
+	void webMail();
+	//void loadCert();
 	void openWebHelp() ;
 	void recommendFriends();
-    void toggleIncludeAllIPs();
+	void toggleIncludeAllIPs();
+	void toggleUseShortFormat();
+	void doExpand();
 
 private:
 	Ui::HomePage *ui;
-	
-    bool mIncludeAllIPs;
+
+	bool mIncludeAllIPs;
+	bool mUseShortFormat;
 
 };
 

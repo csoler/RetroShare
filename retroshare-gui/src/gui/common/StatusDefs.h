@@ -24,7 +24,7 @@
 #include <QColor>
 #include <QFont>
 
-class RsPeerDetails;
+struct RsPeerDetails;
 
 class StatusDefs
 {
@@ -40,7 +40,7 @@ public:
 	static QString     peerStateString(int peerState);
 	static QString     connectStateString(RsPeerDetails &details);
 	static QString     connectStateWithoutTransportTypeString(RsPeerDetails &details);
-	static QString     connectStateIpString(RsPeerDetails &details);
+	static QString     connectStateIpString(const RsPeerDetails &details);
 };
 
 #endif

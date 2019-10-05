@@ -40,7 +40,8 @@ bool AuthorPending::expired() const
 bool AuthorPending::getAuthorRep(GixsReputation& rep, const RsGxsId& authorId, const RsPeerId& /*peerId*/)
 {
     rep.id = authorId ;
-    rep.reputation_level = mRep->overallReputationLevel(authorId);
+	rep.reputation_level =
+	        static_cast<uint32_t>(mRep->overallReputationLevel(authorId));
 
 #warning csoler 2017-01-10: Can it happen that reputations do not have the info yet?
     return true ;
@@ -216,7 +217,9 @@ bool GrpCircleVetting::expired()
 {
 	return  time(NULL) > (mTimeStamp + EXPIRY_PERIOD_OFFSET);
 }
-bool GrpCircleVetting::canSend(const SSLIdType& peerId, const RsGxsCircleId& circleId,bool& should_encrypt)
+bool GrpCircleVetting::canSend(
+        const RsPeerId& peerId, const RsGxsCircleId& circleId,
+        bool& should_encrypt )
 {
 	if(mCircles->isLoaded(circleId))
 	{

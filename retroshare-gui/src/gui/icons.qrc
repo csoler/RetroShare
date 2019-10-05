@@ -71,6 +71,7 @@
         <file>icons/png/add.png</file>
         <file>icons/png/attach-image.png</file>
         <file>icons/png/attach.png</file>
+		<file>icons/png/cert.png</file>
         <file>icons/png/channels-notify.png</file>
         <file>icons/png/channels.png</file>
         <file>icons/png/chat-bubble-notify.png</file>
@@ -257,5 +258,8 @@
         <file>icons/png/circles-green.png</file>
         <file>icons/png/forums-default.png</file>
         <file>icons/png/forums-signed.png</file>
+        <file>icons/png/flame.png</file>
+        <file>icons/png/new.png</file>
+        <file>icons/png/top.png</file>
     </qresource>
 </RCC>

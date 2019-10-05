@@ -93,8 +93,8 @@ const ChatLobbyFlags RS_CHAT_LOBBY_FLAGS_PGP_SIGNED    ( 0x00000010 ) ; // requi
 typedef uint64_t	ChatLobbyId ;
 typedef uint64_t	ChatLobbyMsgId ;
 typedef std::string ChatLobbyNickName ;
-
-typedef uint64_t     MessageId ;
+typedef std::string RsMailMessageId;			// should be uint32_t !!
+typedef uint64_t    MessageId ;
 
 
 namespace Rs
@@ -237,10 +237,11 @@ struct MsgInfoSummary : RsSerializable
 	MsgInfoSummary() : msgflags(0), count(0), ts(0) {}
 	virtual ~MsgInfoSummary() = default;
 
-	std::string msgId;
+    RsMailMessageId msgId;
 	RsPeerId srcId;
 
 	uint32_t msgflags;
+    std::list<uint32_t> msgtags;	// that leaves 25 bits for user-defined tags.
 
 	std::string title;
 	int count; /* file count     */
@@ -253,6 +254,7 @@ struct MsgInfoSummary : RsSerializable
 		RS_SERIAL_PROCESS(srcId);
 
 		RS_SERIAL_PROCESS(msgflags);
+		RS_SERIAL_PROCESS(msgtags);
 
 		RS_SERIAL_PROCESS(title);
 		RS_SERIAL_PROCESS(count);
@@ -468,6 +470,8 @@ public:
 	std::map<RsGxsId, rstime_t> gxs_ids ;			// list of non direct friend who participate. Used to display only.
 	rstime_t last_activity ;						// last recorded activity. Useful for removing dead lobbies.
 
+    virtual void clear() { gxs_ids.clear(); lobby_id = 0; lobby_name.clear(); lobby_topic.clear(); participating_friends.clear(); }
+
 	// RsSerializable interface
 public:
 	void serial_process(RsGenericSerializer::SerializeJob j, RsGenericSerializer::SerializeContext &ctx) {
@@ -483,14 +487,13 @@ public:
 	}
 };
 
-std::ostream &operator<<(std::ostream &out, const Rs::Msgs::MessageInfo &info);
 
 class RsMsgs;
 /**
  * @brief Pointer to retroshare's message service
  * @jsonapi{development}
  */
-extern RsMsgs   *rsMsgs;
+extern RsMsgs* rsMsgs;
 
 class RsMsgs 
 {
@@ -519,6 +522,7 @@ public:
 	 * @return true on success
 	 */
 	virtual bool getMessage(const std::string &msgId, Rs::Msgs::MessageInfo &msg)  = 0;
+
 	/**
 	 * @brief getMessageCount
 	 * @jsonapi{development}
@@ -561,8 +565,8 @@ public:
 	/**
 	 * @brief MessageToTrash
 	 * @jsonapi{development}
-	 * @param[in] msgId
-	 * @param[in] bTrash
+	 * @param[in] msgId        Id of the message to mode to trash box
+	 * @param[in] bTrash       Move to trash if true, otherwise remove from trash
 	 * @return true on success
 	 */
 	virtual bool MessageToTrash(const std::string &msgId, bool bTrash)   = 0;
@@ -829,6 +833,13 @@ virtual void getOwnAvatarData(unsigned char *& data,int& size) = 0 ;
 	 * @param[in] lobby_id lobby to leave
 	 */
 	virtual void unsubscribeChatLobby(const ChatLobbyId &lobby_id) = 0;
+
+	/**
+	 * @brief sendLobbyStatusPeerLeaving notify friend nodes that we're leaving a subscribed lobby
+	 * @jsonapi{development}
+	 * @param[in] lobby_id lobby to leave
+	 */
+	virtual void sendLobbyStatusPeerLeaving(const ChatLobbyId& lobby_id) = 0;
 
 	/**
 	 * @brief setIdentityForChatLobby set the chat identit

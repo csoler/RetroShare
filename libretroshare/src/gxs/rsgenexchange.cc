@@ -3,7 +3,8 @@
  *                                                                             *
  * libretroshare: retroshare core library                                      *
  *                                                                             *
- * Copyright 2012-2012 by Robert Fernie, Evi-Parker Christopher                *
+ * Copyright (C) 2012  Christopher Evi-Parker                                  *
+ * Copyright (C) 2019  Gioacchino Mazzurco <gio@eigenlab.org>                  *
  *                                                                             *
  * This program is free software: you can redistribute it and/or modify        *
  * it under the terms of the GNU Lesser General Public License as              *
@@ -36,6 +37,7 @@
 #include "rsgixs.h"
 #include "rsgxsutil.h"
 #include "rsserver/p3face.h"
+#include "retroshare/rsevents.h"
 
 #include <algorithm>
 
@@ -64,10 +66,11 @@ static const uint32_t INDEX_AUTHEN_ADMIN        = 0x00000040; // admin key
 static const uint32_t MSG_CLEANUP_PERIOD     = 60*59; // 59 minutes
 static const uint32_t INTEGRITY_CHECK_PERIOD = 60*31; // 31 minutes
 
-RsGenExchange::RsGenExchange(RsGeneralDataService *gds, RsNetworkExchangeService *ns,
-                             RsSerialType *serviceSerialiser, uint16_t servType, RsGixs* gixs,
-                             uint32_t authenPolicy)
-  : mGenMtx("GenExchange"),
+RsGenExchange::RsGenExchange(
+        RsGeneralDataService* gds, RsNetworkExchangeService* ns,
+        RsSerialType* serviceSerialiser, uint16_t servType, RsGixs* gixs,
+        uint32_t authenPolicy ) :
+    mGenMtx("GenExchange"),
     mDataStore(gds),
     mNetService(ns),
     mSerialiser(serviceSerialiser),
@@ -912,7 +915,8 @@ int RsGenExchange::validateMsg(RsNxsMsg *msg, const uint32_t& grpFlag, const uin
 				// now check reputation of the message author. The reputation will need to be at least as high as this value for the msg to validate.
                 // At validation step, we accept all messages, except the ones signed by locally rejected identities.
 
-				if(details.mReputation.mOverallReputationLevel == RsReputations::REPUTATION_LOCALLY_NEGATIVE)
+				if( details.mReputation.mOverallReputationLevel ==
+				        RsReputationLevel::LOCALLY_NEGATIVE )
 				{
 #ifdef GEN_EXCH_DEBUG	
 					std::cerr << "RsGenExchange::validateMsg(): message from " << metaData.mAuthorId << ", rejected because reputation level (" << details.mReputation.mOverallReputationLevel <<") indicate that you banned this ID." << std::endl;
@@ -1096,7 +1100,10 @@ void RsGenExchange::receiveChanges(std::vector<RsGxsNotify*>& changes)
 #ifdef GEN_EXCH_DEBUG
     std::cerr << "RsGenExchange::receiveChanges()" << std::endl;
 #endif
-    RsGxsChanges out;
+	std::unique_ptr<RsGxsChanges> evt(new RsGxsChanges);
+	evt->mServiceType = static_cast<RsServiceType>(mServType);
+
+	RsGxsChanges& out = *evt;
     out.mService = getTokenService();
 
     // collect all changes in one GxsChanges object
@@ -1108,7 +1115,7 @@ void RsGenExchange::receiveChanges(std::vector<RsGxsNotify*>& changes)
         RsGxsMsgChange* mc;
         RsGxsDistantSearchResultChange *gt;
 
-        if((mc = dynamic_cast<RsGxsMsgChange*>(n)) != NULL)
+		if((mc = dynamic_cast<RsGxsMsgChange*>(n)) != nullptr)
         {
             if (mc->metaChange())
             {
@@ -1119,7 +1126,7 @@ void RsGenExchange::receiveChanges(std::vector<RsGxsNotify*>& changes)
                 addMessageChanged(out.mMsgs, mc->msgChangeMap);
             }
         }
-        else if((gc = dynamic_cast<RsGxsGroupChange*>(n)) != NULL)
+		else if((gc = dynamic_cast<RsGxsGroupChange*>(n)) != nullptr)
         {
             if(gc->metaChange())
             {
@@ -1130,18 +1137,20 @@ void RsGenExchange::receiveChanges(std::vector<RsGxsNotify*>& changes)
                 out.mGrps.splice(out.mGrps.end(), gc->mGrpIdList);
             }
         }
-        else if((gt = dynamic_cast<RsGxsDistantSearchResultChange*>(n)) != NULL)
+		else if(( gt =
+		          dynamic_cast<RsGxsDistantSearchResultChange*>(n) ) != nullptr)
         {
             out.mDistantSearchReqs.push_back(gt->mRequestId);
         }
         else
-            std::cerr << "(EE) Unknown changes type!!" << std::endl;
-        
+			RsErr() << __PRETTY_FUNCTION__ << " Unknown changes type!"
+			        << std::endl;
         delete n;
     }
     changes.clear() ;
-    
-    RsServer::notify()->notifyGxsChange(out);
+
+	RsServer::notify()->notifyGxsChange(out);
+	if(rsEvents) rsEvents->postEvent(std::move(evt));
 }
 
 bool RsGenExchange::subscribeToGroup(uint32_t& token, const RsGxsGroupId& grpId, bool subscribe)
@@ -1153,8 +1162,7 @@ bool RsGenExchange::subscribeToGroup(uint32_t& token, const RsGxsGroupId& grpId,
         setGroupSubscribeFlags(token, grpId, GXS_SERV::GROUP_SUBSCRIBE_NOT_SUBSCRIBED,
                                (GXS_SERV::GROUP_SUBSCRIBE_SUBSCRIBED | GXS_SERV::GROUP_SUBSCRIBE_NOT_SUBSCRIBED));
 
-    if(mNetService != NULL)
-        mNetService->subscribeStatusChanged(grpId,subscribe) ;
+	if(mNetService) mNetService->subscribeStatusChanged(grpId,subscribe);
 #ifdef GEN_EXCH_DEBUG
     else
         std::cerr << "(EE) No mNetService in RsGenExchange for service 0x" << std::hex << mServType << std::dec << std::endl;
@@ -1848,7 +1856,8 @@ uint32_t RsGenExchange::getDefaultSyncPeriod()
     }
 }
 
-RsReputations::ReputationLevel RsGenExchange::minReputationForForwardingMessages(uint32_t group_sign_flags,uint32_t identity_sign_flags)
+RsReputationLevel RsGenExchange::minReputationForForwardingMessages(
+        uint32_t group_sign_flags, uint32_t identity_sign_flags )
 {
 	return RsNetworkExchangeService::minReputationForForwardingMessages(group_sign_flags,identity_sign_flags);
 }
@@ -3435,3 +3444,7 @@ bool RsGenExchange::localSearch( const std::string& matchString,
 {
 	return mNetService->search(matchString, results);
 }
+
+RsGxsChanges::RsGxsChanges() :
+    RsEvent(RsEventType::GXS_CHANGES), mServiceType(RsServiceType::NONE),
+    mService(nullptr) {}

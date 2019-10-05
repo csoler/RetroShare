@@ -107,9 +107,6 @@ struct RsTokReqOptions
 	rstime_t   mAfter;
 };
 
-std::ostream &operator<<(std::ostream &out, const RsGroupMetaData &meta);
-std::ostream &operator<<(std::ostream &out, const RsMsgMetaData &meta);
-
 /*!
  * A proxy class for requesting generic service data for GXS
  * This seperates the request mechanism from the actual retrieval of data
@@ -121,14 +118,13 @@ public:
 
 	enum GxsRequestStatus : uint8_t
 	{
-		FAILED,
-		PENDING,
-		PARTIAL,
-		COMPLETE,
-		DONE,      /// Once all data has been retrived
-		CANCELLED
+		FAILED    = 0,
+		PENDING   = 1,
+		PARTIAL   = 2,
+		COMPLETE  = 3,
+		DONE      = 4, /// Once all data has been retrived
+		CANCELLED = 5
 	};
-
 
 	RsTokenService() {}
 	virtual ~RsTokenService() {}

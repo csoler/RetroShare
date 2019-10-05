@@ -19,11 +19,15 @@
  *******************************************************************************/
 
 #include <QDateTime>
+#include <QMenu>
 #include <QStyle>
 
 #include "rshare.h"
 #include "PostedItem.h"
 #include "gui/feeds/FeedHolder.h"
+#include "gui/gxs/GxsIdDetails.h"
+#include "util/misc.h"
+
 #include "ui_PostedItem.h"
 
 #include <retroshare/rsposted.h>
@@ -46,6 +50,9 @@ PostedItem::PostedItem(FeedHolder *feedHolder, uint32_t feedId, const RsPostedGr
     GxsFeedItem(feedHolder, feedId, post.mMeta.mGroupId, post.mMeta.mMsgId, isHome, rsPosted, autoUpdate)
 {
 	setup();
+	
+	mMessageId = post.mMeta.mMsgId;
+
 
 	setGroup(group, false);
 	setPost(post);
@@ -83,7 +90,9 @@ void PostedItem::setup()
 	ui->fromLabel->clear();
 	ui->siteLabel->clear();
 	ui->newCommentLabel->hide();
+	ui->frame_picture->hide();
 	ui->commLabel->hide();
+	ui->frame_notes->hide();
 
 	/* general ones */
 	connect(ui->clearButton, SIGNAL(clicked()), this, SLOT(removeItem()));
@@ -94,8 +103,28 @@ void PostedItem::setup()
 	connect(ui->commentButton, SIGNAL( clicked()), this, SLOT(loadComments()));
 	connect(ui->voteUpButton, SIGNAL(clicked()), this, SLOT(makeUpVote()));
 	connect(ui->voteDownButton, SIGNAL(clicked()), this, SLOT( makeDownVote()));
+	connect(ui->expandButton, SIGNAL(clicked()), this, SLOT( toggle()));
+	connect(ui->notesButton, SIGNAL(clicked()), this, SLOT( toggleNotes()));
 
 	connect(ui->readButton, SIGNAL(toggled(bool)), this, SLOT(readToggled(bool)));
+	
+	QAction *CopyLinkAction = new QAction(QIcon(""),tr("Copy RetroShare Link"), this);
+	connect(CopyLinkAction, SIGNAL(triggered()), this, SLOT(copyMessageLink()));
+	
+	
+	int S = QFontMetricsF(font()).height() ;
+	
+	ui->voteUpButton->setIconSize(QSize(S*1.5,S*1.5));
+	ui->voteDownButton->setIconSize(QSize(S*1.5,S*1.5));
+	ui->commentButton->setIconSize(QSize(S*1.5,S*1.5));
+	ui->expandButton->setIconSize(QSize(S*1.5,S*1.5));
+	ui->notesButton->setIconSize(QSize(S*1.5,S*1.5));
+	ui->readButton->setIconSize(QSize(S*1.5,S*1.5));
+	ui->shareButton->setIconSize(QSize(S*1.5,S*1.5));
+	
+	QMenu *menu = new QMenu();
+	menu->addAction(CopyLinkAction);
+	ui->shareButton->setMenu(menu);
 
 	ui->clearButton->hide();
 	ui->readAndClearButton->hide();
@@ -206,7 +235,7 @@ void PostedItem::loadComment(const uint32_t &token)
 	if (comNb == 1) {
 		sComButText = sComButText.append("(1)");
 	} else if (comNb > 1) {
-		sComButText = tr("Comments").append("(%1)").arg(comNb);
+		sComButText = tr("Comments").append(" (%1)").arg(comNb);
 	}
 	ui->commentButton->setText(sComButText);
 }
@@ -218,12 +247,35 @@ void PostedItem::fill()
 		return;
 	}
 
+	QPixmap sqpixmap2 = QPixmap(":/images/thumb-default.png");
+
 	mInFill = true;
+	int desired_height = 1.5*(ui->voteDownButton->height() + ui->voteUpButton->height() + ui->scoreLabel->height());
+	int desired_width =  sqpixmap2.width()*desired_height/(float)sqpixmap2.height();
+
+	if(mPost.mImage.mData != NULL)
+	{
+		QPixmap pixmap;
+		GxsIdDetails::loadPixmapFromData(mPost.mImage.mData, mPost.mImage.mSize, pixmap,GxsIdDetails::ORIGINAL);
+		// Wiping data - as its been passed to thumbnail.
+		
+		QPixmap sqpixmap = pixmap.scaled(desired_width,desired_height, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+		ui->thumbnailLabel->setPixmap(sqpixmap);
+		ui->pictureLabel->setPixmap(pixmap);
+	}
+	else
+	{
+		//ui->thumbnailLabel->setFixedSize(desired_width,desired_height);
+		ui->expandButton->setDisabled(true);
+	}
 
 	QDateTime qtime;
 	qtime.setTime_t(mPost.mMeta.mPublishTs);
 	QString timestamp = qtime.toString("hh:mm dd-MMM-yyyy");
-	ui->dateLabel->setText(timestamp);
+	QString timestamp2 = misc::timeRelativeToNow(mPost.mMeta.mPublishTs);
+	ui->dateLabel->setText(timestamp2);
+	ui->dateLabel->setToolTip(timestamp);
+
 	ui->fromLabel->setId(mPost.mMeta.mAuthorId);
 
 	// Use QUrl to check/parse our URL
@@ -255,10 +307,15 @@ void PostedItem::fill()
 		urlstr += QString(" </span></a>");
 
 		QString siteurl = url.scheme() + "://" + url.host();
-		sitestr = QString("<a href=\"%1\" ><span style=\" text-decoration: underline; color:#2255AA;\"> %2 </span></a>").arg(siteurl).arg(siteurl);
+		sitestr = QString("<a href=\"%1\" ><span style=\" text-decoration: underline; color:#0079d3;\"> %2 </span></a>").arg(siteurl).arg(siteurl);
+		
+		ui->titleLabel->setText(urlstr);
+	}else
+	{
+		ui->titleLabel->setText(messageName());
+
 	}
 
-	ui->titleLabel->setText(urlstr);
 	ui->siteLabel->setText(sitestr);
 
 	//QString score = "Hot" + QString::number(post.mHotScore);
@@ -272,7 +329,7 @@ void PostedItem::fill()
 	// FIX THIS UP LATER.
 	ui->notes->setText(QString::fromUtf8(mPost.mNotes.c_str()));
 	if(ui->notes->text().isEmpty())
-		ui->frame_notes->hide();
+		ui->notesButton->hide();
 	// differences between Feed or Top of Comment.
 	if (mFeedHolder)
 	{
@@ -450,4 +507,56 @@ void PostedItem::readAndClearItem()
 
 	readToggled(false);
 	removeItem();
+}
+
+void PostedItem::toggle()
+{
+	expand(ui->frame_picture->isHidden());
+}
+
+void PostedItem::doExpand(bool open)
+{
+	if (open)
+	{
+		ui->frame_picture->show();
+		ui->expandButton->setIcon(QIcon(QString(":/images/decrease.png")));
+		ui->expandButton->setToolTip(tr("Hide"));
+	}
+	else
+	{
+		ui->frame_picture->hide();
+		ui->expandButton->setIcon(QIcon(QString(":/images/expand.png")));
+		ui->expandButton->setToolTip(tr("Expand"));
+	}
+
+	emit sizeChanged(this);
+
+}
+
+void PostedItem::copyMessageLink()
+{
+	if (groupId().isNull() || mMessageId.isNull()) {
+		return;
+	}
+
+	RetroShareLink link = RetroShareLink::createGxsMessageLink(RetroShareLink::TYPE_POSTED, groupId(), mMessageId, messageName());
+
+	if (link.valid()) {
+		QList<RetroShareLink> urls;
+		urls.push_back(link);
+		RSLinkClipboard::copyLinks(urls);
+	}
+}
+
+void PostedItem::toggleNotes()
+{
+	if (ui->notesButton->isChecked())
+	{
+		ui->frame_notes->show();
+	}
+	else
+	{		
+		ui->frame_notes->hide();
+	}
+
 }

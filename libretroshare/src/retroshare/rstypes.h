@@ -37,21 +37,12 @@
 
 #define USE_NEW_CHUNK_CHECKING_CODE
 
-// This adds a level of indirection to types, so we can easily change them if needed
-//
-//typedef std::string   RsCertId;	// unused
-//typedef std::string   RsChanId;
-//typedef std::string   RsMsgId;
-//typedef std::string   RsAuthId;
-
-typedef SSLIdType     RsPeerId ;
-typedef PGPIdType     RsPgpId ;
 typedef Sha1CheckSum  RsFileHash ;
 typedef Sha1CheckSum  RsMessageId ;
 
 const uint32_t FT_STATE_FAILED			= 0x0000 ;
-const uint32_t FT_STATE_OKAY				= 0x0001 ;
-const uint32_t FT_STATE_WAITING 			= 0x0002 ;
+const uint32_t FT_STATE_OKAY			= 0x0001 ;
+const uint32_t FT_STATE_WAITING 		= 0x0002 ;
 const uint32_t FT_STATE_DOWNLOADING		= 0x0003 ;
 const uint32_t FT_STATE_COMPLETE 		= 0x0004 ;
 const uint32_t FT_STATE_QUEUED   		= 0x0005 ;
@@ -257,8 +248,6 @@ struct FileInfo : RsSerializable
 	}
 };
 
-std::ostream &operator<<(std::ostream &out, const FileInfo& info);
-
 /**
  * Pointers in this class have no real meaning as pointers, they are used as
  * indexes, internally by retroshare.
@@ -378,8 +367,6 @@ struct DirDetails : RsSerializable
 		RS_SERIAL_PROCESS(parent_groups);
 	}
 };
-
-std::ostream &operator<<(std::ostream &out, const DirDetails& details);
 
 class FileDetail
 {

@@ -4,7 +4,7 @@
  * libretroshare: retroshare core library                                      *
  *                                                                             *
  * Copyright (C) 2012  Robert Fernie <retroshare@lunamutt.com>                 *
- * Copyright (C) 2018  Gioacchino Mazzurco <gio@eigenlab.org>                  *
+ * Copyright (C) 2018-2019  Gioacchino Mazzurco <gio@eigenlab.org>             *
  *                                                                             *
  * This program is free software: you can redistribute it and/or modify        *
  * it under the terms of the GNU Lesser General Public License as              *
@@ -20,19 +20,20 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.       *
  *                                                                             *
  *******************************************************************************/
-#ifndef P3_GXSCHANNELS_SERVICE_HEADER
-#define P3_GXSCHANNELS_SERVICE_HEADER
+#pragma once
 
 
 #include "retroshare/rsgxschannels.h"
 #include "services/p3gxscommon.h"
 #include "gxs/rsgenexchange.h"
 #include "gxs/gxstokenqueue.h"
-
+#include "util/rsmemory.h"
+#include "util/rsdebug.h"
 #include "util/rstickevent.h"
 
 #include <map>
 #include <string>
+
 
 
 class SSGxsChannelGroup
@@ -110,13 +111,13 @@ virtual bool getChannelDownloadDirectory(const RsGxsGroupId &groupId, std::strin
 	/// @see RsGxsChannels::turtleSearchRequest
 	virtual bool turtleSearchRequest(const std::string& matchString,
 	        const std::function<void (const RsGxsGroupSummary&)>& multiCallback,
-	        rstime_t maxWait = 300 );
+	        rstime_t maxWait = 300 ) override;
 
 	/// @see RsGxsChannels::turtleChannelRequest
 	virtual bool turtleChannelRequest(
 	        const RsGxsGroupId& channelId,
 	        const std::function<void (const RsGxsChannelGroup& result)>& multiCallback,
-	        rstime_t maxWait = 300 );
+	        rstime_t maxWait = 300 ) override;
 
 	/// @see RsGxsChannels::localSearchRequest
 	virtual bool localSearchRequest(const std::string& matchString,
@@ -132,30 +133,29 @@ virtual bool getChannelDownloadDirectory(const RsGxsGroupId &groupId, std::strin
 	                                  const RsGxsGroupId& grpId ) override;
 
 	/* Comment service - Provide RsGxsCommentService - redirect to p3GxsCommentService */
-	virtual bool getCommentData(uint32_t token, std::vector<RsGxsComment> &msgs)
+	virtual bool getCommentData(uint32_t token, std::vector<RsGxsComment> &msgs) override
 	{ return mCommentService->getGxsCommentData(token, msgs); }
 
 	virtual bool getRelatedComments( uint32_t token,
-	                                 std::vector<RsGxsComment> &msgs )
+	                                 std::vector<RsGxsComment> &msgs ) override
 	{ return mCommentService->getGxsRelatedComments(token, msgs); }
 
-virtual bool createComment(uint32_t &token, RsGxsComment &msg)
+	virtual bool createNewComment(uint32_t &token, RsGxsComment &msg) override
 	{
 		return mCommentService->createGxsComment(token, msg);
 	}
 
-virtual bool createVote(uint32_t &token, RsGxsVote &msg)
+	virtual bool createNewVote(uint32_t &token, RsGxsVote &msg) override
 	{
 		return mCommentService->createGxsVote(token, msg);
 	}
 
-virtual bool acknowledgeComment(uint32_t token, std::pair<RsGxsGroupId, RsGxsMessageId>& msgId)
+	virtual bool acknowledgeComment(uint32_t token, std::pair<RsGxsGroupId, RsGxsMessageId>& msgId) override
 	{
 		return acknowledgeMsg(token, msgId);
 	}
 
-
-virtual bool acknowledgeVote(uint32_t token, std::pair<RsGxsGroupId, RsGxsMessageId>& msgId)
+	virtual bool acknowledgeVote(uint32_t token, std::pair<RsGxsGroupId, RsGxsMessageId>& msgId) override
 	{
 		if (mCommentService->acknowledgeVote(token, msgId))
 		{
@@ -178,47 +178,96 @@ virtual bool ExtraFileRemove(const RsFileHash &hash);
 
 
 	/// Implementation of @see RsGxsChannels::getChannelsSummaries
-	virtual bool getChannelsSummaries(std::list<RsGroupMetaData>& channels);
+	bool getChannelsSummaries(std::list<RsGroupMetaData>& channels) override;
 
 	/// Implementation of @see RsGxsChannels::getChannelsInfo
-	virtual bool getChannelsInfo(
+	bool getChannelsInfo(
 	        const std::list<RsGxsGroupId>& chanIds,
-	        std::vector<RsGxsChannelGroup>& channelsInfo );
+	        std::vector<RsGxsChannelGroup>& channelsInfo ) override;
 
 	/// Implementation of @see RsGxsChannels::getChannelContent
-	virtual bool getChannelContent( const RsGxsGroupId& channelId,
-	                       const std::set<RsGxsMessageId>& contentsIds,
-	                       std::vector<RsGxsChannelPost>& posts,
-	                       std::vector<RsGxsComment>& comments );
+	bool getChannelContent( const RsGxsGroupId& channelId,
+	                        const std::set<RsGxsMessageId>& contentsIds,
+	                        std::vector<RsGxsChannelPost>& posts,
+	                        std::vector<RsGxsComment>& comments ) override;
 
 	/// Implementation of @see RsGxsChannels::getContentSummaries
-	virtual bool getContentSummaries( const RsGxsGroupId& channelId,
-	                                  std::vector<RsMsgMetaData>& summaries );
+	bool getContentSummaries(
+	        const RsGxsGroupId& channelId,
+	        std::vector<RsMsgMetaData>& summaries ) override;
 
-	/// Implementation of @see RsGxsChannels::createChannel
-	virtual bool createChannel(RsGxsChannelGroup& channel);
+	/// Implementation of @see RsGxsChannels::createChannelV2
+	bool createChannelV2(
+	        const std::string& name, const std::string& description,
+	        const RsGxsImage& thumbnail = RsGxsImage(),
+	        const RsGxsId& authorId = RsGxsId(),
+	        RsGxsCircleType circleType = RsGxsCircleType::PUBLIC,
+	        const RsGxsCircleId& circleId = RsGxsCircleId(),
+	        RsGxsGroupId& channelId = RS_DEFAULT_STORAGE_PARAM(RsGxsGroupId),
+	        std::string& errorMessage = RS_DEFAULT_STORAGE_PARAM(std::string)
+	        ) override;
 
 	/// Implementation of @see RsGxsChannels::createComment
-	virtual bool createComment(RsGxsComment& comment);
+	bool createCommentV2(
+	        const RsGxsGroupId&   channelId,
+	        const RsGxsMessageId& threadId,
+	        const std::string&    comment,
+	        const RsGxsId&        authorId,
+	        const RsGxsMessageId& parentId = RsGxsMessageId(),
+	        const RsGxsMessageId& origCommentId = RsGxsMessageId(),
+	        RsGxsMessageId&       commentMessageId = RS_DEFAULT_STORAGE_PARAM(RsGxsMessageId),
+	        std::string&          errorMessage     = RS_DEFAULT_STORAGE_PARAM(std::string)
+	        ) override;
 
 	/// Implementation of @see RsGxsChannels::editChannel
-	virtual bool editChannel(RsGxsChannelGroup& channel);
+	bool editChannel(RsGxsChannelGroup& channel) override;
 
-	/// Implementation of @see RsGxsChannels::createPost
-	virtual bool createPost(RsGxsChannelPost& post);
+	/// Implementation of @see RsGxsChannels::createPostV2
+	bool createPostV2(
+	        const RsGxsGroupId& channelId, const std::string& title,
+	        const std::string& body,
+	        const std::list<RsGxsFile>& files = std::list<RsGxsFile>(),
+	        const RsGxsImage& thumbnail = RsGxsImage(),
+	        const RsGxsMessageId& origPostId = RsGxsMessageId(),
+	        RsGxsMessageId& postId = RS_DEFAULT_STORAGE_PARAM(RsGxsMessageId),
+	        std::string& errorMessage = RS_DEFAULT_STORAGE_PARAM(std::string)
+	        ) override;
 
-	/// Implementation of @see RsGxsChannels::createVote
-	virtual bool createVote(RsGxsVote& vote);
+	/// Implementation of @see RsGxsChannels::createVoteV2
+	bool createVoteV2(
+	        const RsGxsGroupId& channelId, const RsGxsMessageId& postId,
+	        const RsGxsMessageId& commentId, const RsGxsId& authorId,
+	        RsGxsVoteType vote,
+	        RsGxsMessageId& voteId = RS_DEFAULT_STORAGE_PARAM(RsGxsMessageId),
+	        std::string& errorMessage = RS_DEFAULT_STORAGE_PARAM(std::string)
+	        ) override;
 
 	/// Implementation of @see RsGxsChannels::subscribeToChannel
-	virtual bool subscribeToChannel( const RsGxsGroupId &groupId,
-	                                 bool subscribe );
+	bool subscribeToChannel( const RsGxsGroupId &groupId,
+	                                 bool subscribe ) override;
 
 	/// Implementation of @see RsGxsChannels::setPostRead
 	virtual bool markRead(const RsGxsGrpMsgIdPair& msgId, bool read);
 
 	virtual bool shareChannelKeys(
 	        const RsGxsGroupId& channelId, const std::set<RsPeerId>& peers );
+
+	/// Implementation of @see RsGxsChannels::createChannel
+	RS_DEPRECATED_FOR(createChannelV2)
+	bool createChannel(RsGxsChannelGroup& channel) override;
+
+	/// @deprecated Implementation of @see RsGxsChannels::createPost
+	RS_DEPRECATED_FOR(createPostV2)
+	bool createPost(RsGxsChannelPost& post) override;
+
+	/// @deprecated Implementation of @see RsGxsChannels::createComment
+	RS_DEPRECATED_FOR(createCommentV2)
+	bool createComment(RsGxsComment& comment) override;
+
+	/// @deprecated Implementation of @see RsGxsChannels::createVote
+	RS_DEPRECATED_FOR(createVoteV2)
+	bool createVote(RsGxsVote& vote) override;
+
 
 protected:
 	// Overloaded from GxsTokenQueue for Request callbacks.
@@ -264,9 +313,11 @@ bool generateGroup(uint32_t &token, std::string groupName);
 	class ChannelDummyRef
 	{
 		public:
-		ChannelDummyRef() { return; }
-		ChannelDummyRef(const RsGxsGroupId &grpId, const RsGxsMessageId &threadId, const RsGxsMessageId &msgId)
-		:mGroupId(grpId), mThreadId(threadId), mMsgId(msgId) { return; }
+		ChannelDummyRef() {}
+		ChannelDummyRef(
+		        const RsGxsGroupId &grpId, const RsGxsMessageId &threadId,
+		        const RsGxsMessageId &msgId ) :
+		    mGroupId(grpId), mThreadId(threadId), mMsgId(msgId) {}
 
 		RsGxsGroupId mGroupId;
 		RsGxsMessageId mThreadId;
@@ -310,5 +361,3 @@ bool generateGroup(uint32_t &token, std::string groupName);
 	/// Cleanup mSearchCallbacksMap and mDistantChannelsCallbacksMap
 	void cleanTimedOutCallbacks();
 };
-
-#endif 

@@ -21,10 +21,6 @@
  *******************************************************************************/
 #pragma once
 
-#pragma once
-
-// This class implements an abstract pgp handler to be used in RetroShare.
-//
 #include <stdint.h>
 #include <string>
 #include <list>
@@ -80,9 +76,10 @@ class PGPCertificateInfo
 		static const uint8_t PGP_CERTIFICATE_TYPE_RSA     = 0x02 ;
 };
 
+/// This class offer an abstract pgp handler to be used in RetroShare.
 class PGPHandler
 {
-	public:
+public:
 		PGPHandler(	const std::string& path_to_public_keyring, 
 						const std::string& path_to_secret_keyring, 
 						const std::string& path_to_trust_database, 
@@ -107,6 +104,7 @@ class PGPHandler
 		bool GeneratePGPCertificate(const std::string& name, const std::string& email, const std::string& passwd, RsPgpId& pgpId, const int keynumbits, std::string& errString) ;
 
 		bool LoadCertificateFromString(const std::string& pem, RsPgpId& gpg_id, std::string& error_string);
+		bool LoadCertificateFromBinaryData(const unsigned char *bin_data,uint32_t bin_data_len, RsPgpId& gpg_id, std::string& error_string);
 
 		std::string SaveCertificateToString(const RsPgpId& id,bool include_signatures) const ;
 		bool exportPublicKey(const RsPgpId& id,unsigned char *& mem,size_t& mem_size,bool armoured,bool include_signatures) const ;
@@ -125,10 +123,7 @@ class PGPHandler
 
 		bool encryptTextToFile(const RsPgpId& key_id,const std::string& text,const std::string& outfile) ;
 		bool decryptTextFromFile(const RsPgpId& key_id,std::string& text,const std::string& encrypted_inputfile) ;
-		//bool encryptTextToString(const RsPgpId& key_id,const std::string& text,std::string& outstring) ;
-		//bool decryptTextFromString(const RsPgpId& key_id,const std::string& encrypted_text,std::string& outstring) ;
 
-		bool getKeyFingerprint(const RsPgpId& id,PGPFingerprintType& fp) const ;
 		void setAcceptConnexion(const RsPgpId&,bool) ;
 
 		void updateOwnSignatureFlag(const RsPgpId& ownId) ;
@@ -152,12 +147,37 @@ class PGPHandler
 
 		const PGPCertificateInfo *getCertificateInfo(const RsPgpId& id) const ;
 
+		RS_DEPRECATED_FOR(isPgpPubKeyAvailable)
 		bool isGPGId(const RsPgpId &id);
 		bool isGPGSigned(const RsPgpId &id);
 		bool isGPGAccepted(const RsPgpId &id);
 
 		static void setPassphraseCallback(PassphraseCallback cb) ;
 		static PassphraseCallback passphraseCallback() { return _passphrase_callback ; }
+
+	/**
+	 * @brief Check if a PGP publick key is available
+	 * @param id id of the key to check
+	 * @return true if the public key for the given id is available,
+	 *	false otherwise
+	 */
+	bool isPgpPubKeyAvailable(const RsPgpId& id);
+
+	/**
+	 * @brief Convert PGP fingerprint to PGP 64bit id
+	 * @param f PGP fingerprint to convert
+	 * @return PGP 64bit id extracted from fingerprint
+	 */
+	static RsPgpId pgpIdFromFingerprint(const RsPgpFingerprint& f);
+
+	/**
+	 * @brief Get PGP fingerprint for the given key
+	 * @param id PGP 64bit key id
+	 * @param fp storage for the retrived key fingerpring, the contained value
+	 *	is meaningfull only if true is returned
+	 * @return true if the key was found, false if not
+	 */
+	bool getKeyFingerprint(const RsPgpId& id, RsPgpFingerprint& fp) const;
 
 		// Gets info about the key. Who are the signers, what's the owner's name, etc.
 		//
@@ -176,6 +196,7 @@ class PGPHandler
 		bool syncDatabase() ;
 
 	private:
+		bool LoadCertificate(const unsigned char *bin_data,uint32_t bin_data_len, bool armoured, RsPgpId& gpg_id, std::string& error_string);
 		void initCertificateInfo(PGPCertificateInfo& cert,const ops_keydata_t *keydata,uint32_t i) ;
 
 		// Returns true if the signatures have been updated
@@ -232,4 +253,3 @@ class PGPHandler
 		static PassphraseCallback _passphrase_callback ;
 		static bool mergeKeySignatures(ops_keydata_t *dst,const ops_keydata_t *src) ;	// returns true if signature lists are different
 };
-

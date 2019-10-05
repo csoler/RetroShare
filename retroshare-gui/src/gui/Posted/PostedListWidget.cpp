@@ -26,8 +26,12 @@
 #include "PostedCreatePostDialog.h"
 #include "PostedItem.h"
 #include "gui/common/UIStateHelper.h"
+#include "gui/RetroShareLink.h"
+#include "util/HandleRichText.h"
+#include "util/DateTime.h"
 
 #include <retroshare/rsposted.h>
+#include "retroshare/rsgxscircles.h"
 
 #define POSTED_DEFAULT_LISTING_LENGTH 10
 #define POSTED_MAX_INDEX	      10000
@@ -41,23 +45,19 @@ PostedListWidget::PostedListWidget(const RsGxsGroupId &postedId, QWidget *parent
 	ui->setupUi(this);
 
 	/* Setup UI helper */
-	mStateHelper->addWidget(mTokenTypeAllPosts, ui->hotSortButton);
-	mStateHelper->addWidget(mTokenTypeAllPosts, ui->newSortButton);
-	mStateHelper->addWidget(mTokenTypeAllPosts, ui->topSortButton);
+	mStateHelper->addWidget(mTokenTypeAllPosts, ui->comboBox);
 
-	mStateHelper->addWidget(mTokenTypePosts, ui->hotSortButton);
-	mStateHelper->addWidget(mTokenTypePosts, ui->newSortButton);
-	mStateHelper->addWidget(mTokenTypePosts, ui->topSortButton);
+	mStateHelper->addWidget(mTokenTypePosts, ui->comboBox);
 
 	mStateHelper->addWidget(mTokenTypeGroupData, ui->submitPostButton);
 	mStateHelper->addWidget(mTokenTypeGroupData, ui->subscribeToolButton);
 
-	connect(ui->hotSortButton, SIGNAL(clicked()), this, SLOT(getRankings()));
-	connect(ui->newSortButton, SIGNAL(clicked()), this, SLOT(getRankings()));
-	connect(ui->topSortButton, SIGNAL(clicked()), this, SLOT(getRankings()));
 	connect(ui->nextButton, SIGNAL(clicked()), this, SLOT(showNext()));
 	connect(ui->prevButton, SIGNAL(clicked()), this, SLOT(showPrev()));
 	connect(ui->subscribeToolButton, SIGNAL(subscribe(bool)), this, SLOT(subscribeGroup(bool)));
+	
+	connect(ui->comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(getRankings(int)));
+
 
 	// default sort method.
 	mSortMethod = RsPosted::HotRankType;
@@ -67,12 +67,21 @@ PostedListWidget::PostedListWidget(const RsGxsGroupId &postedId, QWidget *parent
 
 	mTokenTypeVote = nextTokenType();
 
-	ui->hotSortButton->setChecked(true);
-
 	/* fill in the available OwnIds for signing */
 	ui->idChooser->loadIds(IDCHOOSER_ID_REQUIRED, RsGxsId());
+	
+	int S = QFontMetricsF(font()).height() ;
+
+	ui->submitPostButton->setIconSize(QSize(S*1.5,S*1.5));
+	ui->comboBox->setIconSize(QSize(S*1.5,S*1.5));
 
 	connect(ui->submitPostButton, SIGNAL(clicked()), this, SLOT(newPost()));
+	
+	ui->subscribeToolButton->setToolTip(tr( "<p>Subscribing to the links will gather \
+	                                        available posts from your subscribed friends, and make the \
+	                                        links visible to all other friends.</p><p>Afterwards you can unsubscribe from the context menu of the links list at left.</p>"));
+											
+	ui->infoframe->hide();										
 
 	/* load settings */
 	processSettings(true);
@@ -183,7 +192,7 @@ void PostedListWidget::updateShowText()
 	ui->showLabel->setText(showText);
 }
 
-void PostedListWidget::getRankings()
+void PostedListWidget::getRankings(int i)
 {
 	if (groupId().isNull())
 		return;
@@ -192,23 +201,19 @@ void PostedListWidget::getRankings()
 	std::cerr << std::endl;
 
 	int oldSortMethod = mSortMethod;
-
-	QObject* button = sender();
-	if(button == ui->hotSortButton)
+	
+	switch(i)
 	{
+	default:
+	case 0:
 		mSortMethod = RsPosted::HotRankType;
-	}
-	else if(button == ui->topSortButton)
-	{
-		mSortMethod = RsPosted::TopRankType;
-	}
-	else if(button == ui->newSortButton)
-	{
+		break;
+	case 1:
 		mSortMethod = RsPosted::NewRankType;
-	}
-	else
-	{
-		return;
+		break;
+	case 2:
+		mSortMethod = RsPosted::TopRankType;
+		break;
 	}
 
 	if (oldSortMethod != mSortMethod)
@@ -262,7 +267,7 @@ void PostedListWidget::submitVote(const RsGxsGrpMsgIdPair &msgId, bool up)
 	std::cerr << "AuthorId : " << vote.mMeta.mAuthorId << std::endl;
 
 	uint32_t token;
-	rsPosted->createVote(token, vote);
+	rsPosted->createNewVote(token, vote);
 	mTokenQueue->queueRequest(token, TOKENREQ_MSGINFO, RS_TOKREQ_ANSTYPE_ACK, mTokenTypeVote);
 }
 
@@ -298,6 +303,68 @@ void PostedListWidget::insertPostedDetails(const RsPostedGroup &group)
 {
 	mStateHelper->setWidgetEnabled(ui->submitPostButton, IS_GROUP_SUBSCRIBED(group.mMeta.mSubscribeFlags));
 	ui->subscribeToolButton->setSubscribed(IS_GROUP_SUBSCRIBED(group.mMeta.mSubscribeFlags));
+	ui->subscribeToolButton->setHidden(IS_GROUP_SUBSCRIBED(group.mMeta.mSubscribeFlags)) ;
+	
+	RetroShareLink link;
+	
+	if (IS_GROUP_SUBSCRIBED(group.mMeta.mSubscribeFlags)) {
+		
+		ui->infoframe->hide();										
+
+	} else {
+		
+		ui->infoPosts->setText(QString::number(group.mMeta.mVisibleMsgCount));
+		
+		if(group.mMeta.mLastPost==0)
+            ui->infoLastPost->setText(tr("Never"));
+        else
+		
+			ui->infoLastPost->setText(DateTime::formatLongDateTime(group.mMeta.mLastPost));
+		
+			QString formatDescription = QString::fromUtf8(group.mDescription.c_str());
+
+			unsigned int formatFlag = RSHTML_FORMATTEXT_EMBED_LINKS;
+
+			formatDescription = RsHtml().formatText(NULL, formatDescription, formatFlag);
+
+			ui->infoDescription->setText(formatDescription);
+        
+			ui->infoAdministrator->setId(group.mMeta.mAuthorId) ;
+			
+			link = RetroShareLink::createMessage(group.mMeta.mAuthorId, "");
+			ui->infoAdministrator->setText(link.toHtml());
+		
+			QString distrib_string ( "[unknown]" );
+            
+        	switch(group.mMeta.mCircleType)
+		{
+		case GXS_CIRCLE_TYPE_PUBLIC: distrib_string = tr("Public") ;
+			break ;
+		case GXS_CIRCLE_TYPE_EXTERNAL: 
+		{
+			RsGxsCircleDetails det ;
+
+			// !! What we need here is some sort of CircleLabel, which loads the circle and updates the label when done.
+
+			if(rsGxsCircles->getCircleDetails(group.mMeta.mCircleId,det)) 
+				distrib_string = tr("Restricted to members of circle \"")+QString::fromUtf8(det.mCircleName.c_str()) +"\"";
+			else
+				distrib_string = tr("Restricted to members of circle ")+QString::fromStdString(group.mMeta.mCircleId.toStdString()) ;
+		}
+			break ;
+		case GXS_CIRCLE_TYPE_YOUR_EYES_ONLY: distrib_string = tr("Your eyes only");
+			break ;
+		case GXS_CIRCLE_TYPE_LOCAL: distrib_string = tr("You and your friend nodes");
+			break ;
+		default:
+			std::cerr << "(EE) badly initialised group distribution ID = " << group.mMeta.mCircleType << std::endl;
+		}
+ 
+		ui->infoDistribution->setText(distrib_string);
+		
+		ui->infoframe->show();										
+		
+	}
 }
 
 /*********************** **** **** **** ***********************/

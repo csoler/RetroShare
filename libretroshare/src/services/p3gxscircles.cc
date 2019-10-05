@@ -3,7 +3,8 @@
  *                                                                             *
  * libretroshare: retroshare core library                                      *
  *                                                                             *
- * Copyright 2012-2012 Robert Fernie <retroshare@lunamutt.com>                 *
+ * Copyright (C) 2012-2014  Robert Fernie <retroshare@lunamutt.com>            *
+ * Copyright (C) 2018-2019  Gioacchino Mazzurco <gio@eigenlab.org>             *
  *                                                                             *
  * This program is free software: you can redistribute it and/or modify        *
  * it under the terms of the GNU Lesser General Public License as              *
@@ -27,7 +28,7 @@
 #include "util/rsdir.h"
 #include "util/radix64.h"
 #include "util/rsstring.h"
-
+#include "util/rsdebug.h"
 #include "pgp/pgpauxutils.h"
 #include "retroshare/rsgxscircles.h"
 #include "retroshare/rspeers.h"
@@ -40,7 +41,7 @@
  * #define DEBUG_CIRCLES	 1
  ****/
 
-RsGxsCircles *rsGxsCircles = NULL;
+/*extern*/ RsGxsCircles* rsGxsCircles = nullptr;
 
 /******
  *
@@ -153,7 +154,190 @@ RsServiceInfo p3GxsCircles::getServiceInfo()
                 GXS_CIRCLES_MIN_MINOR_VERSION);
 }
 
+bool p3GxsCircles::createCircle(
+        const std::string& circleName, RsGxsCircleType circleType,
+        RsGxsCircleId& circleId, const RsGxsCircleId& restrictedId,
+        const RsGxsId& authorId, const std::set<RsGxsId>& gxsIdMembers,
+        const std::set<RsPgpId>& localMembers )
+{
+	if(circleName.empty())
+	{
+		RsErr() << __PRETTY_FUNCTION__ << " Circle name is empty" << std::endl;
+		return false;
+	}
 
+	switch(circleType)
+	{
+	case RsGxsCircleType::PUBLIC:
+		if(!restrictedId.isNull())
+		{
+			RsErr() << __PRETTY_FUNCTION__ << " restrictedId: " << restrictedId
+			        << " must be null with RsGxsCircleType::PUBLIC"
+			        << std::endl;
+			return false;
+		}
+		break;
+	case RsGxsCircleType::EXTERNAL:
+		if(restrictedId.isNull())
+		{
+			RsErr() << __PRETTY_FUNCTION__ << " restrictedId can't be null "
+			        << "with RsGxsCircleType::EXTERNAL" << std::endl;
+			return false;
+		}
+		break;
+	case RsGxsCircleType::NODES_GROUP:
+		if(localMembers.empty())
+		{
+			RsErr() << __PRETTY_FUNCTION__ << " localMembers can't be empty "
+			        << "with RsGxsCircleType::NODES_GROUP" << std::endl;
+			return false;
+		}
+		break;
+	case RsGxsCircleType::LOCAL:
+		break;
+	case RsGxsCircleType::EXT_SELF:
+		if(!restrictedId.isNull())
+		{
+			RsErr() << __PRETTY_FUNCTION__ << " restrictedId: " << restrictedId
+			        << " must be null with RsGxsCircleType::EXT_SELF"
+			        << std::endl;
+			return false;
+		}
+		if(gxsIdMembers.empty())
+		{
+			RsErr() << __PRETTY_FUNCTION__ << " gxsIdMembers can't be empty "
+			        << "with RsGxsCircleType::EXT_SELF" << std::endl;
+			return false;
+		}
+		break;
+	case RsGxsCircleType::YOUR_EYES_ONLY:
+		break;
+	default:
+		RsErr() << __PRETTY_FUNCTION__ << " Invalid circle type: "
+		        << static_cast<uint32_t>(circleType) << std::endl;
+		return false;
+	}
+
+	RsGxsCircleGroup cData;
+	cData.mMeta.mGroupName = circleName;
+	cData.mMeta.mAuthorId = authorId;
+	cData.mMeta.mCircleType = static_cast<uint32_t>(circleType);
+	cData.mMeta.mGroupFlags = GXS_SERV::FLAG_PRIVACY_PUBLIC;
+	cData.mMeta.mCircleId = restrictedId;
+	cData.mLocalFriends = localMembers;
+	cData.mInvitedMembers = gxsIdMembers;
+
+	uint32_t token;
+	createGroup(token, cData);
+
+	if(waitToken(token) != RsTokenService::COMPLETE)
+	{
+		std::cerr << __PRETTY_FUNCTION__ << "Error! GXS operation failed."
+		          << std::endl;
+		return false;
+	}
+
+	if(!RsGenExchange::getPublishedGroupMeta(token, cData.mMeta))
+	{
+		std::cerr << __PRETTY_FUNCTION__ << "Error! Failure getting created"
+		          << " group data." << std::endl;
+		return false;
+	}
+
+	circleId = static_cast<RsGxsCircleId>(cData.mMeta.mGroupId);
+	return true;
+};
+
+bool p3GxsCircles::editCircle(RsGxsCircleGroup& cData)
+{
+	uint32_t token;
+	updateGroup(token, cData);
+
+	if(waitToken(token) != RsTokenService::COMPLETE)
+	{
+		std::cerr << __PRETTY_FUNCTION__ << "Error! GXS operation failed."
+		          << std::endl;
+		return false;
+	}
+
+	if(!RsGenExchange::getPublishedGroupMeta(token, cData.mMeta))
+	{
+		std::cerr << __PRETTY_FUNCTION__ << "Error! Failure getting updated"
+		          << " group data." << std::endl;
+		return false;
+	}
+
+	return true;
+}
+
+bool p3GxsCircles::getCirclesSummaries(std::list<RsGroupMetaData>& circles)
+{
+	uint32_t token;
+	RsTokReqOptions opts;
+	opts.mReqType = GXS_REQUEST_TYPE_GROUP_META;
+	if( !requestGroupInfo(token, opts)
+	        || waitToken(token) != RsTokenService::COMPLETE ) return false;
+	return getGroupSummary(token, circles);
+}
+
+bool p3GxsCircles::getCirclesInfo( const std::list<RsGxsGroupId>& circlesIds,
+                                   std::vector<RsGxsCircleGroup>& circlesInfo )
+{
+	uint32_t token;
+	RsTokReqOptions opts;
+	opts.mReqType = GXS_REQUEST_TYPE_GROUP_DATA;
+	if( !requestGroupInfo(token, opts, circlesIds)
+	        || waitToken(token) != RsTokenService::COMPLETE ) return false;
+	return getGroupData(token, circlesInfo);
+}
+
+bool p3GxsCircles::getCircleRequests( const RsGxsGroupId& circleId,
+                                      std::vector<RsGxsCircleMsg>& requests )
+{
+	uint32_t token;
+	std::list<RsGxsGroupId> grpIds { circleId };
+	RsTokReqOptions opts;
+	opts.mReqType = GXS_REQUEST_TYPE_MSG_DATA;
+
+	if( !requestMsgInfo(token, opts, grpIds) ||
+	        waitToken(token) != RsTokenService::COMPLETE ) return false;
+
+	return getMsgData(token, requests);
+}
+
+bool p3GxsCircles::inviteIdsToCircle( const std::set<RsGxsId>& identities,
+                                      const RsGxsCircleId& circleId )
+{
+	const std::list<RsGxsGroupId> circlesIds{ RsGxsGroupId(circleId) };
+	std::vector<RsGxsCircleGroup> circlesInfo;
+
+	if(!getCirclesInfo(circlesIds, circlesInfo))
+	{
+		std::cerr << __PRETTY_FUNCTION__ << "Error! Failure getting group data."
+		          << std::endl;
+		return false;
+	}
+
+	if(circlesInfo.empty())
+	{
+		std::cerr << __PRETTY_FUNCTION__ << "Error! Circle: "
+		          << circleId.toStdString() << " not found!" << std::endl;
+		return false;
+	}
+
+	RsGxsCircleGroup& circleGrp = circlesInfo[0];
+
+	if(!(circleGrp.mMeta.mSubscribeFlags & GXS_SERV::GROUP_SUBSCRIBE_ADMIN))
+	{
+		std::cerr << __PRETTY_FUNCTION__ << "Error! Attempt to edit non-own "
+		          << "circle: " << circleId.toStdString() << std::endl;
+		return false;
+	}
+
+	circleGrp.mInvitedMembers.insert(identities.begin(), identities.end());
+
+	return editCircle(circleGrp);
+}
 
 uint32_t p3GxsCircles::circleAuthenPolicy()
 {
@@ -319,32 +503,6 @@ bool p3GxsCircles:: getCircleDetails(const RsGxsCircleId &id, RsGxsCircleDetails
 
     return false;
 }
-
-
-bool p3GxsCircles:: getCirclePersonalIdList(std::list<RsGxsCircleId> &circleIds)
-{
-#ifdef DEBUG_CIRCLES
-	std::cerr << "p3GxsCircles::getCircleIdList()";
-	std::cerr << std::endl;
-#endif // DEBUG_CIRCLES
-
-	RsStackMutex stack(mCircleMtx); /********** STACK LOCKED MTX ******/
-	if (circleIds.empty())
-	{
-		circleIds = mCirclePersonalIdList;
-	}
-	else
-	{
-		std::list<RsGxsCircleId>::const_iterator it;
-		for(it = mCirclePersonalIdList.begin(); it != mCirclePersonalIdList.begin(); ++it)
-		{
-			circleIds.push_back(*it);
-		}
-	}
-
-	return true;
-}
-
 
 bool p3GxsCircles:: getCircleExternalIdList(std::list<RsGxsCircleId> &circleIds)
 {
@@ -1773,47 +1931,6 @@ void p3GxsCircles::generateDummyCircle()
 	createGroup(dummyToken, group);
 }
 
-
-/************************************************************************************/
-/************************************************************************************/
-/************************************************************************************/
-/************************************************************************************/
-
-
-std::ostream &operator<<(std::ostream &out, const RsGxsCircleGroup &grp)
-{
-	out << "RsGxsCircleGroup: Meta: " << grp.mMeta;
-	out << "InvitedMembers: ";
-	out << std::endl;
-
-        std::set<RsGxsId>::const_iterator it;
-        std::set<RsGxsCircleId>::const_iterator sit;
-	for(it = grp.mInvitedMembers.begin();
-		it != grp.mInvitedMembers.begin(); ++it)
-	{
-		out << "\t" << *it;
-		out << std::endl;
-	}
-
-	for(sit = grp.mSubCircles.begin();
-		sit != grp.mSubCircles.begin(); ++sit)
-	{
-		out << "\t" << *it;
-		out << std::endl;
-	}
-	return out;
-}
-
-std::ostream &operator<<(std::ostream &out, const RsGxsCircleMsg &msg)
-{
-	out << "RsGxsCircleMsg: Meta: " << msg.mMeta;
-	out << std::endl;
-	
-	return out;
-}
-
-
-
 	// Overloaded from GxsTokenQueue for Request callbacks.
 void p3GxsCircles::handleResponse(uint32_t token, uint32_t req_type)
 {
@@ -1836,21 +1953,12 @@ void p3GxsCircles::handleResponse(uint32_t token, uint32_t req_type)
 		case CIRCLEREQ_CACHELOAD:
 			cache_load_for_token(token);
 			break;
-
-#if 0
-		case CIRCLEREQ_CACHETEST:
-			cachetest_handlerequest(token);
-			break;
-#endif
-
-		default:
-			/* error */
-			std::cerr << "p3GxsCircles::handleResponse() Unknown Request Type: " << req_type;
-			std::cerr << std::endl;
-			break;
+	default:
+		RsErr() << __PRETTY_FUNCTION__ << " Unknown Request Type: "
+		        << req_type << std::endl;
+		break;
 	}
 }
-
 
 	// Overloaded from RsTickEvent for Event callbacks.
 void p3GxsCircles::handle_event(uint32_t event_type, const std::string &elabel)
@@ -1875,14 +1983,7 @@ void p3GxsCircles::handle_event(uint32_t event_type, const std::string &elabel)
 			cache_reloadids(RsGxsCircleId(elabel));
 			break;
 
-#if 0
-		case CIRCLE_EVENT_CACHETEST:
-			cachetest_getlist();
-			break;
-#endif
-
-
-		case CIRCLE_EVENT_DUMMYSTART:
+	case CIRCLE_EVENT_DUMMYSTART:
 			generateDummyData();
 			break;
 
@@ -1894,11 +1995,10 @@ void p3GxsCircles::handle_event(uint32_t event_type, const std::string &elabel)
 			generateDummyCircle();
 			break;
 
-		default:
-			/* error */
-			std::cerr << "p3GxsCircles::handle_event() Unknown Event Type: " << event_type;
-			std::cerr << std::endl;
-			break;
+	default:
+		RsErr() << __PRETTY_FUNCTION__ << " Unknown Event Type: " << event_type
+		        << std::endl;
+		break;
 	}
 }
 
@@ -1961,29 +2061,41 @@ void p3GxsCircles::handle_event(uint32_t event_type, const std::string &elabel)
 //                    |             |   Grp Subscribed: NO         |   Grp Subscribed: NO        |         
 //                    +-------------+------------------------------+-----------------------------+
 
-bool p3GxsCircles::pushCircleMembershipRequest(const RsGxsId& own_gxsid,const RsGxsCircleId& circle_id,uint32_t request_type) 
+bool p3GxsCircles::pushCircleMembershipRequest(
+        const RsGxsId& own_gxsid, const RsGxsCircleId& circle_id,
+        uint32_t request_type )
 {
-#ifdef DEBUG_CIRCLES
-    std::cerr << "Circle membership request: own_gxsid = " << own_gxsid << ", circle=" << circle_id << ", req type=" << request_type << std::endl;
-#endif
-    
-    // check for some consistency
-    
-    if(request_type != RsGxsCircleSubscriptionRequestItem::SUBSCRIPTION_REQUEST_SUBSCRIBE &&  request_type != RsGxsCircleSubscriptionRequestItem::SUBSCRIPTION_REQUEST_UNSUBSCRIBE)
-        return false ;
-    
-    std::list<RsGxsId> own_ids ;
-    if(!rsIdentity->getOwnIds(own_ids))
-        return false ;
-    
-    bool found = false ;
-    for(std::list<RsGxsId>::const_iterator it(own_ids.begin());it!=own_ids.end() && !found;++it)
-        found = ( (*it) == own_gxsid) ;
+	Dbg3() << __PRETTY_FUNCTION__ << "own_gxsid = " << own_gxsid
+	       << ", circle=" << circle_id << ", req type=" << request_type
+	       << std::endl;
 
-    if(!found)
-        return false ;
-    
-    // Create a subscribe item
+	if( request_type !=
+	        RsGxsCircleSubscriptionRequestItem::SUBSCRIPTION_REQUEST_SUBSCRIBE &&
+	    request_type !=
+	        RsGxsCircleSubscriptionRequestItem::SUBSCRIPTION_REQUEST_UNSUBSCRIBE )
+	{
+		RsErr() << __PRETTY_FUNCTION__ << " Unknown request type: "
+		        << request_type << std::endl;
+		return false;
+	}
+
+	if(!rsIdentity->isOwnId(own_gxsid))
+	{
+		RsErr() << __PRETTY_FUNCTION__ << " Cannot generate membership request "
+		        << "from not-own id: " << own_gxsid << std::endl;
+		return false;
+	}
+
+	if(!getCirclesInfo(
+	            std::list<RsGxsGroupId>{static_cast<RsGxsGroupId>(circle_id)},
+	            RS_DEFAULT_STORAGE_PARAM(std::vector<RsGxsCircleGroup>) ))
+	{
+		RsErr() << __PRETTY_FUNCTION__ << " Cannot generate membership request "
+		        << "from unknown circle: " << circle_id << std::endl;
+		return false;
+	}
+
+	// Create a subscribe item
 
     RsGxsCircleSubscriptionRequestItem *s = new RsGxsCircleSubscriptionRequestItem ;
 
@@ -2130,3 +2242,8 @@ bool p3GxsCircles::processMembershipRequests(uint32_t token)
     
     return true ;
 }
+
+RsGxsCircles::~RsGxsCircles() = default;
+RsGxsCircleMsg::~RsGxsCircleMsg() = default;
+RsGxsCircleDetails::~RsGxsCircleDetails() = default;
+RsGxsCircleGroup::~RsGxsCircleGroup() = default;

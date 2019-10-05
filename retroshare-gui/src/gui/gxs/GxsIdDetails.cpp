@@ -24,6 +24,8 @@
 #include <QMutexLocker>
 
 #include <math.h>
+#include <util/rsdir.h>
+#include "gui/common/AvatarDialog.h"
 #include "GxsIdDetails.h"
 #include "retroshare-gui/RsAutoUpdatePage.h"
 
@@ -64,6 +66,15 @@
 //const int kRecognTagType_Dev_Patcher     	= 4;
 //const int kRecognTagType_Dev_Developer	 	= 5;
 
+uint32_t GxsIdDetails::mImagesAllocated = 0;
+time_t GxsIdDetails::mLastIconCacheCleaning = time(NULL);
+std::map<RsGxsId,std::pair<time_t,QPixmap>[4] > GxsIdDetails::mDefaultIconCache ;
+
+QMutex GxsIdDetails::mMutex;
+QMutex GxsIdDetails::mIconCacheMutex;
+
+#define ICON_CACHE_STORAGE_TIME 		  240
+#define DELAY_BETWEEN_ICON_CACHE_CLEANING 120
 
 void ReputationItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
@@ -84,7 +95,8 @@ void ReputationItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem
 	if(icon_index > mMaxLevelToDisplay)
 		return ;
 
-	QIcon icon = GxsIdDetails::getReputationIcon(RsReputations::ReputationLevel(icon_index),0xff);
+	QIcon icon = GxsIdDetails::getReputationIcon(
+	            RsReputationLevel(icon_index), 0xff );
 
 	QPixmap pix = icon.pixmap(r.size());
 
@@ -177,7 +189,8 @@ void GxsIdDetails::timerEvent(QTimerEvent *event)
 			killTimer(mCheckTimerId);
 			mCheckTimerId = 0;
 
-			if (rsIdentity) {
+            if (rsIdentity)
+            {
 				QMutexLocker lock(&mMutex);
 
 				if (mProcessDisableCount == 0) {
@@ -229,14 +242,14 @@ void GxsIdDetails::timerEvent(QTimerEvent *event)
 				}
 			}
 
-			QMutexLocker lock(&mMutex);
+            bool empty = false ;
+            {
+                QMutexLocker lock(&mMutex);
+                empty = mPendingData.empty();
+            }
 
-			if (mPendingData.empty()) {
-				/* All done */
-			} else {
-				/* Start timer */
+            if (!empty)  /* Start timer */
 				doStartTimer();
-			}
 		}
 	}
 
@@ -259,7 +272,7 @@ void GxsIdDetails::enableProcess(bool enable)
 		return;
 	}
 
-	QMutexLocker lock(&mInstance->mMutex);
+    QMutexLocker lock(&mMutex);
 
 	if (enable) {
 		--mInstance->mProcessDisableCount;
@@ -285,7 +298,7 @@ bool GxsIdDetails::process(const RsGxsId &id, GxsIdDetailsCallbackFunction callb
 
     	// remove any existing call for this object. This is needed for when the same widget is used to display IDs that vary in time.
 	{
-		QMutexLocker lock(&mInstance->mMutex);
+        QMutexLocker lock(&mMutex);
 
         	// check if a pending request is not already on its way. If so, replace it.
         
@@ -332,7 +345,7 @@ bool GxsIdDetails::process(const RsGxsId &id, GxsIdDetailsCallbackFunction callb
 	pendingData.mData = data;
 
 	{
-		QMutexLocker lock(&mInstance->mMutex);
+        QMutexLocker lock(&mMutex);
 
         	// check if a pending request is not already on its way. If so, replace it.
         
@@ -369,79 +382,6 @@ static bool findTagIcon(int tag_class, int /*tag_type*/, QIcon &icon)
 	return true;
 }
 
-//QImage GxsIdDetails::makeDefaultIcon(const RsGxsId& id)
-//{
-//	static std::map<RsGxsId,QImage> image_cache ;
-//
-//	std::map<RsGxsId,QImage>::const_iterator it = image_cache.find(id) ;
-//
-//	if(it != image_cache.end())
-//		return it->second ;
-//
-//	int S = 128 ;
-//	QImage pix(S,S,QImage::Format_RGB32) ;
-//
-//	uint64_t n = reinterpret_cast<const uint64_t*>(id.toByteArray())[0] ;
-//
-//	uint8_t a[8] ;
-//	for(int i=0;i<8;++i)
-//	{
-//		a[i] = n&0xff ;
-//		n >>= 8 ;
-//	}
-//	QColor val[16] = {
-//	    QColor::fromRgb( 255, 110, 180),
-//	    QColor::fromRgb( 238,  92,  66),
-//	    QColor::fromRgb( 255, 127,  36),
-//	    QColor::fromRgb( 255, 193, 193),
-//	    QColor::fromRgb( 127, 255, 212),
-//	    QColor::fromRgb(   0, 255, 255),
-//	    QColor::fromRgb( 224, 255, 255),
-//	    QColor::fromRgb( 199,  21, 133),
-//	    QColor::fromRgb(  50, 205,  50),
-//	    QColor::fromRgb( 107, 142,  35),
-//	    QColor::fromRgb(  30, 144, 255),
-//	    QColor::fromRgb(  95, 158, 160),
-//	    QColor::fromRgb( 143, 188, 143),
-//	    QColor::fromRgb( 233, 150, 122),
-//	    QColor::fromRgb( 151, 255, 255),
-//	    QColor::fromRgb( 162, 205,  90),
-//	};
-//
-//	int c1 = (a[0]^a[1]) & 0xf ;
-//	int c2 = (a[1]^a[2]) & 0xf ;
-//	int c3 = (a[2]^a[3]) & 0xf ;
-//	int c4 = (a[3]^a[4]) & 0xf ;
-//
-//	for(int i=0;i<S/2;++i)
-//		for(int j=0;j<S/2;++j)
-//		{
-//			float res1 = 0.0f ;
-//			float res2 = 0.0f ;
-//			float f = 1.70;
-//
-//			for(int k1=0;k1<4;++k1)
-//				for(int k2=0;k2<4;++k2)
-//				{
-//					res1 += cos( (2*M_PI*i/(float)S) * k1 * f) * (a[k1  ] & 0xf) + sin( (2*M_PI*j/(float)S) * k2 * f) * (a[k2  ] >> 4) + sin( (2*M_PI*i/(float)S) * k1 * f) * cos( (2*M_PI*j/(float)S) * k2 * f) * (a[k1+k2] >> 4) ;
-//					res2 += cos( (2*M_PI*i/(float)S) * k2 * f) * (a[k1+2] & 0xf) + sin( (2*M_PI*j/(float)S) * k1 * f) * (a[k2+1] >> 4) + sin( (2*M_PI*i/(float)S) * k2 * f) * cos( (2*M_PI*j/(float)S) * k1 * f) * (a[k1^k2] >> 4) ;
-//				}
-//
-//			uint32_t q = 0 ;
-//			if(res1 >= 0.0f) q += val[c1].rgb() ; else q += val[c2].rgb() ;
-//			if(res2 >= 0.0f) q += val[c3].rgb() ; else q += val[c4].rgb() ;
-//
-//			pix.setPixel( i, j, q) ;
-//			pix.setPixel( S-1-i, j, q) ;
-//			pix.setPixel( S-1-i, S-1-j, q) ;
-//			pix.setPixel(     i, S-1-j, q) ;
-//		}
-//
-//	image_cache[id] = pix.scaled(128,128,Qt::KeepAspectRatio,Qt::SmoothTransformation) ;
-//
-//	return image_cache[id] ;
-//}
-
 /**
  * @brief GxsIdDetails::makeIdentIcon
  * @param id: RsGxsId to compute
@@ -450,11 +390,149 @@ static bool findTagIcon(int tag_class, int /*tag_type*/, QIcon &icon)
  * Bring the source code from this adaptation:
  * http://francisshanahan.com/identicon5/test.html
  */
-QImage GxsIdDetails::makeDefaultIcon(const RsGxsId& id)
+const QPixmap GxsIdDetails::makeDefaultIcon(const RsGxsId& id, AvatarSize size)
 {
-    return  drawIdentIcon(QString::fromStdString(id.toStdString()),64*3, true);
+    checkCleanImagesCache();
+
+    // We use a cache for images. QImage has its own smart pointer system, but it does not prevent
+    // the same image to be allocated many times. We do this using a cache. The cache is also cleaned-up
+    // on a regular time basis so as to get rid of unused images.
+
+    time_t now = time(NULL);
+
+    // now look for the icon
+
+    QMutexLocker lock(&mIconCacheMutex);
+    auto& it = mDefaultIconCache[id];
+
+    if(it[(int)size].second.width() > 0)
+    {
+        it[(int)size].first = now;
+        return it[(int)size].second;
+    }
+
+    int S =0;
+
+    switch(size)
+    {
+    	case SMALL:  S = 16*3 ; break;
+    default:
+    	case MEDIUM: S = 32*3 ; break;
+    	case ORIGINAL:
+    	case LARGE:  S = 64*3 ; break;
+    }
+
+    QPixmap image = drawIdentIcon(QString::fromStdString(id.toStdString()),S,true);
+
+    it[(int)size] = std::make_pair(now,image);
+
+    return image;
 }
 
+void GxsIdDetails::checkCleanImagesCache()
+{
+    time_t now = time(NULL);
+
+    // cleanup the cache every 10 mins
+
+    if(mLastIconCacheCleaning + DELAY_BETWEEN_ICON_CACHE_CLEANING < now)
+    {
+        std::cerr << "(II) Cleaning the icons cache." << std::endl;
+        int nb_deleted = 0;
+        uint32_t size_deleted = 0;
+        uint32_t total_size = 0;
+
+        QMutexLocker lock(&mIconCacheMutex);
+
+        for(auto it(mDefaultIconCache.begin());it!=mDefaultIconCache.end();)
+        {
+            bool all_empty = true ;
+
+            for(int i=0;i<4;++i)
+				if(it->second[i].first + ICON_CACHE_STORAGE_TIME < now && it->second[i].second.isDetached())
+				{
+                    int s = it->second[i].second.width()*it->second[i].second.height()*4;
+
+					std::cerr << "Deleting pixmap " << it->first << " size " << i << " " << s << " bytes." << std::endl;
+
+                    it->second[i].second = QPixmap();
+					++nb_deleted;
+                    size_deleted += s;
+				}
+				else
+                {
+					all_empty = false;
+                    total_size += it->second[i].second.width()*it->second[i].second.height()*4;
+                }
+
+            if(all_empty)
+				it = mDefaultIconCache.erase(it);
+			else
+				++it;
+        }
+
+        mLastIconCacheCleaning = now;
+        std::cerr << "(II) Removed " << nb_deleted << " (" << size_deleted << " bytes) unused icons. Cache contains " << mDefaultIconCache.size() << " icons (" << total_size << " bytes)"<< std::endl;
+    }
+}
+
+
+bool GxsIdDetails::loadPixmapFromData(const unsigned char *data,size_t data_len,QPixmap& pixmap, AvatarSize size)
+{
+    // The trick below converts the data into an Id that can be read in the image cache. Because this method is mainly dedicated to loading
+    // avatars, we could also use the GxsId as id, but the avatar may change in time, so we actually need to make the id from the data itself.
+
+    assert(Sha1CheckSum::SIZE_IN_BYTES >= RsGxsId::SIZE_IN_BYTES);
+
+    Sha1CheckSum chksum = RsDirUtil::sha1sum(data,data_len);
+    RsGxsId id(chksum.toByteArray());
+
+    // We use a cache for images. QImage has its own smart pointer system, but it does not prevent
+    // the same image to be allocated many times. We do this using a cache. The cache is also cleaned-up
+    // on a regular time basis so as to get rid of unused images.
+
+    checkCleanImagesCache();
+
+    // now look for the icon
+
+    QMutexLocker lock(&mIconCacheMutex);
+
+    time_t now = time(NULL);
+    auto& it = mDefaultIconCache[id];
+
+    if(it[(int)size].second.width() > 0)
+    {
+        it[(int)size].first = now;
+		pixmap = it[(int)size].second;
+
+        return true;
+    }
+
+    if(! pixmap.loadFromData(data,data_len))
+        return false;
+
+    // This resize is here just to prevent someone to explicitely add a huge blank image to screw up the UI
+
+    int wanted_S=0;
+
+    switch(size)
+    {
+    case ORIGINAL:  wanted_S = 0   ;break;
+    case SMALL:     wanted_S = 32  ;break;
+    default:
+    case MEDIUM:    wanted_S = 64  ;break;
+    case LARGE:     wanted_S = 128 ;break;
+    }
+
+    if(wanted_S > 0)
+		pixmap = pixmap.scaled(wanted_S,wanted_S,Qt::IgnoreAspectRatio,Qt::SmoothTransformation);
+
+    mDefaultIconCache[id][(int)size] = std::make_pair(now,pixmap);
+#ifdef DEBUG
+    std::cerr << "Allocated new icon " << id << " size " << (int)size << std::endl;
+#endif
+    return true;
+}
 /**
  * @brief GxsIdDetails::getSprite
  * @param shapeType: type of shape (0 to 15)
@@ -772,7 +850,7 @@ void GxsIdDetails::drawRotatedPolygon( QPixmap *pixmap,
  * @param rotate: If the shapes could be rotated
  * @return QImage of computed hash
  */
-QImage GxsIdDetails::drawIdentIcon( QString hash, quint16 width, bool rotate)
+QPixmap GxsIdDetails::drawIdentIcon( QString hash, quint16 width, bool rotate)
 {
 	bool ok;
 	quint8 csh = hash.mid(0, 1).toInt(&ok,16);// Corner sprite shape
@@ -833,7 +911,7 @@ QImage GxsIdDetails::drawIdentIcon( QString hash, quint16 width, bool rotate)
 	}
 	drawRotatedPolygon(&pixmap, center, size, size, 0, 0, size, fillCenter);
 
-	return pixmap.toImage();
+	return pixmap;
 }
 
 //static bool CreateIdIcon(const RsGxsId &id, QIcon &idIcon)
@@ -937,8 +1015,9 @@ bool GxsIdDetails::MakeIdDesc(const RsGxsId &id, bool doIcons, QString &str, QLi
 
 QString GxsIdDetails::getName(const RsIdentityDetails &details)
 {
-	if(details.mReputation.mOverallReputationLevel == RsReputations::REPUTATION_LOCALLY_NEGATIVE)
-	    return tr("[Banned]") ;
+	if( details.mReputation.mOverallReputationLevel ==
+	         RsReputationLevel::LOCALLY_NEGATIVE )
+		return tr("[Banned]");
     
     	QString name = QString::fromUtf8(details.mNickname.c_str()).left(RSID_MAXIMUM_NICKNAME_SIZE);
 
@@ -956,7 +1035,8 @@ QString GxsIdDetails::getComment(const RsIdentityDetails &details)
 	QString comment;
 QString nickname ;
 
-	bool banned = (details.mReputation.mOverallReputationLevel == RsReputations::REPUTATION_LOCALLY_NEGATIVE);
+    bool banned = ( details.mReputation.mOverallReputationLevel ==
+	                RsReputationLevel::LOCALLY_NEGATIVE );
         
     	if(details.mNickname.empty())
             nickname = tr("[Unknown]") ;
@@ -997,19 +1077,27 @@ QString nickname ;
 	return comment;
 }
 
-QIcon GxsIdDetails::getReputationIcon(RsReputations::ReputationLevel icon_index,uint32_t min_reputation)
+QIcon GxsIdDetails::getReputationIcon(
+        RsReputationLevel icon_index, uint32_t min_reputation )
 {
-	if( icon_index >= min_reputation )                  return QIcon(REPUTATION_VOID) ;
+	if( static_cast<uint32_t>(icon_index) >= min_reputation )
+		return QIcon(REPUTATION_VOID);
 
 	switch(icon_index)
 	{
-		case RsReputations::REPUTATION_LOCALLY_NEGATIVE:  return QIcon(REPUTATION_LOCALLY_NEGATIVE_ICON)  ; break ;
-		case RsReputations::REPUTATION_LOCALLY_POSITIVE:  return QIcon(REPUTATION_LOCALLY_POSITIVE_ICON)  ; break ;
-		case RsReputations::REPUTATION_REMOTELY_POSITIVE: return QIcon(REPUTATION_REMOTELY_POSITIVE_ICON) ; break ;
-		case RsReputations::REPUTATION_REMOTELY_NEGATIVE: return QIcon(REPUTATION_REMOTELY_NEGATIVE_ICON) ; break ;
-		case RsReputations::REPUTATION_NEUTRAL:           return QIcon(REPUTATION_NEUTRAL_ICON)           ; break ;
-		default:
-			std::cerr << "Asked for unidentified icon index " << icon_index << std::endl;
+	case RsReputationLevel::LOCALLY_NEGATIVE:
+		return QIcon(REPUTATION_LOCALLY_NEGATIVE_ICON);
+	case RsReputationLevel::LOCALLY_POSITIVE:
+		return QIcon(REPUTATION_LOCALLY_POSITIVE_ICON);
+	case RsReputationLevel::REMOTELY_POSITIVE:
+		return QIcon(REPUTATION_REMOTELY_POSITIVE_ICON);
+	case RsReputationLevel::REMOTELY_NEGATIVE:
+		return QIcon(REPUTATION_REMOTELY_NEGATIVE_ICON);
+	case RsReputationLevel::NEUTRAL:
+		return QIcon(REPUTATION_NEUTRAL_ICON);
+	default:
+		std::cerr << "Asked for unidentified icon index "
+		          << static_cast<uint32_t>(icon_index) << std::endl;
 		return QIcon(); // dont draw anything
 	}
 }
@@ -1018,7 +1106,8 @@ void GxsIdDetails::getIcons(const RsIdentityDetails &details, QList<QIcon> &icon
 {
     QPixmap pix ;
 
-    if(details.mReputation.mOverallReputationLevel == RsReputations::REPUTATION_LOCALLY_NEGATIVE)
+	if( details.mReputation.mOverallReputationLevel ==
+	         RsReputationLevel::LOCALLY_NEGATIVE )
     {
         icons.clear() ;
         icons.push_back(QIcon(IMAGE_BANNED)) ;
@@ -1030,11 +1119,11 @@ void GxsIdDetails::getIcons(const RsIdentityDetails &details, QList<QIcon> &icon
 
     if(icon_types & ICON_TYPE_AVATAR)
     {
-        if(details.mAvatar.mSize == 0 || !pix.loadFromData(details.mAvatar.mData, details.mAvatar.mSize, "PNG"))
+        if(details.mAvatar.mSize == 0 || !GxsIdDetails::loadPixmapFromData(details.mAvatar.mData, details.mAvatar.mSize, pix))
 #if QT_VERSION < 0x040700
-            pix = QPixmap::fromImage(makeDefaultIcon(details.mId));
+            pix = makeDefaultIcon(details.mId);
 #else
-            pix.convertFromImage(makeDefaultIcon(details.mId));
+            pix = makeDefaultIcon(details.mId);
 #endif
 
 

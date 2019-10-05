@@ -28,6 +28,8 @@
 #include "rsitems/rsnxsitems.h"
 #include "pqi/p3cfgmgr.h"
 #include "pqi/pqiservice.h"
+#include "retroshare/rspeers.h"
+#include "retroshare/rsevents.h"
 
 /*******************************/
 // #define SERVICECONTROL_DEBUG	1
@@ -459,10 +461,7 @@ bool	p3ServiceControl::checkFilter(uint32_t serviceId, const RsPeerId &peerId)
 #endif
 
 	// must allow ServiceInfo through, or we have nothing!
-#define FULLID_SERVICEINFO ((((uint32_t) RS_PKT_VERSION_SERVICE) << 24) + ((RS_SERVICE_TYPE_SERVICEINFO) << 8))
-
-	//if (serviceId == RS_SERVICE_TYPE_SERVICEINFO)
-	if (serviceId == FULLID_SERVICEINFO)
+	if (serviceId == RsServiceInfo::RsServiceInfoUIn16ToFullServiceId(RS_SERVICE_TYPE_SERVICEINFO))
 	{
 #ifdef SERVICECONTROL_DEBUG
 		std::cerr << "p3ServiceControl::checkFilter() Allowed SERVICEINFO";
@@ -759,6 +758,11 @@ bool	p3ServiceControl::updateFilterByPeer_locked(const RsPeerId &peerId)
 		mPeerFilterMap[peerId] = peerFilter;
 	}
 	recordFilterChanges_locked(peerId, originalFilter, peerFilter);
+
+	using Evt_t = RsPeerStateChangedEvent;
+	if(rsEvents)
+		rsEvents->postEvent(std::unique_ptr<Evt_t>(new Evt_t(peerId)));
+
 	return true;
 }
 
@@ -1393,29 +1397,6 @@ RsServiceInfo::RsServiceInfo()
   mMinVersionMinor(0)
 {
 	return;
-}
-
-std::ostream &operator<<(std::ostream &out, const RsPeerServiceInfo &info)
-{
-	out << "RsPeerServiceInfo(" << info.mPeerId << ")";
-	out << std::endl;
-	std::map<uint32_t, RsServiceInfo>::const_iterator it;
-	for(it = info.mServiceList.begin(); it != info.mServiceList.end(); ++it)
-	{
-		out << "\t Service:" << it->first << " : ";
-		out << it->second;
-		out << std::endl;
-	}
-	return out;
-}
-
-
-std::ostream &operator<<(std::ostream &out, const RsServiceInfo &info)
-{
-	out << "RsServiceInfo(" << info.mServiceType << "): " << info.mServiceName;
-	out << " Version(" << info.mVersionMajor << "," << info.mVersionMinor << ")";
-	out << " MinVersion(" << info.mMinVersionMajor << "," << info.mMinVersionMinor << ")";
-	return out;
 }
 
 std::ostream &operator<<(std::ostream &out, const ServicePeerFilter &filter)

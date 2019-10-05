@@ -2,7 +2,7 @@
 
 /* Standard rules */
 
-QFrame#titleBarFrame, QFrame#toolBarFrame {
+QFrame#toolBarFrame {
 	background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FEFEFE, stop:1 #E8E8E8);
 	border: 1px solid #CCCCCC;
 }
@@ -119,18 +119,9 @@ GxsCreateCommentDialog QFrame#frame {
 
 /* Forums */
 
-ForumsDialog QLabel#forumName, ForumsDialog QLabel#threadTitle
+GxsForumThreadWidget QLabel#forumName
 {
-	border: 2px solid #CCCCCC;
-	border-radius:6px;
-	background: white;
-}
-
-ForumsDialog2 QLabel#forumName, ForumsDialog2 QLabel#threadTitle
-{
-	border: 2px solid #CCCCCC;
-	border-radius:6px;
-	background: white;
+  font: bold;
 }
 
 CreateForumMsg > QToolBar#toolBar, CreateForumV2Msg > QToolBar#toolBar {
@@ -605,17 +596,6 @@ PostedCreatePostDialog QLabel#info_label {
 	background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFD7, stop:1 #FFFFB2);
 }
 
-PostedItem QFrame#frame {
-  border: 2px solid #CCCCCC;
-  background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #EEEEEE, stop: 1 #CCCCCC);
-  border-radius: 10px
-}
-
-PostedItem QLabel#notes {
-  border: 2px solid #CCCCCC;
-  border-radius: 10px
-}
-
 QLabel#sharekeyinfo_label{
 	border: 1px solid #DCDC41;
 	border-radius: 6px;
@@ -671,14 +651,6 @@ IdDialog QLabel#avlabel {
 }
 
 IdDialog QFrame#inviteFrame {
-	border: 1px solid #DCDC41;
-	border-radius: 6px;
-	background: #FFFFD7;
-	background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFD7, stop:1 #FFFFB2);
-}
-
-GxsChannelPostsWidget QFrame#infoFrame
-{ 
 	border: 1px solid #DCDC41;
 	border-radius: 6px;
 	background: #FFFFD7;
@@ -768,9 +740,8 @@ ConnectFriendWizard QPlainTextEdit#friendCertEdit {
 }
 
 HomePage QPlainTextEdit#userCertEdit {
-	border: 2px solid #0099cc;
-	border-radius: 6px;
-	background: white;
+
+	background: transparent;
 }
 
 HomePage QFrame#addframe{
@@ -814,11 +785,126 @@ GenCertDialog QFrame#profileframe{
 
 PostedListWidget QComboBox#comboBox {
 	font: bold;
-	font-size: 15px;
 	color: #0099cc;
 }
 
 PostedListWidget QToolButton#submitPostButton {
 	font: bold;
+}
+
+PostedListWidget QToolButton#subscribeToolButton {
+	font: bold;
 	font-size: 15px;
+	color: white;
+	background: #0099cc;
+	border-radius: 4px;
+	max-height: 27px;
+}
+
+PostedListWidget QToolButton#subscribeToolButton:hover {
+	background: #03b1f3;
+	border-radius: 4px;
+}
+
+PostedListWidget QFrame#headerFrame {
+	background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FEFEFE, stop:1 #E8E8E8);
+	border: 1px solid #CCCCCC;
+}
+
+GxsForumThreadWidget QToolButton#subscribeToolButton {
+	font: bold;
+	font-size: 14px;
+	color: white;
+	background: #0099cc;
+	border-radius: 4px;
+  max-height: 27px;
+}
+
+GxsForumThreadWidget QToolButton#subscribeToolButton:hover {
+	background: #03b1f3;
+	border-radius: 4px;
+}
+
+GxsChannelPostsWidget QFrame#infoFrame
+{ 
+
+}
+
+GxsChannelPostsWidget QToolButton#subscribeToolButton {
+	font: bold;
+	font-size: 14px;
+	color: white;
+	background: #0099cc;
+	border-radius: 4px;
+	max-height: 27px;
+}
+
+GxsChannelPostsWidget QToolButton#subscribeToolButton:hover {
+	background: #03b1f3;
+	border-radius: 4px;
+}
+
+GxsChannelPostsWidget QToolButton#subscribeToolButton:pressed {
+	background: #03b1f3;
+	border-radius: 4px;
+	border: 1px solid gray;
+}
+
+GxsChannelPostsWidget QToolButton#subscribeToolButton:disabled {
+	background: gray;
+	border-radius: 4px;
+	border: 1px solid gray;
+	color: lightgray;
+}
+
+/* only for MenuButtonPopup */
+GxsChannelPostsWidget QToolButton#subscribeToolButton[popupMode="1"] { 
+    padding-right: 0px; 
+}
+
+GxsChannelPostsWidget QToolButton#subscribeToolButton::menu-arrow {
+    image: none;
+}
+
+GxsChannelPostsWidget QToolButton#subscribeToolButton::menu-button {
+    image: none;
+
+}
+
+PostedItem QFrame#frame_notes {
+	background: white;
+}
+
+PostedItem QLabel#notes {
+
+}
+
+PostedItem QFrame#voteFrame {
+	background: #f8f9fa;
+}
+
+PostedItem QFrame#mainFrame [new=false]{
+	background: white;
+}
+
+PostedItem > QFrame#mainFrame[new=true] {
+	background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #F0F8FD, stop:0.8 #E6F2FD, stop: 0.81 #E6F2FD, stop: 1 #D2E7FD);
+}
+
+PostedItem QFrame#frame_picture{
+	background: white;
+}
+
+PostedItem QLabel#thumbnailLabel{
+	border: 2px solid #CCCCCC;
+	border-radius: 3px;
+}
+
+PostedItem QLabel#fromBoldLabel, QLabel#fromLabel, QLabel#dateLabel, QLabel#siteBoldLabel {
+	color: #787c7e;
+}
+
+GxsCommentDialog QComboBox#sortBox {
+	font: bold;
+	color: #0099cc;
 }

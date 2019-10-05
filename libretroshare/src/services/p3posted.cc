@@ -79,9 +79,8 @@ bool p3Posted::getGroupData(const uint32_t &token, std::vector<RsPostedGroup> &g
 			RsGxsPostedGroupItem* item = dynamic_cast<RsGxsPostedGroupItem*>(*vit);
 			if (item)
 			{
-				RsPostedGroup grp = item->mGroup;
-				item->mGroup.mMeta = item->meta;
-				grp.mMeta = item->mGroup.mMeta;
+				RsPostedGroup grp;
+				item->toPostedGroup(grp, true);
 				delete item;
 				groups.push_back(grp);
 			}
@@ -123,6 +122,7 @@ bool p3Posted::getPostData(const uint32_t &token, std::vector<RsPostedPost> &msg
 				{
 					RsPostedPost msg = postItem->mPost;
 					msg.mMeta = postItem->meta;
+					postItem->toPostedPost(msg, true);
 					msg.calculateScores(now);
 
 					msgs.push_back(msg);
@@ -264,8 +264,8 @@ bool p3Posted::createGroup(uint32_t &token, RsPostedGroup &group)
 	std::cerr << "p3Posted::createGroup()" << std::endl;
 
 	RsGxsPostedGroupItem* grpItem = new RsGxsPostedGroupItem();
-	grpItem->mGroup = group;
-	grpItem->meta = group.mMeta;
+	grpItem->fromPostedGroup(group, true);
+
 
 	RsGenExchange::publishGroup(token, grpItem);
 	return true;
@@ -277,8 +277,8 @@ bool p3Posted::updateGroup(uint32_t &token, RsPostedGroup &group)
 	std::cerr << "p3Posted::updateGroup()" << std::endl;
 
 	RsGxsPostedGroupItem* grpItem = new RsGxsPostedGroupItem();
-	grpItem->mGroup = group;
-	grpItem->meta = group.mMeta;
+	grpItem->fromPostedGroup(group, true);
+
 
 	RsGenExchange::updateGroup(token, grpItem);
 	return true;
@@ -291,8 +291,10 @@ bool p3Posted::createPost(uint32_t &token, RsPostedPost &msg)
 	std::cerr << std::endl;
 
 	RsGxsPostedPostItem* msgItem = new RsGxsPostedPostItem();
-	msgItem->mPost = msg;
-	msgItem->meta = msg.mMeta;
+	//msgItem->mPost = msg;
+	//msgItem->meta = msg.mMeta;
+	msgItem->fromPostedPost(msg, true);
+		
 	
 	RsGenExchange::publishMsg(token, msgItem);
 	return true;

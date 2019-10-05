@@ -26,6 +26,7 @@
 #include "GxsChannelPostsWidget.h"
 #include "ui_GxsChannelPostsWidget.h"
 #include "gui/feeds/GxsChannelPostItem.h"
+#include "gui/gxs/GxsIdDetails.h"
 #include "gui/gxschannels/CreateGxsChannelMsg.h"
 #include "gui/common/UIStateHelper.h"
 #include "gui/settings/rsharesettings.h"
@@ -238,13 +239,11 @@ void GxsChannelPostsWidget::insertChannelDetails(const RsGxsChannelGroup &group)
 	/* IMAGE */
 	QPixmap chanImage;
 	if (group.mImage.mData != NULL) {
-		chanImage.loadFromData(group.mImage.mData, group.mImage.mSize, "PNG");
+		GxsIdDetails::loadPixmapFromData(group.mImage.mData, group.mImage.mSize, chanImage,GxsIdDetails::ORIGINAL);
 	} else {
 		chanImage = QPixmap(CHAN_DEFAULT_IMAGE);
 	}
 	ui->logoLabel->setPixmap(chanImage);
-
-	ui->subscribersLabel->setText(QString::number(group.mMeta.mPop)) ;
 
 	if (group.mMeta.mSubscribeFlags & GXS_SERV::GROUP_SUBSCRIBE_PUBLISH)
 	{
@@ -256,6 +255,8 @@ void GxsChannelPostsWidget::insertChannelDetails(const RsGxsChannelGroup &group)
 	}
 
 	ui->subscribeToolButton->setSubscribed(IS_GROUP_SUBSCRIBED(group.mMeta.mSubscribeFlags));
+	mStateHelper->setWidgetEnabled(ui->subscribeToolButton, true);
+
 
     bool autoDownload ;
             rsGxsChannels->getChannelAutoDownload(group.mMeta.mGroupId,autoDownload);
@@ -269,6 +270,9 @@ void GxsChannelPostsWidget::insertChannelDetails(const RsGxsChannelGroup &group)
 		ui->fileToolButton->setEnabled(true);
 		ui->infoWidget->hide();
 		setViewMode(viewMode());
+		
+		ui->subscribeToolButton->setText(tr("Subscribed") + " " + QString::number(group.mMeta.mPop) );
+
 
 		ui->infoPosts->clear();
 		ui->infoDescription->clear();
@@ -330,6 +334,9 @@ void GxsChannelPostsWidget::insertChannelDetails(const RsGxsChannelGroup &group)
 
 		ui->feedToolButton->setEnabled(false);
 		ui->fileToolButton->setEnabled(false);
+		
+		ui->subscribeToolButton->setText(tr("Subscribe ") + " " + QString::number(group.mMeta.mPop) );
+
 	}
 }
 
@@ -619,7 +626,7 @@ void GxsChannelPostsWidget::blank()
 {
 	mStateHelper->setWidgetEnabled(ui->postButton, false);
 	mStateHelper->setWidgetEnabled(ui->subscribeToolButton, false);
-
+	
 	clearPosts();
 
     groupNameChanged(QString());
