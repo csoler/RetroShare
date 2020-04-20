@@ -1,5 +1,5 @@
-# SPDX-FileCopyrightText: (C) 2004-2019 Retroshare Team <contact@retroshare.cc>
-# SPDX-License-Identifier: CC0-1.0
+# SPDX-FileCopyrightText: (C) 2004-2020 Retroshare Team <contact@retroshare.cc>
+# SPDX-License-Identifier: CC0-1.0 
 
 git:
   depth: 2000
