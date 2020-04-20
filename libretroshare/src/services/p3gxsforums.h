@@ -94,6 +94,12 @@ public:
 	        const std::list<RsGxsGroupId>& forumIds,
 	        std::vector<RsGxsForumGroup>& forumsInfo );
 
+    /// Implementation of @see RsGxsForums::getForumStatistics
+    bool getForumStatistics(const RsGxsGroupId& ForumId,GxsGroupStatistic& stat) override;
+
+    /// Implementation of @see RsGxsForums::getForumServiceStatistics
+	bool getForumServiceStatistics(GxsServiceStatistic& stat) override;
+
 	/// @see RsGxsForums::getForumMsgMetaData
 	virtual bool getForumMsgMetaData(const RsGxsGroupId& forumId, std::vector<RsMsgMetaData>& msg_metas) ;
 
@@ -110,13 +116,31 @@ public:
 	virtual bool subscribeToForum( const RsGxsGroupId& forumId,
 	                               bool subscribe );
 
-	virtual bool getGroupData(const uint32_t &token, std::vector<RsGxsForumGroup> &groups);
-	virtual bool getMsgData(const uint32_t &token, std::vector<RsGxsForumMsg> &msgs);
-	virtual bool getMsgMetaData(const uint32_t &token, GxsMsgMetaMap& msg_metas);
-	virtual void setMessageReadStatus(uint32_t& token, const RsGxsGrpMsgIdPair& msgId, bool read);
-	virtual bool createGroup(uint32_t &token, RsGxsForumGroup &group);
-	virtual bool createMsg(uint32_t &token, RsGxsForumMsg &msg);
-	virtual bool updateGroup(uint32_t &token, RsGxsForumGroup &group);
+	/// @see RsGxsForums
+	bool exportForumLink(
+	        std::string& link, const RsGxsGroupId& forumId,
+	        bool includeGxsData = true,
+	        const std::string& baseUrl = DEFAULT_FORUM_BASE_URL,
+	        std::string& errMsg = RS_DEFAULT_STORAGE_PARAM(std::string)
+	        ) override;
+
+	/// @see RsGxsForums
+	bool importForumLink(
+	        const std::string& link,
+	        RsGxsGroupId& forumId = RS_DEFAULT_STORAGE_PARAM(RsGxsGroupId),
+	        std::string& errMsg = RS_DEFAULT_STORAGE_PARAM(std::string)
+	        ) override;
+
+    /// implementation of rsGxsGorums
+    ///
+	bool getGroupData(const uint32_t &token, std::vector<RsGxsForumGroup> &groups) override;
+	bool getMsgData(const uint32_t &token, std::vector<RsGxsForumMsg> &msgs) override;
+	void setMessageReadStatus(uint32_t& token, const RsGxsGrpMsgIdPair& msgId, bool read) override;
+	bool createGroup(uint32_t &token, RsGxsForumGroup &group) override;
+	bool createMsg(uint32_t &token, RsGxsForumMsg &msg) override;
+	bool updateGroup(uint32_t &token, const RsGxsForumGroup &group) override;
+
+	bool getMsgMetaData(const uint32_t &token, GxsMsgMetaMap& msg_metas) ;
 
 private:
 
@@ -151,4 +175,5 @@ bool generateGroup(uint32_t &token, std::string groupName);
 	RsGxsMessageId mGenThreadId;
     std::map<RsGxsGroupId,rstime_t> mKnownForums ;
 	
+	RsMutex mKnownForumsMutex;
 };

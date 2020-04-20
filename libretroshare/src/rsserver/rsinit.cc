@@ -45,7 +45,7 @@
 #include "retroshare/rsnotify.h"
 #include "retroshare/rsiface.h"
 #include "plugins/pluginmanager.h"
-
+#include "retroshare/rsversion.h"
 #include "rsserver/rsloginhandler.h"
 #include "rsserver/rsaccounts.h"
 
@@ -191,6 +191,9 @@ static const int SSLPWD_LEN = 64;
 
 void RsInit::InitRsConfig()
 {
+	RsInfo() << " libretroshare version: " << RS_HUMAN_READABLE_VERSION
+	         << std::endl;
+
 	rsInitConfig = new RsInitConfig;
 
 
@@ -294,6 +297,7 @@ int RsInit::InitRetroShare(const RsConfigOptions& conf)
     rsInitConfig->inet               = conf.forcedInetAddress ;
     rsInitConfig->port               = conf.forcedPort ;
     rsInitConfig->debugLevel         = conf.debugLevel;
+    rsInitConfig->udpListenerOnly    = conf.udpListenerOnly;
     rsInitConfig->optBaseDir         = conf.optBaseDir;
     rsInitConfig->jsonApiPort        = conf.jsonApiPort;
     rsInitConfig->jsonApiBindAddress = conf.jsonApiBindAddress;
@@ -306,7 +310,7 @@ int RsInit::InitRetroShare(const RsConfigOptions& conf)
 	if( rsInitConfig->outStderr)           rsInitConfig->haveLogFile    = false ;
 	if(!rsInitConfig->logfname.empty())    rsInitConfig->haveLogFile    = true;
 	if( rsInitConfig->inet != "127.0.0.1") rsInitConfig->forceLocalAddr = true;
-	if( rsInitConfig->port != 0)           rsInitConfig->forceExtPort   = true;
+	if( rsInitConfig->port != 0)           rsInitConfig->forceLocalAddr = true; // previously forceExtPort, which means nothing in this case
 #ifdef LOCALNET_TESTING
 	if(!portRestrictions.empty())       doPortRestrictions           = true;
 #endif
@@ -391,6 +395,18 @@ int RsInit::InitRetroShare(const RsConfigOptions& conf)
 	if(!RsAccounts::init(rsInitConfig->optBaseDir,error_code))
 		return error_code ;
 
+#ifdef RS_JSONAPI
+	// We create the JsonApiServer this early, because it is needed *before* login
+	RsDbg() << __PRETTY_FUNCTION__
+	        << " Allocating JSON API server (not launched yet)" << std::endl;
+	JsonApiServer* jas = new JsonApiServer();
+	jas->setListeningPort(conf.jsonApiPort);
+	jas->setBindingAddress(conf.jsonApiBindAddress);
+
+	if(conf.jsonApiPort != 0) jas->restart();
+
+	rsJsonApi = jas;
+#endif
 
 #ifdef RS_AUTOLOGIN
 	/* check that we have selected someone */
@@ -407,14 +423,6 @@ int RsInit::InitRetroShare(const RsConfigOptions& conf)
 		}
 	}
 #endif
-
-#ifdef RS_JSONAPI
-	if(rsInitConfig->jsonApiPort)
-	{
-		jsonApiServer = new JsonApiServer( rsInitConfig->jsonApiPort, rsInitConfig->jsonApiBindAddress );
-		jsonApiServer->start("JSON API Server");
-	}
-#endif // ifdef RS_JSONAPI
 
 	return RS_INIT_OK;
 }
@@ -702,7 +710,7 @@ RsGRouter *rsGRouter = NULL ;
 #include "util/rsrandom.h"
 
 #ifdef RS_USE_LIBUPNP
-#	include "rs_upnp/upnphandler_linux.h"
+#	include "rs_upnp/upnphandler_libupnp.h"
 #else // def RS_USE_LIBUPNP
 #	include "rs_upnp/upnphandler_miniupnp.h"
 #endif // def RS_USE_LIBUPNP
@@ -729,12 +737,13 @@ RsGRouter *rsGRouter = NULL ;
 #include "pgp/pgpauxutils.h"
 #include "services/p3idservice.h"
 #include "services/p3gxscircles.h"
-#include "services/p3wiki.h"
 #include "services/p3posted.h"
-#include "services/p3photoservice.h"
 #include "services/p3gxsforums.h"
 #include "services/p3gxschannels.h"
+
+#include "services/p3wiki.h"
 #include "services/p3wire.h"
+#include "services/p3photoservice.h"
 
 #endif // RS_ENABLE_GXS
 
@@ -1215,12 +1224,8 @@ int RsServer::StartupRetroShare()
 	mPluginsManager->loadPlugins(programatically_inserted_plugins) ;
 
 #ifdef RS_JSONAPI
-	if(jsonApiServer) // JsonApiServer may be disabled at runtime
-	{
-		mConfigMgr->addConfiguration("jsonApi.cfg", jsonApiServer);
-		RsFileHash dummyHash;
-		jsonApiServer->loadConfiguration(dummyHash);
-	}
+	// add jsonapi server to config manager so that it can save/load its tokens
+	if(rsJsonApi) rsJsonApi->connectToConfigManager(*mConfigMgr);
 #endif
 
     	/**** Reputation system ****/
@@ -1230,7 +1235,7 @@ int RsServer::StartupRetroShare()
 
 #ifdef RS_ENABLE_GXS
 
-	std::string currGxsDir = RsAccounts::AccountDirectory() + "/gxs";
+		std::string currGxsDir = RsAccounts::AccountDirectory() + "/gxs";
         RsDirUtil::checkCreateDirectory(currGxsDir);
 
         RsNxsNetMgr* nxsMgr =  new RsNxsNetMgrImpl(serviceCtrl);
@@ -1357,36 +1362,39 @@ int RsServer::StartupRetroShare()
 
     mGxsChannels->setNetworkExchangeService(gxschannels_ns) ;
 
-#if 0 // PHOTO IS DISABLED FOR THE MOMENT
+#ifdef RS_USE_PHOTO
         /**** Photo service ****/
         RsGeneralDataService* photo_ds = new RsDataService(currGxsDir + "/", "photoV2_db",
                         RS_SERVICE_GXS_TYPE_PHOTO, NULL, rsInitConfig->gxs_passwd);
 
         // init gxs services
-        mPhoto = new p3PhotoService(photo_ds, NULL, mGxsIdService);
+        p3PhotoService *mPhoto = new p3PhotoService(photo_ds, NULL, mGxsIdService);
 
         // create GXS photo service
         RsGxsNetService* photo_ns = new RsGxsNetService(
                         RS_SERVICE_GXS_TYPE_PHOTO, photo_ds, nxsMgr, 
 			mPhoto, mPhoto->getServiceInfo(), 
-			mGxsIdService, mGxsCircles,mGxsIdService,
+			mReputations, mGxsCircles,mGxsIdService,
 			pgpAuxUtils);
+
+		mPhoto->setNetworkExchangeService(photo_ns);
 #endif
 
-#if 0 // WIRE IS DISABLED FOR THE MOMENT
+#ifdef RS_USE_WIRE
         /**** Wire GXS service ****/
         RsGeneralDataService* wire_ds = new RsDataService(currGxsDir + "/", "wire_db",
-                        RS_SERVICE_GXS_TYPE_WIRE, 
-			NULL, rsInitConfig->gxs_passwd);
+                        RS_SERVICE_GXS_TYPE_WIRE, NULL, rsInitConfig->gxs_passwd);
 
-        mWire = new p3Wire(wire_ds, NULL, mGxsIdService);
+        p3Wire *mWire = new p3Wire(wire_ds, NULL, mGxsIdService);
 
         // create GXS photo service
         RsGxsNetService* wire_ns = new RsGxsNetService(
                         RS_SERVICE_GXS_TYPE_WIRE, wire_ds, nxsMgr, 
 			mWire, mWire->getServiceInfo(), 
-			mGxsIdService, mGxsCircles,mGxsIdService,
+			mReputations, mGxsCircles,mGxsIdService,
 			pgpAuxUtils);
+
+		mWire->setNetworkExchangeService(wire_ns);
 #endif
         // now add to p3service
         pqih->addService(gxsid_ns, true);
@@ -1397,7 +1405,12 @@ int RsServer::StartupRetroShare()
 #endif
         pqih->addService(gxsforums_ns, true);
         pqih->addService(gxschannels_ns, true);
-        //pqih->addService(photo_ns, true);
+#ifdef RS_USE_PHOTO
+        pqih->addService(photo_ns, true);
+#endif
+#ifdef RS_USE_WIRE
+        pqih->addService(wire_ns, true);
+#endif
 
 #	ifdef RS_GXS_TRANS
 	RsGeneralDataService* gxstrans_ds = new RsDataService(
@@ -1623,11 +1636,16 @@ int RsServer::StartupRetroShare()
 	mConfigMgr->addConfiguration("gxschannels_srv.cfg", mGxsChannels);
 	mConfigMgr->addConfiguration("gxscircles.cfg"  , gxscircles_ns);
 	mConfigMgr->addConfiguration("posted.cfg"      , posted_ns);
+	mConfigMgr->addConfiguration("gxsposted_srv.cfg", mPosted);
 #ifdef RS_USE_WIKI
 	mConfigMgr->addConfiguration("wiki.cfg", wiki_ns);
 #endif
-	//mConfigMgr->addConfiguration("photo.cfg", photo_ns);
-	//mConfigMgr->addConfiguration("wire.cfg", wire_ns);
+#ifdef RS_USE_PHOTO
+	mConfigMgr->addConfiguration("photo.cfg", photo_ns);
+#endif
+#ifdef RS_USE_WIRE
+	mConfigMgr->addConfiguration("wire.cfg", wire_ns);
+#endif
 #endif //RS_ENABLE_GXS
 	mConfigMgr->addConfiguration("I2PBOB.cfg", mI2pBob);
 
@@ -1789,8 +1807,12 @@ int RsServer::StartupRetroShare()
     rsGxsChannels = mGxsChannels;
     rsGxsTrans = mGxsTrans;
 
-    //rsPhoto = mPhoto;
-    //rsWire = mWire;
+#if RS_USE_PHOTO
+    rsPhoto = mPhoto;
+#endif
+#if RS_USE_WIRE
+    rsWire = mWire;
+#endif
 
 	/*** start up GXS core runner ***/
 
@@ -1804,8 +1826,12 @@ int RsServer::StartupRetroShare()
 	startServiceThread(mGxsForums, "gxs forums");
 	startServiceThread(mGxsChannels, "gxs channels");
 
-	//createThread(*mPhoto);
-	//createThread(*mWire);
+#if RS_USE_PHOTO
+	startServiceThread(mPhoto, "gxs photo");
+#endif
+#if RS_USE_WIRE
+	startServiceThread(mWire, "gxs wire");
+#endif
 
 	// cores ready start up GXS net servers
 	startServiceThread(gxsid_ns, "gxs id ns");
@@ -1817,8 +1843,12 @@ int RsServer::StartupRetroShare()
 	startServiceThread(gxsforums_ns, "gxs forums ns");
 	startServiceThread(gxschannels_ns, "gxs channels ns");
 
-	//createThread(*photo_ns);
-	//createThread(*wire_ns);
+#if RS_USE_PHOTO
+	startServiceThread(photo_ns, "gxs photo ns");
+#endif
+#if RS_USE_WIRE
+	startServiceThread(wire_ns, "gxs wire ns");
+#endif
 
 #	ifdef RS_GXS_TRANS
 	startServiceThread(mGxsTrans, "gxs trans");

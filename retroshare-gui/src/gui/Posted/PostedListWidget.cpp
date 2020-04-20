@@ -19,22 +19,36 @@
  *******************************************************************************/
 
 #include <QMessageBox>
+#include <QSignalMapper>
 
 #include "PostedListWidget.h"
 #include "ui_PostedListWidget.h"
 
+#include "util/qtthreadsutils.h"
+#include "gui/gxs/GxsIdDetails.h"
 #include "PostedCreatePostDialog.h"
+#include "gui/settings/rsharesettings.h"
 #include "PostedItem.h"
+#include "PostedCardView.h"
 #include "gui/common/UIStateHelper.h"
 #include "gui/RetroShareLink.h"
 #include "util/HandleRichText.h"
 #include "util/DateTime.h"
+#include "gui/settings/rsharesettings.h"
 
 #include <retroshare/rsposted.h>
 #include "retroshare/rsgxscircles.h"
 
 #define POSTED_DEFAULT_LISTING_LENGTH 10
 #define POSTED_MAX_INDEX	      10000
+
+//#define DEBUG_POSTED_LIST_WIDGET
+
+#define BOARD_DEFAULT_IMAGE ":/icons/png/posted.png"
+
+/* View mode */
+#define VIEW_MODE_CLASSIC  1
+#define VIEW_MODE_CARD  2
 
 /** Constructor */
 PostedListWidget::PostedListWidget(const RsGxsGroupId &postedId, QWidget *parent)
@@ -58,6 +72,12 @@ PostedListWidget::PostedListWidget(const RsGxsGroupId &postedId, QWidget *parent
 	
 	connect(ui->comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(getRankings(int)));
 
+	QSignalMapper *signalMapper = new QSignalMapper(this);
+	connect(ui->classicViewButton, SIGNAL(clicked()), signalMapper, SLOT(map()));
+	connect(ui->cardViewButton, SIGNAL(clicked()), signalMapper, SLOT(map()));
+	signalMapper->setMapping(ui->classicViewButton, VIEW_MODE_CLASSIC);
+	signalMapper->setMapping(ui->cardViewButton, VIEW_MODE_CARD);
+	connect(signalMapper, SIGNAL(mapped(int)), this, SLOT(setViewMode(int)));
 
 	// default sort method.
 	mSortMethod = RsPosted::HotRankType;
@@ -81,10 +101,15 @@ PostedListWidget::PostedListWidget(const RsGxsGroupId &postedId, QWidget *parent
 	                                        available posts from your subscribed friends, and make the \
 	                                        links visible to all other friends.</p><p>Afterwards you can unsubscribe from the context menu of the links list at left.</p>"));
 											
-	ui->infoframe->hide();										
+	ui->infoframe->hide();
 
 	/* load settings */
 	processSettings(true);
+
+	mEventHandlerId = 0;
+    // Needs to be asynced because this function is likely to be called by another thread!
+
+	rsEvents->registerEventsHandler(RsEventType::GXS_POSTED, [this](std::shared_ptr<const RsEvent> event) {   RsQThreadUtils::postToObject( [=]() { handleEvent_main_thread(event); }, this ); }, mEventHandlerId );
 
 	/* Initialize GUI */
 	setGroupId(postedId);
@@ -98,17 +123,66 @@ PostedListWidget::~PostedListWidget()
 	delete(ui);
 }
 
-void PostedListWidget::processSettings(bool /*load*/)
+void PostedListWidget::handleEvent_main_thread(std::shared_ptr<const RsEvent> event)
 {
-//	Settings->beginGroup(QString("PostedListWidget"));
-//
-//	if (load) {
-//		// load settings
-//	} else {
-//		// save settings
-//	}
-//
-//	Settings->endGroup();
+	const RsGxsPostedEvent *e = dynamic_cast<const RsGxsPostedEvent*>(event.get());
+
+	if(!e)
+		return;
+
+        switch(e->mPostedEventCode)
+        {
+        case RsPostedEventCode::UPDATED_POSTED_GROUP:
+        case RsPostedEventCode::NEW_POSTED_GROUP:
+        case RsPostedEventCode::UPDATED_MESSAGE:
+        case RsPostedEventCode::NEW_MESSAGE:
+            if(e->mPostedGroupId == groupId())
+				updateDisplay(true);
+            break;
+        default:
+            break;
+        }
+}
+
+
+void PostedListWidget::processSettings(bool load)
+{
+	Settings->beginGroup(QString("PostedListWidget"));
+
+	if (load)
+    {
+		// load settings
+		
+		setViewMode(Settings->value("viewMode", VIEW_MODE_CLASSIC).toInt());
+
+        RsGxsId voteId(Settings->value("defaultIdentity",QString()).toString().toStdString());
+
+        if(!voteId.isNull())
+			ui->idChooser->setChosenId(voteId);
+
+	}
+    else
+    {
+		// save settings
+
+		/* View mode */
+		Settings->setValue("viewMode", viewMode());
+
+		RsGxsId voteId;
+
+		switch (ui->idChooser->getChosenId(voteId))
+        {
+		case GxsIdChooser::KnowId:
+		case GxsIdChooser::UnKnowId: Settings->setValue("defaultIdentity",QString::fromStdString(voteId.toStdString()));
+		break;
+		default:
+		case GxsIdChooser::NoId:
+		case GxsIdChooser::None:
+            break;
+        }
+	}
+
+	Settings->endGroup();
 }
 
 QIcon PostedListWidget::groupIcon()
@@ -124,6 +198,13 @@ QIcon PostedListWidget::groupIcon()
 	return QIcon();
 }
 
+void PostedListWidget::groupIdChanged()
+{
+	mPostIndex = 0;
+	GxsMessageFramePostWidget::groupIdChanged();
+	updateShowText();
+}
+
 /*****************************************************************************************/
 // Overloaded from FeedHolder.
 QScrollArea *PostedListWidget::getScrollArea()
@@ -131,17 +212,27 @@ QScrollArea *PostedListWidget::getScrollArea()
 	return ui->scrollArea;
 }
 
-void PostedListWidget::deleteFeedItem(QWidget */*item*/, uint32_t /*type*/)
+// Overloaded from FeedHolder.
+/*QScrollArea *PostedListWidget::getScrollArea()
 {
+	return ui->scrollAreaCardView;
+}*/
+
+void PostedListWidget::deleteFeedItem(FeedItem *, uint32_t /*type*/)
+{
+#ifdef DEBUG_POSTED_LIST_WIDGET
 	std::cerr << "PostedListWidget::deleteFeedItem() Nah";
 	std::cerr << std::endl;
+#endif
 	return;
 }
 
 void PostedListWidget::openChat(const RsPeerId & /*peerId*/)
 {
+#ifdef DEBUG_POSTED_LIST_WIDGET
 	std::cerr << "PostedListWidget::openChat() Nah";
 	std::cerr << std::endl;
+#endif
 	return;
 }
 
@@ -159,7 +250,7 @@ void PostedListWidget::newPost()
 		return;
 	}
 
- 	PostedCreatePostDialog *cp = new PostedCreatePostDialog(mTokenQueue, rsPosted, groupId(), this);
+ 	PostedCreatePostDialog *cp = new PostedCreatePostDialog(rsPosted, groupId(), this);
 	cp->show();
 
 	/* window will destroy itself! */
@@ -197,8 +288,10 @@ void PostedListWidget::getRankings(int i)
 	if (groupId().isNull())
 		return;
 
+#ifdef DEBUG_POSTED_LIST_WIDGET
 	std::cerr << "PostedListWidget::getRankings()";
 	std::cerr << std::endl;
+#endif
 
 	int oldSortMethod = mSortMethod;
 	
@@ -240,10 +333,10 @@ void PostedListWidget::submitVote(const RsGxsGrpMsgIdPair &msgId, bool up)
 		std::cerr << "PostedListWidget::createPost() ERROR GETTING AuthorId!, Vote Failed";
 		std::cerr << std::endl;
 
-		QMessageBox::warning(this, tr("RetroShare"),tr("Please create or choose a Signing Id before Voting"), QMessageBox::Ok, QMessageBox::Ok);
+		QMessageBox::warning(this, tr("RetroShare"),tr("Please create or choose a default identity to use for voting"), QMessageBox::Ok, QMessageBox::Ok);
 
 		return;
-	}//switch (ui.idChooser->getChosenId(authorId))
+	}
 
 	RsGxsVote vote;
 
@@ -252,12 +345,12 @@ void PostedListWidget::submitVote(const RsGxsGrpMsgIdPair &msgId, bool up)
 	vote.mMeta.mParentId = msgId.second;
 	vote.mMeta.mAuthorId = authorId;
 
-	if (up) {
+	if (up)
 		vote.mVoteType = GXS_VOTE_UP;
-	} else { //if (up)
+	else
 		vote.mVoteType = GXS_VOTE_DOWN;
-	}//if (up)
 
+#ifdef DEBUG_POSTED_LIST_WIDGET
 	std::cerr << "PostedListWidget::submitVote()";
 	std::cerr << std::endl;
 
@@ -265,6 +358,7 @@ void PostedListWidget::submitVote(const RsGxsGrpMsgIdPair &msgId, bool up)
 	std::cerr << "ThreadId : " << vote.mMeta.mThreadId << std::endl;
 	std::cerr << "ParentId : " << vote.mMeta.mParentId << std::endl;
 	std::cerr << "AuthorId : " << vote.mMeta.mAuthorId << std::endl;
+#endif
 
 	uint32_t token;
 	rsPosted->createNewVote(token, vote);
@@ -304,6 +398,17 @@ void PostedListWidget::insertPostedDetails(const RsPostedGroup &group)
 	mStateHelper->setWidgetEnabled(ui->submitPostButton, IS_GROUP_SUBSCRIBED(group.mMeta.mSubscribeFlags));
 	ui->subscribeToolButton->setSubscribed(IS_GROUP_SUBSCRIBED(group.mMeta.mSubscribeFlags));
 	ui->subscribeToolButton->setHidden(IS_GROUP_SUBSCRIBED(group.mMeta.mSubscribeFlags)) ;
+
+	/* IMAGE */
+	QPixmap boardImage;
+	if (group.mGroupImage.mData != NULL) {
+		GxsIdDetails::loadPixmapFromData(group.mGroupImage.mData, group.mGroupImage.mSize, boardImage,GxsIdDetails::ORIGINAL);
+	} else {
+		boardImage = QPixmap(BOARD_DEFAULT_IMAGE);
+	}
+	ui->logoLabel->setPixmap(boardImage);
+	ui->namelabel->setText(QString::fromUtf8(group.mMeta.mGroupName.c_str()));
+	ui->poplabel->setText(QString::number( group.mMeta.mPop));
 	
 	RetroShareLink link;
 	
@@ -334,6 +439,8 @@ void PostedListWidget::insertPostedDetails(const RsPostedGroup &group)
 			link = RetroShareLink::createMessage(group.mMeta.mAuthorId, "");
 			ui->infoAdministrator->setText(link.toHtml());
 		
+		    ui->createdinfolabel->setText(DateTime::formatLongDateTime(group.mMeta.mPublishTs));
+
 			QString distrib_string ( "[unknown]" );
             
         	switch(group.mMeta.mCircleType)
@@ -381,9 +488,21 @@ void PostedListWidget::loadPost(const RsPostedPost &post)
 	PostedItem *item = new PostedItem(this, 0, dummyGroup, post, true, false);
 	connect(item, SIGNAL(vote(RsGxsGrpMsgIdPair,bool)), this, SLOT(submitVote(RsGxsGrpMsgIdPair,bool)));
 	mPosts.insert(post.mMeta.mMsgId, item);
-	//QLayout *alayout = ui.scrollAreaWidgetContents->layout();
-	//alayout->addWidget(item);
+
 	mPostItems.push_back(item);
+}
+
+void PostedListWidget::loadPostCardView(const RsPostedPost &post)
+{
+	/* Group is not always available because of the TokenQueue */
+	RsPostedGroup dummyGroup;
+	dummyGroup.mMeta.mGroupId = groupId();
+
+	PostedCardView *cvitem = new PostedCardView(this, 0, dummyGroup, post, true, false);
+	connect(cvitem, SIGNAL(vote(RsGxsGrpMsgIdPair,bool)), this, SLOT(submitVote(RsGxsGrpMsgIdPair,bool)));
+	mCVPosts.insert(post.mMeta.mMsgId, cvitem);
+
+	mPostCardView.push_back(cvitem);
 }
 
 static bool CmpPIHot(const GxsFeedItem *a, const GxsFeedItem *b)
@@ -438,11 +557,65 @@ static bool CmpPINew(const GxsFeedItem *a, const GxsFeedItem *b)
 	return (aa->getPost().mNewScore > bb->getPost().mNewScore);
 }
 
+static bool CVHot(const GxsFeedItem *a, const GxsFeedItem *b)
+{
+	const PostedCardView *aa = dynamic_cast<const PostedCardView*>(a);
+	const PostedCardView *bb = dynamic_cast<const PostedCardView*>(b);
+
+	if (!aa || !bb) {
+		return true;
+	}
+
+	const RsPostedPost &postA = aa->getPost();
+	const RsPostedPost &postB = bb->getPost();
+
+	if (postA.mHotScore == postB.mHotScore)
+	{
+		return (postA.mNewScore > postB.mNewScore);
+	}
+
+	return (postA.mHotScore > postB.mHotScore);
+}
+
+static bool CVTop(const GxsFeedItem *a, const GxsFeedItem *b)
+{
+	const PostedCardView *aa = dynamic_cast<const PostedCardView*>(a);
+	const PostedCardView *bb = dynamic_cast<const PostedCardView*>(b);
+
+	if (!aa || !bb) {
+		return true;
+	}
+
+	const RsPostedPost &postA = aa->getPost();
+	const RsPostedPost &postB = bb->getPost();
+
+	if (postA.mTopScore == postB.mTopScore)
+	{
+		return (postA.mNewScore > postB.mNewScore);
+	}
+
+	return (postA.mTopScore > postB.mTopScore);
+}
+
+static bool CVNew(const GxsFeedItem *a, const GxsFeedItem *b)
+{
+	const PostedCardView *aa = dynamic_cast<const PostedCardView*>(a);
+	const PostedCardView *bb = dynamic_cast<const PostedCardView*>(b);
+
+	if (!aa || !bb) {
+		return true;
+	}
+
+	return (aa->getPost().mNewScore > bb->getPost().mNewScore);
+}
+
 void PostedListWidget::applyRanking()
 {
 	/* uses current settings to sort posts, then add to layout */
+#ifdef DEBUG_POSTED_LIST_WIDGET
 	std::cerr << "PostedListWidget::applyRanking()";
 	std::cerr << std::endl;
+#endif
 
 	shallowClearPosts();
 
@@ -451,83 +624,169 @@ void PostedListWidget::applyRanking()
 	{
 		default:
 		case RsPosted::HotRankType:
+#ifdef DEBUG_POSTED_LIST_WIDGET
 			std::cerr << "PostedListWidget::applyRanking() HOT";
 			std::cerr << std::endl;
+#endif
 			qSort(mPostItems.begin(), mPostItems.end(), CmpPIHot);
+			qSort(mPostCardView.begin(), mPostCardView.end(), CVHot);
 			break;
 		case RsPosted::NewRankType:
+#ifdef DEBUG_POSTED_LIST_WIDGET
 			std::cerr << "PostedListWidget::applyRanking() NEW";
 			std::cerr << std::endl;
+#endif
 			qSort(mPostItems.begin(), mPostItems.end(), CmpPINew);
+			qSort(mPostCardView.begin(), mPostCardView.end(), CVNew);
 			break;
 		case RsPosted::TopRankType:
+#ifdef DEBUG_POSTED_LIST_WIDGET
 			std::cerr << "PostedListWidget::applyRanking() TOP";
 			std::cerr << std::endl;
+#endif
 			qSort(mPostItems.begin(), mPostItems.end(), CmpPITop);
+			qSort(mPostCardView.begin(), mPostCardView.end(), CVTop);
 			break;
 	}
 	mLastSortMethod = mSortMethod;
 
+#ifdef DEBUG_POSTED_LIST_WIDGET
 	std::cerr << "PostedListWidget::applyRanking() Sorted mPostList";
 	std::cerr << std::endl;
+#endif
 
 	/* go through list (skipping out-of-date items) to get */
 	QLayout *alayout = ui->scrollAreaWidgetContents->layout();
+	
+	
 	int counter = 0;
 	time_t min_ts = 0;
+	
 	foreach (PostedItem *item, mPostItems)
 	{
+#ifdef DEBUG_POSTED_LIST_WIDGET
 		std::cerr << "PostedListWidget::applyRanking() Item: " << item;
 		std::cerr << std::endl;
+#endif
 		
 		if (item->getPost().mMeta.mPublishTs < min_ts)
 		{
+#ifdef DEBUG_POSTED_LIST_WIDGET
 			std::cerr << "\t Skipping OLD";
 			std::cerr << std::endl;
+#endif
 			item->hide();
 			continue;
 		}
 
 		if (counter >= mPostIndex + mPostShow)
 		{
+#ifdef DEBUG_POSTED_LIST_WIDGET
 			std::cerr << "\t END - Counter too high";
 			std::cerr << std::endl;
+#endif
 			item->hide();
 		}
 		else if (counter >= mPostIndex)
 		{
+#ifdef DEBUG_POSTED_LIST_WIDGET
 			std::cerr << "\t Adding to Layout";
 			std::cerr << std::endl;
+#endif
 			/* add it in! */
 			alayout->addWidget(item);
 			item->show();
 		}
 		else
 		{
+#ifdef DEBUG_POSTED_LIST_WIDGET
 			std::cerr << "\t Skipping to Low";
 			std::cerr << std::endl;
+#endif
 			item->hide();
 		}
 		++counter;
 	}
 
+	// Card View
+	counter = 0;
+	QLayout *cviewlayout = ui->scrollAreaWidgetContentsCardView->layout();
+
+	foreach (PostedCardView *item, mPostCardView)
+	{
+#ifdef DEBUG_POSTED_LIST_WIDGET
+		std::cerr << "PostedListWidget::applyRanking() Item: " << item;
+		std::cerr << std::endl;
+#endif
+		
+		if (item->getPost().mMeta.mPublishTs < min_ts)
+		{
+#ifdef DEBUG_POSTED_LIST_WIDGET
+			std::cerr << "\t Skipping OLD";
+			std::cerr << std::endl;
+#endif
+			item->hide();
+			continue;
+		}
+
+		if (counter >= mPostIndex + mPostShow)
+		{
+#ifdef DEBUG_POSTED_LIST_WIDGET
+			std::cerr << "\t END - Counter too high";
+			std::cerr << std::endl;
+#endif
+			item->hide();
+		}
+		else if (counter >= mPostIndex)
+		{
+#ifdef DEBUG_POSTED_LIST_WIDGET
+			std::cerr << "\t Adding to Layout";
+			std::cerr << std::endl;
+#endif
+			/* add it in! */
+			cviewlayout->addWidget(item);
+			item->show();
+		}
+		else
+		{
+#ifdef DEBUG_POSTED_LIST_WIDGET
+			std::cerr << "\t Skipping to Low";
+			std::cerr << std::endl;
+#endif
+			item->hide();
+		}
+		++counter;
+	}
+
+#ifdef DEBUG_POSTED_LIST_WIDGET
 	std::cerr << "PostedListWidget::applyRanking() Loaded New Order";
 	std::cerr << std::endl;
+#endif
 
 	// trigger a redraw.
 	ui->scrollAreaWidgetContents->update();
+	ui->scrollAreaWidgetContentsCardView->update();
+
 }
 
 void PostedListWidget::blank()
 {
-    clearPosts();
+	clearPosts();
+	ui->infoframe->hide();
 }
 void PostedListWidget::clearPosts()
 {
-	/* clear all messages */
+	/* clear all classic view messages */
 	foreach (PostedItem *item, mPostItems) {
 		delete(item);
 	}
+	
+	/* clear all card view messages */
+	foreach (PostedCardView *item, mPostCardView) {
+		delete(item);
+	}
+	
+	mPostCardView.clear();
 	mPostItems.clear();
 	mPosts.clear();
 }
@@ -540,7 +799,9 @@ bool PostedListWidget::navigatePostItem(const RsGxsMessageId & /*msgId*/)
 
 void PostedListWidget::shallowClearPosts()
 {
+#ifdef DEBUG_POSTED_LIST_WIDGET
 	std::cerr << "PostedListWidget::shallowClearPosts()" << std::endl;
+#endif
 
 	std::list<PostedItem *> postedItems;
 	std::list<PostedItem *>::iterator pit;
@@ -552,18 +813,63 @@ void PostedListWidget::shallowClearPosts()
 		QLayoutItem *litem = alayout->itemAt(i);
 		if (!litem)
 		{
+#ifdef DEBUG_POSTED_LIST_WIDGET
 			std::cerr << "PostedListWidget::shallowClearPosts() missing litem";
 			std::cerr << std::endl;
+#endif
 			continue;
 		}
 
 		PostedItem *item = dynamic_cast<PostedItem *>(litem->widget());
 		if (item)
 		{
+#ifdef DEBUG_POSTED_LIST_WIDGET
+			std::cerr << "PostedListWidget::shallowClearPosts() item: " << item;
+			std::cerr << std::endl;
+#endif
+
+			postedItems.push_back(item);
+		}
+#ifdef DEBUG_POSTED_LIST_WIDGET
+		else
+		{
+			std::cerr << "PostedListWidget::shallowClearPosts() Found Child, which is not a PostedItem???";
+			std::cerr << std::endl;
+		}
+#endif
+	}
+
+	for(pit = postedItems.begin(); pit != postedItems.end(); ++pit)
+	{
+		PostedItem *item = *pit;
+		alayout->removeWidget(item);
+	}
+	
+	
+	//Posted Card view
+
+	std::list<PostedCardView *> postedCardViewItems;
+	std::list<PostedCardView *>::iterator pcvit;
+	
+	QLayout *cviewlayout = ui->scrollAreaWidgetContentsCardView->layout();
+	int countcv = cviewlayout->count();
+	for(int i = 0; i < countcv; ++i)
+	{
+		QLayoutItem *litem = cviewlayout->itemAt(i);
+		if (!litem)
+		{
+			std::cerr << "PostedListWidget::shallowClearPosts() missing litem";
+			std::cerr << std::endl;
+			continue;
+		}
+
+		PostedCardView *item = dynamic_cast<PostedCardView *>(litem->widget());
+		if (item)
+		{
 			std::cerr << "PostedListWidget::shallowClearPosts() item: " << item;
 			std::cerr << std::endl;
 
-			postedItems.push_back(item);
+			postedCardViewItems.push_back(item);
 		}
 		else
 		{
@@ -572,67 +878,56 @@ void PostedListWidget::shallowClearPosts()
 		}
 	}
 
-	for(pit = postedItems.begin(); pit != postedItems.end(); ++pit)
+	for(pcvit = postedCardViewItems.begin(); pcvit != postedCardViewItems.end(); ++pcvit)
 	{
-		PostedItem *item = *pit;
-		alayout->removeWidget(item);
+		PostedCardView *item = *pcvit;
+		cviewlayout->removeWidget(item);
 	}
 }
 
-bool PostedListWidget::insertGroupData(const uint32_t &token, RsGroupMetaData &metaData)
+bool PostedListWidget::insertGroupData(const RsGxsGenericGroupData *data)
 {
-	std::vector<RsPostedGroup> groups;
-	rsPosted->getGroupData(token, groups);
-
-	if (groups.size() == 1)
-	{
-		insertPostedDetails(groups[0]);
-		metaData = groups[0].mMeta;
-		return true;
-	}
-
-	return false;
+	insertPostedDetails(*dynamic_cast<const RsPostedGroup*>(data));
+    return true;
 }
 
-void PostedListWidget::insertAllPosts(const uint32_t &token, GxsMessageFramePostThread */*thread*/)
+void PostedListWidget::insertAllPostedPosts(const std::vector<RsPostedPost>& posts, GxsMessageFramePostThread */*thread*/)
 {
-	std::vector<RsPostedPost> posts;
-	rsPosted->getPostData(token, posts);
-
-	std::vector<RsPostedPost>::iterator vit;
-	for(vit = posts.begin(); vit != posts.end(); ++vit)
+	for(auto vit = posts.begin(); vit != posts.end(); ++vit)
 	{
-		RsPostedPost& p = *vit;
+		const RsPostedPost& p = *vit;
 		loadPost(p);
+		loadPostCardView(p);
 	}
 
 	applyRanking();
 }
 
-void PostedListWidget::insertPosts(const uint32_t &token)
+void PostedListWidget::insertPostedPosts(const std::vector<RsPostedPost>& posts)
 {
-	std::vector<RsPostedPost> posts;
-	rsPosted->getPostData(token, posts);
-
-	std::vector<RsPostedPost>::iterator vit;
-	for(vit = posts.begin(); vit != posts.end(); ++vit)
+	for(auto vit = posts.begin(); vit != posts.end(); ++vit)
 	{
-		RsPostedPost& p = *vit;
+		const RsPostedPost& p = *vit;
 
 		// modify post content
 		if(mPosts.find(p.mMeta.mMsgId) != mPosts.end())
 		{
+#ifdef DEBUG_POSTED_LIST_WIDGET
 			std::cerr << "PostedListWidget::updateCurrentDisplayComplete() updating MsgId: " << p.mMeta.mMsgId;
 			std::cerr << std::endl;
+#endif
 
 			mPosts[p.mMeta.mMsgId]->setPost(p);
 		}
 		else
 		{
+#ifdef DEBUG_POSTED_LIST_WIDGET
 			std::cerr << "PostedListWidget::updateCurrentDisplayComplete() loading New MsgId: " << p.mMeta.mMsgId;
 			std::cerr << std::endl;
+#endif
 			/* insert new entry */
 			loadPost(p);
+			loadPostCardView(p);
 		}
 	}
 
@@ -665,8 +960,10 @@ void PostedListWidget::setAllMessagesReadDo(bool read, uint32_t &token)
 
 void PostedListWidget::loadRequest(const TokenQueue *queue, const TokenRequest &req)
 {
+#ifdef DEBUG_POSTED_LIST_WIDGET
 	std::cerr << "PostedListWidget::loadRequest() UserType: " << req.mUserType;
 	std::cerr << std::endl;
+#endif
 
 	if (queue == mTokenQueue)
 	{
@@ -697,3 +994,98 @@ void PostedListWidget::loadRequest(const TokenQueue *queue, const TokenRequest &
 
 	GxsMessageFramePostWidget::loadRequest(queue, req);
 }
+
+int PostedListWidget::viewMode()
+{
+	if (ui->classicViewButton->isChecked()) {
+		return VIEW_MODE_CLASSIC;
+	} else if (ui->cardViewButton->isChecked()) {
+		return VIEW_MODE_CARD;
+	}
+
+	/* Default */
+	return VIEW_MODE_CLASSIC;
+}
+
+void PostedListWidget::setViewMode(int viewMode)
+{
+	switch (viewMode) {
+	case VIEW_MODE_CLASSIC:
+		ui->stackedWidget->setCurrentIndex(0);
+
+
+		ui->classicViewButton->setChecked(true);
+		ui->cardViewButton->setChecked(false);
+
+		break;
+	case VIEW_MODE_CARD:
+		ui->stackedWidget->setCurrentIndex(1);
+
+		ui->cardViewButton->setChecked(true);
+		ui->classicViewButton->setChecked(false);
+
+		break;
+	default:
+		setViewMode(VIEW_MODE_CLASSIC);
+		return;
+	}
+}
+
+void PostedListWidget::getMsgData(const std::set<RsGxsMessageId>& msgIds,std::vector<RsGxsGenericMsgData*>& psts)
+{
+    std::vector<RsPostedPost> posts;
+    std::vector<RsGxsComment> comments;
+
+    rsPosted->getBoardContent( groupId(),msgIds,posts,comments );
+
+    psts.clear();
+
+    for(auto& post: posts)
+        psts.push_back(new RsPostedPost(post));
+}
+
+void PostedListWidget::getAllMsgData(std::vector<RsGxsGenericMsgData*>& psts)
+{
+    std::vector<RsPostedPost> posts;
+    std::vector<RsGxsComment> comments;
+
+    rsPosted->getBoardAllContent( groupId(),posts,comments );
+
+    psts.clear();
+
+    for(auto& post: posts)
+        psts.push_back(new RsPostedPost(post));
+}
+
+bool PostedListWidget::getGroupData(RsGxsGenericGroupData*& data)
+{
+    std::vector<RsPostedGroup> groupInfo ;
+    data = nullptr;
+
+    if(! rsPosted->getBoardsInfo(std::list<RsGxsGroupId>({groupId()}),groupInfo) || groupInfo.size() != 1)
+        return false;
+
+    data = new RsPostedGroup(groupInfo[0]);
+    return true;
+}
+
+void PostedListWidget::insertPosts(const std::vector<RsGxsGenericMsgData*>& posts)
+{
+    std::vector<RsPostedPost> cposts;
+
+    for(auto post: posts)	// This  is not so nice but we have somehow to convert to RsGxsChannelPost at some timer, and the cposts list is being modified in the insert method.
+		cposts.push_back(*dynamic_cast<RsPostedPost*>(post));
+
+	insertPostedPosts(cposts);
+}
+
+void PostedListWidget::insertAllPosts(const std::vector<RsGxsGenericMsgData*>& posts, GxsMessageFramePostThread *thread)
+{
+	std::vector<RsPostedPost> cposts;
+
+    for(auto post: posts)	// This  is not so nice but we have somehow to convert to RsGxsChannelPost at some timer, and the cposts list is being modified in the insert method.
+		cposts.push_back(*dynamic_cast<RsPostedPost*>(post));
+
+	insertAllPostedPosts(cposts, NULL);
+}
+

@@ -103,6 +103,12 @@
 #ifdef RS_USE_WIKI
 #include "gui/WikiPoos/WikiDialog.h"
 #endif
+#ifdef RS_USE_WIRE
+#include "gui/TheWire/WireDialog.h"
+#endif
+#ifdef RS_USE_PHOTO
+#include "gui/PhotoShare/PhotoShare.h"
+#endif
 #include "gui/Posted/PostedDialog.h"
 #include "gui/statistics/StatisticsWindow.h"
 
@@ -113,7 +119,7 @@
 #include "common/StatusDefs.h"
 #include "gui/notifyqt.h"
 
-#ifdef ENABLE_WEBUI
+#ifdef RS_WEBUI
 #	include "settings/WebuiPage.h"
 #endif
 
@@ -121,8 +127,11 @@
 #include <unistd.h>
 
 #define IMAGE_QUIT              ":/icons/png/exit.png"
-#define IMAGE_PREFERENCES       ":/icons/png/options.png"
+#define IMAGE_PREFERENCES       ":/icons/png/options2.png"
 #define IMAGE_ABOUT             ":/icons/png/info.png"
+#define IMAGE_STATS             ":/icons/png/netgraph2.png"
+#define IMAGE_CLOSE             ":/icons/png/exit2.png"
+
 #define IMAGE_ADDFRIEND         ":/icons/png/invite.png"
 #define IMAGE_RETROSHARE        ":/icons/logo_128.png"
 #define IMAGE_NOONLINE          ":/icons/logo_0_connected_128.png"
@@ -130,13 +139,9 @@
 #define IMAGE_TWOONLINE         ":/icons/logo_2_connected_128.png"
 #define IMAGE_OVERLAY           ":/icons/star_overlay_128.png"
 
-#define IMAGE_BWGRAPH           ":/images/ksysguard.png"
+#define IMAGE_BWGRAPH           ":/icons/png/bandwidth.png"
 #define IMAGE_MESSENGER         ":/images/rsmessenger48.png"
-#define IMAGE_CLOSE             ":/images/close_normal.png"
-#define IMAGE_BLOCK         	":/images/blockdevice.png"
 #define IMAGE_COLOR         	":/images/highlight.png"
-#define IMAGE_GAMES             ":/images/kgames.png"
-#define IMAGE_PHOTO             ":/images/lphoto.png"
 #define IMAGE_NEWRSCOLLECTION   ":/images/library.png"
 #define IMAGE_ADDSHARE          ":/images/directoryadd_24x24_shadow.png"
 #define IMAGE_OPTIONS           ":/images/settings.png"
@@ -145,8 +150,6 @@
 #define IMAGE_MAXIMIZE          ":/images/window_fullscreen.png"
 
 #define IMAGE_PLUGINS           ":/images/extension_32.png"
-#define IMAGE_BLOGS             ":/images/kblogger.png"
-#define IMAGE_DHT               ":/images/dht16.png"
 
 /*static*/ bool MainWindow::hiddenmode = false;
 
@@ -416,11 +419,21 @@ void MainWindow::initStackedPage()
   PeopleDialog *peopleDialog = NULL;
   addPage(peopleDialog = new PeopleDialog(ui->stackPages), grp, &notify);
   #endif
-  addPage(newsFeed = new NewsFeed(ui->stackPages), grp, &notify);
 #ifdef RS_USE_WIKI
   WikiDialog *wikiDialog = NULL;
   addPage(wikiDialog = new WikiDialog(ui->stackPages), grp, &notify);
 #endif
+
+#ifdef RS_USE_WIRE
+  WireDialog *wireDialog = NULL;
+  addPage(wireDialog = new WireDialog(ui->stackPages), grp, &notify);
+#endif
+
+#ifdef RS_USE_PHOTO
+  PhotoShare *photoDialog = NULL;
+  addPage(photoDialog = new PhotoShare(ui->stackPages), grp, &notify);
+#endif
+
 
  std::cerr << "Looking for interfaces in existing plugins:" << std::endl;
  for(int i = 0;i<rsPlugins->nbPlugins();++i)
@@ -468,7 +481,7 @@ void MainWindow::initStackedPage()
   //List All notify before Setting was created
   QList<QPair<MainPage*, QPair<QAction*, QListWidgetItem*> > >::iterator notifyIt;
   for (notifyIt = notify.begin(); notifyIt != notify.end(); ++notifyIt) {
-      UserNotify *userNotify = notifyIt->first->getUserNotify(this);
+      UserNotify *userNotify = notifyIt->first->getUserNotify();
       if (userNotify) {
           userNotify->initialize(ui->toolBarPage, notifyIt->second.first, notifyIt->second.second);
           connect(userNotify, SIGNAL(countChanged()), this, SLOT(updateTrayCombine()));
@@ -476,6 +489,7 @@ void MainWindow::initStackedPage()
       }
   }
 
+  addPage(newsFeed = new NewsFeed(ui->stackPages), grp, &notify);
   addPage(settingsDialog = new SettingsPage(ui->stackPages),grp,&notify);
 
   /* Create the toolbar */
@@ -605,11 +619,13 @@ void MainWindow::createTrayIcon()
     trayMenu->addAction(QIcon(IMAGE_MESSENGER), tr("Open Messenger"), this, SLOT(showMessengerWindow()));
 #endif
     trayMenu->addAction(QIcon(IMAGE_MESSAGES), tr("Open Messages"), this, SLOT(showMess()));
-#ifdef ENABLE_WEBUI
+#ifdef RS_JSONAPI
+#ifdef RS_WEBUI
     trayMenu->addAction(QIcon(":/images/emblem-web.png"), tr("Show web interface"), this, SLOT(showWebinterface()));
-#endif // ENABLE_WEBUI
+#endif
+#endif
     trayMenu->addAction(QIcon(IMAGE_BWGRAPH), tr("Bandwidth Graph"), this, SLOT(showBandwidthGraph()));
-    trayMenu->addAction(QIcon(IMAGE_DHT), tr("Statistics"), this, SLOT(showStatisticsWindow()));
+    trayMenu->addAction(QIcon(IMAGE_STATS), tr("Statistics"), this, SLOT(showStatisticsWindow()));
 
 
 #ifdef UNFINISHED
@@ -1116,12 +1132,14 @@ void MainWindow::showStatisticsWindow()
     StatisticsWindow::showYourself();
 }
 
-#ifdef ENABLE_WEBUI
+#ifdef RS_JSONAPI
+#ifdef RS_WEBUI
 void MainWindow::showWebinterface()
 {
     WebuiPage::showWebui();
 }
 #endif // ENABLE_WEBUI
+#endif 
 
 /** Shows Application window */
 #ifdef UNFINISHED

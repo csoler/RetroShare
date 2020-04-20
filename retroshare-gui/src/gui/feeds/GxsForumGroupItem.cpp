@@ -23,6 +23,7 @@
 
 #include "FeedHolder.h"
 #include "gui/RetroShareLink.h"
+#include "util/qtthreadsutils.h"
 
 /****
  * #define DEBUG_ITEM 1
@@ -58,7 +59,7 @@ void GxsForumGroupItem::setup()
 	setAttribute(Qt::WA_DeleteOnClose, true);
 
 	/* clear ui */
-	ui->nameLabel->setText(tr("Loading"));
+	ui->nameLabel->setText(tr("Loading..."));
 	ui->titleLabel->clear();
 	ui->descLabel->clear();
 
@@ -87,29 +88,43 @@ bool GxsForumGroupItem::setGroup(const RsGxsForumGroup &group)
 	return true;
 }
 
-void GxsForumGroupItem::loadGroup(const uint32_t &token)
+void GxsForumGroupItem::loadGroup()
 {
-#ifdef DEBUG_ITEM
-	std::cerr << "GxsForumGroupItem::loadGroup()";
-	std::cerr << std::endl;
+ 	RsThread::async([this]()
+	{
+		// 1 - get group data
+
+#ifdef DEBUG_FORUMS
+		std::cerr << "Retrieving post data for post " << mThreadId << std::endl;
 #endif
 
-	std::vector<RsGxsForumGroup> groups;
-	if (!rsGxsForums->getGroupData(token, groups))
-	{
-		std::cerr << "GxsForumGroupItem::loadGroup() ERROR getting data";
-		std::cerr << std::endl;
-		return;
-	}
+		std::vector<RsGxsForumGroup> groups;
+		const std::list<RsGxsGroupId> forumIds = { groupId() };
 
-	if (groups.size() != 1)
-	{
-		std::cerr << "GxsForumGroupItem::loadGroup() Wrong number of Items";
-		std::cerr << std::endl;
-		return;
-	}
+		if(!rsGxsForums->getForumsInfo(forumIds,groups))
+		{
+			RsErr() << "GxsForumGroupItem::loadGroup() ERROR getting data" << std::endl;
+			return;
+		}
 
-	setGroup(groups[0]);
+		if (groups.size() != 1)
+		{
+			std::cerr << "GxsForumGroupItem::loadGroup() Wrong number of Items";
+			std::cerr << std::endl;
+			return;
+		}
+		const RsGxsForumGroup& group(groups[0]);
+
+		RsQThreadUtils::postToObject( [group,this]()
+		{
+			/* Here it goes any code you want to be executed on the Qt Gui
+			 * thread, for example to update the data model with new information
+			 * after a blocking call to RetroShare API complete */
+
+			setGroup(group);
+
+		}, this );
+	});
 }
 
 QString GxsForumGroupItem::groupName()
@@ -132,9 +147,9 @@ void GxsForumGroupItem::fill()
 	ui->descLabel->setText(QString::fromUtf8(mGroup.mDescription.c_str()));
 
 	if (IS_GROUP_PUBLISHER(mGroup.mMeta.mSubscribeFlags)) {
-		ui->forumlogo_label->setPixmap(QPixmap(":/images/konv_message64.png"));
+		ui->forumlogo_label->setPixmap(QPixmap(":/icons/png/forums.png"));
 	} else {
-		ui->forumlogo_label->setPixmap(QPixmap(":/images/konversation64.png"));
+		ui->forumlogo_label->setPixmap(QPixmap(":/icons/png/forums-default.png"));
 	}
 
 	if (IS_GROUP_SUBSCRIBED(mGroup.mMeta.mSubscribeFlags)) {
@@ -158,7 +173,6 @@ void GxsForumGroupItem::fill()
 		ui->clearButton->setEnabled(false);
 	}
 }
-
 void GxsForumGroupItem::toggle()
 {
 	expand(ui->expandFrame->isHidden());
@@ -174,13 +188,13 @@ void GxsForumGroupItem::doExpand(bool open)
 	if (open)
 	{
 		ui->expandFrame->show();
-		ui->expandButton->setIcon(QIcon(QString(":/images/edit_remove24.png")));
+		ui->expandButton->setIcon(QIcon(QString(":/icons/png/up-arrow.png")));
 		ui->expandButton->setToolTip(tr("Hide"));
 	}
 	else
 	{
 		ui->expandFrame->hide();
-		ui->expandButton->setIcon(QIcon(QString(":/images/edit_add24.png")));
+		ui->expandButton->setIcon(QIcon(QString(":/icons/png/down-arrow.png")));
 		ui->expandButton->setToolTip(tr("Expand"));
 	}
 

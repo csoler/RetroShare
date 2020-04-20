@@ -95,7 +95,8 @@ typedef std::map<RsGxsGrpMsgIdPair, std::vector<RsGxsMsgItem*> > GxsMsgRelatedDa
 
 class RsGixs;
 
-class RsGenExchange : public RsNxsObserver, public RsTickingThread, public RsGxsIface
+class RsGenExchange : public RsNxsObserver, public RsTickingThread,
+        public RsGxsIface
 {
 public:
 
@@ -175,7 +176,7 @@ public:
      */
     RsTokenService* getTokenService();
 
-    virtual void data_tick();
+	void threadTick() override; /// @see RsTickingThread
 
     /*!
      * Policy bit pattern portion
@@ -324,6 +325,19 @@ public:
 	 */
 	bool localSearch( const std::string& matchString,
 	                  std::list<RsGxsGroupSummary>& results );
+
+	/// @see RsGxsIface
+	bool exportGroupBase64(
+	        std::string& radix, const RsGxsGroupId& groupId,
+	        std::string& errMsg = RS_DEFAULT_STORAGE_PARAM(std::string)
+	        ) override;
+
+	/// @see RsGxsIface
+	bool importGroupBase64(
+	        const std::string& radix,
+	        RsGxsGroupId& groupId = RS_DEFAULT_STORAGE_PARAM(RsGxsGroupId),
+	        std::string& errMsg = RS_DEFAULT_STORAGE_PARAM(std::string)
+	        ) override;
 
 protected:
 
@@ -712,7 +726,7 @@ public:
     virtual void     setSyncPeriod(const RsGxsGroupId& grpId,uint32_t age_in_secs) ;
 	virtual bool     getGroupNetworkStats(const RsGxsGroupId& grpId,RsGroupNetworkStats& stats);
 
-    uint16_t serviceType() const { return mServType ; }
+    uint16_t serviceType() const override { return mServType ; }
     uint32_t serviceFullType() const { return RsServiceInfo::RsServiceInfoUIn16ToFullServiceId(mServType); }
 
 	virtual RsReputationLevel minReputationForForwardingMessages(

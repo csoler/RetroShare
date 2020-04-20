@@ -38,8 +38,8 @@ QString misc::friendlyUnit(float val)
     if(val < 0) {
         return tr("Unknown", "Unknown (size)");
     }
-    const QString units[5] = {tr(" B", "bytes"), tr(" KB", "kilobytes (1024 bytes)"), tr(" MB", "megabytes (1024 kilobytes)"), tr(" GB", "gigabytes (1024 megabytes)"), tr(" TB", "terabytes (1024 gigabytes)") };
-    for(unsigned int i=0; i<5; ++i) {
+    const QString units[6] = {tr(" B", "bytes"), tr(" KB", "kilobytes (1024 bytes)"), tr(" MB", "megabytes (1024 kilobytes)"), tr(" GB", "gigabytes (1024 megabytes)"), tr(" TB", "terabytes (1024 gigabytes)"), tr(" PB", "petabytes (1024 terabytes)") };
+    for(unsigned int i=0; i<6; ++i) {
         if (val < 1024.) {
             return QString(QByteArray::number(val, 'f', 1)) + units[i];
         }
@@ -404,4 +404,24 @@ QString misc::getExistingDirectory(QWidget *parent, const QString &caption, cons
 #else
 		return QFileDialog::getExistingDirectory(parent, caption, dir, QFileDialog::DontUseNativeDialog | QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 #endif
+}
+
+/*!
+ * Clear a Layout content
+ * \param layout: Layout to Clear
+ */
+void misc::clearLayout(QLayout * layout) {
+	if (! layout)
+		return;
+
+	while (auto item = layout->takeAt(0))
+	{
+		if (auto *widget = item->widget())
+			widget->deleteLater();
+		if (auto *spacer = item->spacerItem())
+			delete spacer;
+
+		clearLayout(item->layout());
+		delete item;
+	}
 }

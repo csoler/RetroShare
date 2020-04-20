@@ -18,11 +18,12 @@
  *                                                                             *
  *******************************************************************************/
 
+#include "retroshare/rsgxschannels.h"
 #include "GxsChannelUserNotify.h"
 #include "gui/MainWindow.h"
 
-GxsChannelUserNotify::GxsChannelUserNotify(RsGxsIfaceHelper *ifaceImpl, QObject *parent) :
-    GxsUserNotify(ifaceImpl, parent)
+GxsChannelUserNotify::GxsChannelUserNotify(RsGxsIfaceHelper *ifaceImpl, const GxsGroupFrameDialog *g, QObject *parent) :
+    GxsUserNotify(ifaceImpl, g, parent)
 {
 }
 
@@ -36,12 +37,12 @@ bool GxsChannelUserNotify::hasSetting(QString *name, QString *group)
 
 QIcon GxsChannelUserNotify::getIcon()
 {
-	return QIcon(":/icons/png/channels.png");
+	return QIcon(":/icons/png/channel.png");
 }
 
 QIcon GxsChannelUserNotify::getMainIcon(bool hasNew)
 {
-    return hasNew ? QIcon(":/icons/png/channels-notify.png") : QIcon(":/icons/png/channels.png");
+    return hasNew ? QIcon(":/icons/png/channels-notify.png") : QIcon(":/icons/png/channel.png");
 }
 
 void GxsChannelUserNotify::iconClicked()

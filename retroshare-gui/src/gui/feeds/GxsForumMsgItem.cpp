@@ -28,8 +28,12 @@
 
 #include "FeedHolder.h"
 #include "gui/RetroShareLink.h"
+#include "gui/gxs/GxsIdDetails.h"
 #include "util/HandleRichText.h"
+#include "util/qtthreadsutils.h"
 #include "util/DateTime.h"
+
+#include <retroshare/rsidentity.h>
 
 #include <iostream>
 
@@ -40,6 +44,8 @@
 GxsForumMsgItem::GxsForumMsgItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, const RsGxsMessageId &messageId, bool isHome, bool autoUpdate) :
     GxsFeedItem(feedHolder, feedId, groupId, messageId, isHome, rsGxsForums, autoUpdate)
 {
+    mMessage.mMeta.mMsgId = messageId;	// useful for uniqueIdentifier() before the post is actually loaded
+    mMessage.mMeta.mGroupId = groupId;
 	setup();
 
 	requestGroup();
@@ -89,10 +95,9 @@ void GxsForumMsgItem::setup()
 
 	mInFill = false;
 	mCloseOnRead = false;
-	mTokenTypeParentMessage = nextTokenType();
 
 	/* clear ui */
-	ui->titleLabel->setText(tr("Loading"));
+	ui->titleLabel->setText(tr("Loading..."));
 	ui->subjectLabel->clear();
 	ui->timestamplabel->clear();
 	ui->parentNameLabel->clear();
@@ -149,13 +154,10 @@ bool GxsForumMsgItem::setMessage(const RsGxsForumMsg &msg, bool doFill)
 
 	mMessage = msg;
 
-	if (!isTop()) {
-		requestParentMessage(mMessage.mMeta.mParentId);
-	} else {
-		if (doFill) {
-			fill();
-		}
-	}
+	if (!isTop())
+		loadParentMessage(mMessage.mMeta.mParentId);
+	 else if(doFill)
+		fill();
 
 	return true;
 }
@@ -165,91 +167,144 @@ QString GxsForumMsgItem::groupName()
 	return QString::fromUtf8(mGroup.mMeta.mGroupName.c_str());
 }
 
-void GxsForumMsgItem::loadGroup(const uint32_t &token)
+void GxsForumMsgItem::loadGroup()
 {
-#ifdef DEBUG_ITEM
-	std::cerr << "GxsForumGroupItem::loadGroup()";
-	std::cerr << std::endl;
+	RsThread::async([this]()
+	{
+		// 1 - get group data
+
+#ifdef DEBUG_FORUMS
+		std::cerr << "Retrieving post data for post " << mThreadId << std::endl;
 #endif
 
-	std::vector<RsGxsForumGroup> groups;
-	if (!rsGxsForums->getGroupData(token, groups))
-	{
-		std::cerr << "GxsForumGroupItem::loadGroup() ERROR getting data";
-		std::cerr << std::endl;
-		return;
-	}
+		std::vector<RsGxsForumGroup> groups;
+		const std::list<RsGxsGroupId> forumIds = { groupId() };
 
-	if (groups.size() != 1)
-	{
-		std::cerr << "GxsForumGroupItem::loadGroup() Wrong number of Items";
-		std::cerr << std::endl;
-		return;
-	}
+		if(!rsGxsForums->getForumsInfo(forumIds,groups))
+		{
+			RsErr() << "GxsForumGroupItem::loadGroup() ERROR getting data" << std::endl;
+			return;
+		}
 
-	setGroup(groups[0]);
+		if (groups.size() != 1)
+		{
+			std::cerr << "GxsForumGroupItem::loadGroup() Wrong number of Items";
+			std::cerr << std::endl;
+			return;
+		}
+		RsGxsForumGroup group(groups[0]);
+
+		RsQThreadUtils::postToObject( [group,this]()
+		{
+			/* Here it goes any code you want to be executed on the Qt Gui
+			 * thread, for example to update the data model with new information
+			 * after a blocking call to RetroShare API complete */
+
+			setGroup(group);
+
+		}, this );
+	});
 }
 
-void GxsForumMsgItem::loadMessage(const uint32_t &token)
+void GxsForumMsgItem::loadMessage()
 {
 #ifdef DEBUG_ITEM
 	std::cerr << "GxsForumMsgItem::loadMessage()";
 	std::cerr << std::endl;
 #endif
 
-	std::vector<RsGxsForumMsg> msgs;
-	if (!rsGxsForums->getMsgData(token, msgs))
+	RsThread::async([this]()
 	{
-		std::cerr << "GxsForumMsgItem::loadMessage() ERROR getting data";
-		std::cerr << std::endl;
-		return;
-	}
-	
-	if (msgs.size() != 1)
-	{
-		std::cerr << "GxsForumMsgItem::loadMessage() Wrong number of Items";
-		std::cerr << std::endl;
-		return;
-	}
+		// 1 - get group data
 
-	setMessage(msgs[0]);
+#ifdef DEBUG_FORUMS
+		std::cerr << "Retrieving post data for post " << mThreadId << std::endl;
+#endif
+
+		std::vector<RsGxsForumMsg> msgs;
+		const std::list<RsGxsGroupId> forumIds = { groupId() };
+
+		if(!rsGxsForums->getForumContent(groupId(),std::set<RsGxsMessageId>( { messageId() } ),msgs))
+		{
+			std::cerr << "GxsForumMsgItem::loadMessage() ERROR getting data";
+			std::cerr << std::endl;
+			return;
+		}
+
+		if (msgs.size() != 1)
+		{
+			std::cerr << "GxsForumMsgItem::loadMessage() Wrong number of Items";
+			std::cerr << std::endl;
+			return;
+		}
+		const RsGxsForumMsg& msg(msgs[0]);
+
+		RsQThreadUtils::postToObject( [msg,this]()
+		{
+			/* Here it goes any code you want to be executed on the Qt Gui
+			 * thread, for example to update the data model with new information
+			 * after a blocking call to RetroShare API complete */
+
+			setMessage(msg);
+
+		}, this );
+	});
 }
 
-void GxsForumMsgItem::loadParentMessage(const uint32_t &token)
+void GxsForumMsgItem::loadParentMessage(const RsGxsMessageId& parent_msg)
 {
 #ifdef DEBUG_ITEM
 	std::cerr << "GxsForumMsgItem::loadParentMessage()";
 	std::cerr << std::endl;
 #endif
 
-	std::vector<RsGxsForumMsg> msgs;
-	if (!rsGxsForums->getMsgData(token, msgs))
+	RsThread::async([parent_msg,this]()
 	{
-		std::cerr << "GxsForumMsgItem::loadParentMessage() ERROR getting data";
-		std::cerr << std::endl;
-		return;
-	}
+		// 1 - get group data
 
-	if (msgs.size() != 1)
-	{
-		std::cerr << "GxsForumMsgItem::loadParentMessage() Wrong number of Items";
-		std::cerr << std::endl;
-		return;
-	}
+#ifdef DEBUG_FORUMS
+		std::cerr << "Retrieving post data for post " << mThreadId << std::endl;
+#endif
 
-	mParentMessage = msgs[0];
+		std::vector<RsGxsForumMsg> msgs;
+		const std::list<RsGxsGroupId> forumIds = { groupId() };
 
-	fill();
+		if(!rsGxsForums->getForumContent(groupId(),std::set<RsGxsMessageId>( { parent_msg } ),msgs))
+		{
+			std::cerr << "GxsForumMsgItem::loadMessage() ERROR getting data";
+			std::cerr << std::endl;
+			return;
+		}
+
+		if (msgs.size() != 1)
+		{
+			std::cerr << "GxsForumMsgItem::loadMessage() Wrong number of Items";
+			std::cerr << std::endl;
+			return;
+		}
+		const RsGxsForumMsg& msg(msgs[0]);
+
+		RsQThreadUtils::postToObject( [msg,this]()
+		{
+			/* Here it goes any code you want to be executed on the Qt Gui
+			 * thread, for example to update the data model with new information
+			 * after a blocking call to RetroShare API complete */
+
+			mParentMessage = msg;
+			fill();
+
+		}, this );
+	});
 }
 
 void GxsForumMsgItem::fill()
 {
 	/* fill in */
 
-	if (isLoading()) {
-		/* Wait for all requests */
-		return;
-	}
+//	if (isLoading()) {
+//		/* Wait for all requests */
+//		return;
+//	}
 
 #ifdef DEBUG_ITEM
 	std::cerr << "GxsForumMsgItem::fill()";
@@ -279,9 +334,9 @@ void GxsForumMsgItem::fill()
 	}
 
 	if (IS_GROUP_PUBLISHER(mGroup.mMeta.mSubscribeFlags)) {
-		ui->iconLabel->setPixmap(QPixmap(":/images/konv_message64.png"));
+		ui->iconLabel->setPixmap(QPixmap(":/icons/png/forums.png"));
 	} else {
-		ui->iconLabel->setPixmap(QPixmap(":/images/konversation64.png"));
+		ui->iconLabel->setPixmap(QPixmap(":/icons/png/forums-default.png"));
 	}
 
 	if (!mIsHome) {
@@ -289,20 +344,18 @@ void GxsForumMsgItem::fill()
 			mCloseOnRead = true;
 		}
 	}
+	
+	RsIdentityDetails idDetails ;
+	rsIdentity->getIdDetails(mMessage.mMeta.mAuthorId,idDetails);
+		
+	QPixmap pixmap ;
+
+	if(idDetails.mAvatar.mSize == 0 || !GxsIdDetails::loadPixmapFromData(idDetails.mAvatar.mData, idDetails.mAvatar.mSize, pixmap,GxsIdDetails::SMALL))
+				pixmap = GxsIdDetails::makeDefaultIcon(mMessage.mMeta.mAuthorId,GxsIdDetails::SMALL);
+			
+	ui->avatar->setPixmap(pixmap);
 
 	ui->nameLabel->setId(mMessage.mMeta.mAuthorId);
-
-//	ui->avatar->setId(msg.srcId, true);
-
-//	if (rsPeers->getPeerName(msg.srcId) != "") {
-//		RetroShareLink linkMessage;
-//		linkMessage.createMessage(msg.srcId, "");
-//		nameLabel->setText(linkMessage.toHtml());
-//	}
-//	else
-//	{
-//		nameLabel->setText(tr("Anonymous"));
-//	}
 
 	RetroShareLink msgLink = RetroShareLink::createGxsMessageLink(RetroShareLink::TYPE_FORUM, mMessage.mMeta.mGroupId, mMessage.mMeta.mMsgId, messageName());
 	ui->subLabel->setText(msgLink.toHtml());
@@ -315,7 +368,6 @@ void GxsForumMsgItem::fill()
 	if (isTop()) {
 		ui->parentFrame->hide();
 	} else {
-//		ui->parentAvatar->setId(msgParent.srcId, true);
 
 		RetroShareLink linkParent = RetroShareLink::createGxsMessageLink(RetroShareLink::TYPE_FORUM, mParentMessage.mMeta.mGroupId, mParentMessage.mMeta.mMsgId, QString::fromUtf8(mParentMessage.mMeta.mMsgName.c_str()));
 		ui->parentSubLabel->setText(linkParent.toHtml());
@@ -323,16 +375,16 @@ void GxsForumMsgItem::fill()
 
 		ui->parentNameLabel->setId(mParentMessage.mMeta.mAuthorId);
 
-//		if (rsPeers->getPeerName(msgParent.srcId) !="")
-//		{
-//			RetroShareLink linkMessage;
-//			linkMessage.createMessage(msgParent.srcId, "");
-//			ui->parentNameLabel->setText(linkMessage.toHtml());
-//		}
-//		else
-//		{
-//			ui->parentNameLabel->setText(tr("Anonymous"));
-//		}
+		RsIdentityDetails idDetails ;
+		rsIdentity->getIdDetails(mParentMessage.mMeta.mAuthorId,idDetails);
+		
+		QPixmap pixmap ;
+
+		if(idDetails.mAvatar.mSize == 0 || !GxsIdDetails::loadPixmapFromData(idDetails.mAvatar.mData, idDetails.mAvatar.mSize, pixmap,GxsIdDetails::SMALL))
+				pixmap = GxsIdDetails::makeDefaultIcon(mParentMessage.mMeta.mAuthorId,GxsIdDetails::SMALL);
+			
+		ui->parentAvatar->setPixmap(pixmap);
+
 	}
 
 	/* header stuff */
@@ -369,7 +421,7 @@ void GxsForumMsgItem::doExpand(bool open)
 	if (open)
 	{
 		ui->expandFrame->show();
-		ui->expandButton->setIcon(QIcon(QString(":/images/edit_remove24.png")));
+		ui->expandButton->setIcon(QIcon(QString(":/icons/png/up-arrow.png")));
 		ui->expandButton->setToolTip(tr("Hide"));
 
 		if (!mParentMessage.mMeta.mMsgId.isNull()) {
@@ -382,7 +434,7 @@ void GxsForumMsgItem::doExpand(bool open)
 	{
 		ui->expandFrame->hide();
 		ui->parentFrame->hide();
-		ui->expandButton->setIcon(QIcon(QString(":/images/edit_add24.png")));
+		ui->expandButton->setIcon(QIcon(QString(":/icons/png/down-arrow.png")));
 		ui->expandButton->setToolTip(tr("Expand"));
 	}
 
@@ -413,63 +465,6 @@ void GxsForumMsgItem::setReadStatus(bool isNew, bool /*isUnread*/)
 	ui->frame->setProperty("new", isNew);
 	ui->frame->style()->unpolish(ui->frame);
 	ui->frame->style()->polish(  ui->frame);
-}
-
-void GxsForumMsgItem::requestParentMessage(const RsGxsMessageId &msgId)
-{
-#ifdef DEBUG_ITEM
-	std::cerr << "GxsFeedItem::requestMessage()";
-	std::cerr << std::endl;
-#endif
-
-	if (!initLoadQueue()) {
-		return;
-	}
-
-	if (mLoadQueue->activeRequestExist(mTokenTypeParentMessage)) {
-		/* Request already running */
-		return;
-	}
-
-	RsTokReqOptions opts;
-	opts.mReqType = GXS_REQUEST_TYPE_MSG_DATA;
-
-	GxsMsgReq msgIds;
-	std::set<RsGxsMessageId> &vect_msgIds = msgIds[groupId()];
-	vect_msgIds.insert(msgId);
-
-	uint32_t token;
-	mLoadQueue->requestMsgInfo(token, RS_TOKREQ_ANSTYPE_DATA, opts, msgIds, mTokenTypeParentMessage);
-}
-
-void GxsForumMsgItem::loadRequest(const TokenQueue *queue, const TokenRequest &req)
-{
-#ifdef DEBUG_ITEM
-	std::cerr << "GxsFeedItem::loadRequest()";
-	std::cerr << std::endl;
-#endif
-
-	if (queue == mLoadQueue) {
-		if (req.mUserType == mTokenTypeParentMessage) {
-			loadParentMessage(req.mToken);
-			return;
-		}
-	}
-
-	GxsFeedItem::loadRequest(queue, req);
-}
-
-bool GxsForumMsgItem::isLoading()
-{
-	if (GxsFeedItem::isLoading()) {
-		return true;
-	}
-
-	if (mLoadQueue && mLoadQueue->activeRequestExist(mTokenTypeParentMessage)) {
-		return true;
-	}
-
-	return false;
 }
 
 /*********** SPECIFIC FUNCTIONS ***********************/

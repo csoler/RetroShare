@@ -54,11 +54,8 @@ static const uint32_t RS_GXS_FORUM_MSG_FLAGS_MODERATED = 0x00000001;
 #define IS_FORUM_MSG_MODERATION(flags) (flags & RS_GXS_FORUM_MSG_FLAGS_MODERATED)
 
 
-struct RsGxsForumGroup : RsSerializable
+struct RsGxsForumGroup : RsSerializable, RsGxsGenericGroupData
 {
-	/** Forum GXS metadata */
-	RsGroupMetaData mMeta;
-
 	/** @brief Forum desciption */
 	std::string mDescription;
 
@@ -104,6 +101,42 @@ struct RsGxsForumMsg : RsSerializable
 	~RsGxsForumMsg() override;
 };
 
+
+enum class RsForumEventCode: uint8_t
+{
+	UNKNOWN                  = 0x00,
+	NEW_FORUM                = 0x01, /// emitted when new forum is received
+	UPDATED_FORUM            = 0x02, /// emitted when existing forum is updated
+	NEW_MESSAGE              = 0x03, /// new message reeived in a particular forum
+	UPDATED_MESSAGE          = 0x04, /// existing message has been updated in a particular forum
+	SUBSCRIBE_STATUS_CHANGED = 0x05, /// forum was subscribed or unsubscribed
+	READ_STATUS_CHANGED      = 0x06, /// msg was read or marked unread
+	STATISTICS_CHANGED       = 0x07, /// suppliers and how many messages they have changed
+};
+
+struct RsGxsForumEvent: RsEvent
+{
+	RsGxsForumEvent()
+	    : RsEvent(RsEventType::GXS_FORUMS),
+	      mForumEventCode(RsForumEventCode::UNKNOWN) {}
+
+	RsForumEventCode mForumEventCode;
+	RsGxsGroupId mForumGroupId;
+	RsGxsMessageId mForumMsgId;
+
+	///* @see RsEvent @see RsSerializable
+	void serial_process(
+	        RsGenericSerializer::SerializeJob j,
+	        RsGenericSerializer::SerializeContext& ctx ) override
+	{
+		RsEvent::serial_process(j, ctx);
+		RS_SERIAL_PROCESS(mForumEventCode);
+		RS_SERIAL_PROCESS(mForumGroupId);
+		RS_SERIAL_PROCESS(mForumMsgId);
+	}
+
+	~RsGxsForumEvent() override;
+};
 
 class RsGxsForums: public RsGxsIfaceHelper
 {
@@ -187,6 +220,24 @@ public:
 	 */
 	virtual bool getForumsSummaries(std::list<RsGroupMetaData>& forums) = 0;
 
+    /**
+     * @brief returns statistics for the forum service
+	 * @jsonapi{development}
+     * @param[out] stat     statistics struct
+     * @return              false if the call fails
+     */
+	virtual bool getForumServiceStatistics(GxsServiceStatistic& stat) =0;
+
+    /**
+     * @brief returns statistics about a particular forum
+	 * @jsonapi{development}
+     * @param[in]  forumId  Id of the forum
+     * @param[out] stat     statistics struct
+     * @return              false when the object doesn't exist or when the timeout is reached requesting the data
+     */
+	virtual bool getForumStatistics(const RsGxsGroupId& forumId,GxsGroupStatistic& stat)=0;
+
+
 	/**
 	 * @brief Get forums information (description, thumbnail...).
 	 * Blocking API.
@@ -210,7 +261,7 @@ public:
 	                                  std::vector<RsMsgMetaData>& msgMetas) = 0;
 
 	/**
-	 * @brief Get specific list of messages from a single forums. Blocking API
+	 * @brief Get specific list of messages from a single forum. Blocking API
 	 * @jsonapi{development}
 	 * @param[in] forumId id of the forum of which the content is requested
 	 * @param[in] msgsIds list of message ids to request
@@ -240,6 +291,62 @@ public:
 	 */
 	virtual bool subscribeToForum( const RsGxsGroupId& forumId,
 	                               bool subscribe ) = 0;
+
+	/// default base URL used for forums links @see exportForumLink
+	static const std::string DEFAULT_FORUM_BASE_URL;
+
+	/// Link query field used to store forum name @see exportForumLink
+	static const std::string FORUM_URL_NAME_FIELD;
+
+	/// Link query field used to store forum id @see exportForumLink
+	static const std::string FORUM_URL_ID_FIELD;
+
+	/// Link query field used to store forum data @see exportForumLink
+	static const std::string FORUM_URL_DATA_FIELD;
+
+	/** Link query field used to store forum message title
+	 * @see exportChannelLink */
+	static const std::string FORUM_URL_MSG_TITLE_FIELD;
+
+	/// Link query field used to store forum message id @see exportChannelLink
+	static const std::string FORUM_URL_MSG_ID_FIELD;
+
+	/**
+	 * @brief Get link to a forum
+	 * @jsonapi{development}
+	 * @param[out] link storage for the generated link
+	 * @param[in] forumId Id of the forum of which we want to generate a link
+	 * @param[in] includeGxsData if true include the forum GXS group data so
+	 *	the receiver can subscribe to the forum even if she hasn't received it
+	 *	through GXS yet
+	 * @param[in] baseUrl URL into which to sneak in the RetroShare link
+	 *	radix, this is primarly useful to induce applications into making the
+	 *	link clickable, or to disguise the RetroShare link into a
+	 *	"normal" looking web link. If empty the GXS data link will be outputted
+	 *	in plain base64 format.
+	 * @param[out] errMsg optional storage for error message, meaningful only in
+	 *	case of failure
+	 * @return false if something failed, true otherwhise
+	 */
+	virtual bool exportForumLink(
+	        std::string& link, const RsGxsGroupId& forumId,
+	        bool includeGxsData = true,
+	        const std::string& baseUrl = RsGxsForums::DEFAULT_FORUM_BASE_URL,
+	        std::string& errMsg = RS_DEFAULT_STORAGE_PARAM(std::string) ) = 0;
+
+	/**
+	 * @brief Import forum from full link
+	 * @param[in] link forum link either in radix or URL format
+	 * @param[out] forumId optional storage for parsed forum id
+	 * @param[out] errMsg optional storage for error message, meaningful only in
+	 *	case of failure
+	 * @return false if some error occurred, true otherwise
+	 */
+	virtual bool importForumLink(
+	        const std::string& link,
+	        RsGxsGroupId& forumId = RS_DEFAULT_STORAGE_PARAM(RsGxsGroupId),
+	        std::string& errMsg = RS_DEFAULT_STORAGE_PARAM(std::string) ) = 0;
+
 
 	/**
 	 * @brief Create forum. Blocking API.
@@ -273,5 +380,5 @@ public:
 	RS_DEPRECATED_FOR(createMessage)
 	virtual bool createMsg(uint32_t &token, RsGxsForumMsg &msg) = 0;
 	RS_DEPRECATED_FOR(editForum)
-	virtual bool updateGroup(uint32_t &token, RsGxsForumGroup &group) = 0;
+	virtual bool updateGroup(uint32_t &token, const RsGxsForumGroup &group) = 0;
 };

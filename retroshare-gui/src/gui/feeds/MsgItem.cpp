@@ -43,7 +43,7 @@
 
 /** Constructor */
 MsgItem::MsgItem(FeedHolder *parent, uint32_t feedId, const std::string &msgId, bool isHome) :
-   FeedItem(NULL), mParent(parent), mFeedId(feedId), mMsgId(msgId), mIsHome(isHome)
+   FeedItem(parent,feedId,NULL), mMsgId(msgId), mIsHome(isHome)
 {
   /* Invoke the Qt Designer generated object setup routine */
   setupUi(this);
@@ -222,21 +222,16 @@ void MsgItem::updateItem()
 	}
 }
 
-void MsgItem::toggle()
-{
-	expand(expandFrame->isHidden());
-}
-
 void MsgItem::doExpand(bool open)
 {
-	if (mParent) {
-		mParent->lockLayout(this, true);
+	if (mFeedHolder) {
+		mFeedHolder->lockLayout(this, true);
 	}
 
 	if (open)
 	{
 		expandFrame->show();
-		expandButton->setIcon(QIcon(QString(":/images/edit_remove24.png")));
+		expandButton->setIcon(QIcon(QString(":/icons/png/up-arrow.png")));
 		expandButton->setToolTip(tr("Hide"));
 
 		mCloseOnRead = false;
@@ -246,14 +241,14 @@ void MsgItem::doExpand(bool open)
 	else
 	{
 		expandFrame->hide();
-		expandButton->setIcon(QIcon(QString(":/images/edit_add24.png")));
+		expandButton->setIcon(QIcon(QString(":/icons/png/down-arrow.png")));
 		expandButton->setToolTip(tr("Expand"));
 	}
 
 	emit sizeChanged(this);
 
-	if (mParent) {
-		mParent->lockLayout(this, false);
+	if (mFeedHolder) {
+		mFeedHolder->lockLayout(this, false);
 	}
 }
 
@@ -263,23 +258,6 @@ void MsgItem::expandFill(bool first)
 
 	if (first) {
 		fillExpandFrame();
-	}
-}
-
-void MsgItem::removeItem()
-{
-#ifdef DEBUG_ITEM
-	std::cerr << "MsgItem::removeItem()";
-	std::cerr << std::endl;
-#endif
-
-	mParent->lockLayout(this, true);
-	hide();
-	mParent->lockLayout(this, false);
-
-	if (mParent)
-	{
-		mParent->deleteFeedItem(this, mFeedId);
 	}
 }
 
@@ -315,7 +293,7 @@ void MsgItem::replyMsg()
 	std::cerr << "MsgItem::replyMsg()";
 	std::cerr << std::endl;
 #endif
-	if (mParent)
+	if (mFeedHolder)
 	{
 		//mParent->openMsg(FEEDHOLDER_MSG_MESSAGE, mPeerId, mMsgId);
 		
@@ -337,6 +315,11 @@ void MsgItem::playMedia()
 	std::cerr << "MsgItem::playMedia()";
 	std::cerr << std::endl;
 #endif
+}
+
+void MsgItem::toggle()
+{
+	expand(expandFrame->isHidden());
 }
 
 void MsgItem::checkMessageReadStatus()

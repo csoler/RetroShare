@@ -71,23 +71,32 @@ struct RsBroadcastDiscoveryResult : RsSerializable
  * @brief Event emitted when a non friend new peer is found in the local network
  * @see RsEvents
  */
-struct RsBroadcastDiscoveryPeerFoundEvent : RsEvent
-{
-	RsBroadcastDiscoveryPeerFoundEvent(
-	        const RsBroadcastDiscoveryResult& eventData ) :
-	    RsEvent(RsEventType::BROADCAST_DISCOVERY_PEER_FOUND), mData(eventData) {}
+enum class RsBroadcastDiscoveryEventType: uint32_t {
+    UNKNOWN               = 0x00,
+    PEER_FOUND            = 0x01
+};
 
-	RsBroadcastDiscoveryResult mData;
+struct RsBroadcastDiscoveryEvent : RsEvent
+{
+	RsBroadcastDiscoveryEvent()
+      : RsEvent(RsEventType::BROADCAST_DISCOVERY),
+        mDiscoveryEventType(RsBroadcastDiscoveryEventType::UNKNOWN)
+    {}
+
+    virtual ~RsBroadcastDiscoveryEvent() override = default;
+
+    RsBroadcastDiscoveryEventType  mDiscoveryEventType;
+	RsBroadcastDiscoveryResult     mData;
 
 	/// @see RsSerializable
 	void serial_process( RsGenericSerializer::SerializeJob j,
 	                     RsGenericSerializer::SerializeContext& ctx) override
 	{
 		RsEvent::serial_process(j, ctx);
+
+		RS_SERIAL_PROCESS(mDiscoveryEventType);
 		RS_SERIAL_PROCESS(mData);
 	}
-
-	~RsBroadcastDiscoveryPeerFoundEvent() override;
 };
 
 
@@ -106,6 +115,46 @@ public:
 	 * @return vector containing discovered peers, may be empty.
 	 */
 	virtual std::vector<RsBroadcastDiscoveryResult> getDiscoveredPeers() = 0;
+
+	/**
+	 * @brief Check if multicast listening is enabled
+	 * @jsonapi{development}
+	 * On some platforms such as Android multicast listening, which is needed
+	 * for broadcast discovery, is not enabled by default at WiFi driver level
+	 * @see enableMulticastListening, so this method check if it is enabled.
+	 * On platforms that are not expected to have such a limitation this method
+	 * always return true.
+	 * @return true if enabled, false otherwise.
+	 */
+	virtual bool isMulticastListeningEnabled() = 0;
+
+	/**
+	 * @brief On platforms that need it enable low level multicast listening
+	 * @jsonapi{development}
+	 * On Android and potencially other mobile platforms, WiFi drivers are
+	 * configured by default to discard any packet that is not directed to the
+	 * unicast mac address of the interface, this way they could save some
+	 * battery but breaks anything that is not unicast, such as broadcast
+	 * discovery. On such platforms this method enable low level multicast
+	 * listening so we can receive advertisement from same broadcast domain
+	 * nodes.
+	 * On platforms without such limitation does nothing and always return
+	 * false.
+	 * It is exposed as a public API so the UI can decide the right equilibrium
+	 * between discoverability and battery saving.
+	 * @return true if multicast listening has been enabled due to this call,
+	 *	false otherwise.
+	 */
+	virtual bool enableMulticastListening() = 0;
+
+	/**
+	 * @brief Disable multicast listening
+	 * @jsonapi{development}
+	 * The opposite of @see enableMulticastListening.
+	 * @return true if multicast listening has been disabled due to this call,
+	 *	false otherwise.
+	 */
+	virtual bool disableMulticastListening() = 0;
 
 	virtual ~RsBroadcastDiscovery();
 };

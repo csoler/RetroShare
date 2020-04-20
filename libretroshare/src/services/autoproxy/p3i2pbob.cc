@@ -280,7 +280,7 @@ bool inline isTunnelActiveError(const std::string &answer) {
 	return answer.compare(0, 22, "ERROR tunnel is active") == 0;
 }
 
-void p3I2pBob::data_tick()
+void p3I2pBob::threadTick()
 {
 	int sleepTime = 0;
 	{
@@ -1131,6 +1131,9 @@ std::string p3I2pBob::recv()
 		// clear and resize buffer again
 		buffer.clear();
 		buffer.resize(bufferSize);
+
+		if (this->shouldStop())
+			break;
 	} while(length == bufferSize || ans.size() < 4);
 
 	return ans;

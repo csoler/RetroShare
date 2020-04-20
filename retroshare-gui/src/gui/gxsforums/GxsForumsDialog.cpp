@@ -25,6 +25,7 @@
 #include "GxsForumUserNotify.h"
 #include "gui/notifyqt.h"
 #include "gui/gxs/GxsGroupShareKey.h"
+#include "util/qtthreadsutils.h"
 #include "gui/common/GroupTreeWidget.h"
 
 class GxsForumGroupInfoData : public RsUserdata
@@ -41,11 +42,68 @@ GxsForumsDialog::GxsForumsDialog(QWidget *parent)
 	: GxsGroupFrameDialog(rsGxsForums, parent)
 {
 	mCountChildMsgs = true;
+    mEventHandlerId = 0;
+    // Needs to be asynced because this function is likely to be called by another thread!
+
+	rsEvents->registerEventsHandler(RsEventType::GXS_FORUMS, [this](std::shared_ptr<const RsEvent> event) {   RsQThreadUtils::postToObject( [=]() { handleEvent_main_thread(event); }, this ); }, mEventHandlerId );
+}
+
+void GxsForumsDialog::handleEvent_main_thread(std::shared_ptr<const RsEvent> event)
+{
+    if(event->mType == RsEventType::GXS_FORUMS)
+    {
+        const RsGxsForumEvent *e = dynamic_cast<const RsGxsForumEvent*>(event.get());
+
+        if(!e)
+            return;
+
+        switch(e->mForumEventCode)
+        {
+		case RsForumEventCode::NEW_MESSAGE:
+		case RsForumEventCode::UPDATED_MESSAGE:        // [[fallthrough]];
+		case RsForumEventCode::READ_STATUS_CHANGED:
+			updateGroupStatisticsReal(e->mForumGroupId); // update the list immediately
+            break;
+
+		case RsForumEventCode::NEW_FORUM:       // [[fallthrough]];
+        case RsForumEventCode::SUBSCRIBE_STATUS_CHANGED:
+            updateDisplay(true);
+            break;
+
+        case RsForumEventCode::STATISTICS_CHANGED:
+            updateGroupStatistics(e->mForumGroupId);   // update the list when redraw less often than once every 2 mins
+            break;
+
+        default:
+            break;
+        }
+    }
 }
 
 GxsForumsDialog::~GxsForumsDialog()
 {
+	rsEvents->unregisterEventsHandler(mEventHandlerId);
 }
+
+bool GxsForumsDialog::getGroupData(std::list<RsGxsGenericGroupData*>& groupInfo)
+{
+	std::vector<RsGxsForumGroup> groups;
+
+	if(! rsGxsForums->getForumsInfo(std::list<RsGxsGroupId>(),groups))
+		return false;
+
+	for (auto& group: groups)
+		groupInfo.push_back(new RsGxsForumGroup(group));
+
+    return true;
+}
+
+bool GxsForumsDialog::getGroupStatistics(const RsGxsGroupId& groupId,GxsGroupStatistic& stat)
+{
+    return rsGxsForums->getForumStatistics(groupId,stat);
+}
+
+
 
 QString GxsForumsDialog::getHelpString() const
 {
@@ -78,9 +136,9 @@ void GxsForumsDialog::shareInMessage(const RsGxsGroupId& forum_id,const QList<Re
 	msgDialog->show();
 }
 
-UserNotify *GxsForumsDialog::getUserNotify(QObject *parent)
+UserNotify *GxsForumsDialog::createUserNotify(QObject *parent)
 {
-	return new GxsForumUserNotify(rsGxsForums, parent);
+	return new GxsForumUserNotify(rsGxsForums,this, parent);
 }
 
 QString GxsForumsDialog::text(TextType type)
@@ -114,17 +172,17 @@ QString GxsForumsDialog::icon(IconType type)
 {
 	switch (type) {
 	case ICON_NAME:
-		return ":/icons/png/forums.png";
+		return ":/icons/png/forum.png";
 	case ICON_NEW:
 		return ":/icons/png/add.png";
 	case ICON_YOUR_GROUP:
-		return ":/icons/png/feedreader.png";
+		return "";
 	case ICON_SUBSCRIBED_GROUP:
-		return ":/icons/png/feed-subscribed.png";
+		return "";
 	case ICON_POPULAR_GROUP:
-		return ":/icons/png/feed-popular.png";
+		return "";
 	case ICON_OTHER_GROUP:
-		return ":/icons/png/feed-other.png";
+		return "";
 	case ICON_SEARCH:
 		return ":/images/find.png";
 	case ICON_DEFAULT:
@@ -134,14 +192,14 @@ QString GxsForumsDialog::icon(IconType type)
 	return "";
 }
 
-GxsGroupDialog *GxsForumsDialog::createNewGroupDialog(TokenQueue *tokenQueue)
+GxsGroupDialog *GxsForumsDialog::createNewGroupDialog()
 {
-	return new GxsForumGroupDialog(tokenQueue, this);
+	return new GxsForumGroupDialog(this);
 }
 
-GxsGroupDialog *GxsForumsDialog::createGroupDialog(TokenQueue *tokenQueue, RsTokenService *tokenService, GxsGroupDialog::Mode mode, RsGxsGroupId groupId)
+GxsGroupDialog *GxsForumsDialog::createGroupDialog(GxsGroupDialog::Mode mode, RsGxsGroupId groupId)
 {
-	return new GxsForumGroupDialog(tokenQueue, tokenService, mode, groupId, this);
+	return new GxsForumGroupDialog(mode, groupId, this);
 }
 
 int GxsForumsDialog::shareKeyType()
@@ -154,45 +212,23 @@ GxsMessageFrameWidget *GxsForumsDialog::createMessageFrameWidget(const RsGxsGrou
 	return new GxsForumThreadWidget(groupId);
 }
 
-void GxsForumsDialog::loadGroupSummaryToken(const uint32_t &token, std::list<RsGroupMetaData> &groupInfo, RsUserdata *&userdata)
+void GxsForumsDialog::groupInfoToGroupItemInfo(const RsGxsGenericGroupData *groupData, GroupItemInfo &groupItemInfo)
 {
-	std::vector<RsGxsForumGroup> groups;
-	rsGxsForums->getGroupData(token, groups);
+	GxsGroupFrameDialog::groupInfoToGroupItemInfo(groupData, groupItemInfo);
 
-	/* Save groups to fill description */
-	GxsForumGroupInfoData *forumData = new GxsForumGroupInfoData;
-	userdata = forumData;
+	const RsGxsForumGroup *forumGroupData = dynamic_cast<const RsGxsForumGroup*>(groupData);
 
-	std::vector<RsGxsForumGroup>::iterator groupIt;
-	for (groupIt = groups.begin(); groupIt != groups.end(); ++groupIt) {
-		RsGxsForumGroup &group = *groupIt;
-		groupInfo.push_back(group.mMeta);
-
-		if (!group.mDescription.empty()) {
-			forumData->mDescription[group.mMeta.mGroupId] = QString::fromUtf8(group.mDescription.c_str());
-		}
-	}
-}
-
-void GxsForumsDialog::groupInfoToGroupItemInfo(const RsGroupMetaData &groupInfo, GroupItemInfo &groupItemInfo, const RsUserdata *userdata)
-{
-	GxsGroupFrameDialog::groupInfoToGroupItemInfo(groupInfo, groupItemInfo, userdata);
-
-	const GxsForumGroupInfoData *forumData = dynamic_cast<const GxsForumGroupInfoData*>(userdata);
-	if (!forumData) {
-		std::cerr << "GxsForumsDialog::groupInfoToGroupItemInfo() Failed to cast data to GxsForumGroupInfoData";
-		std::cerr << std::endl;
+	if (!forumGroupData)
+    {
+		std::cerr << "GxsChannelDialog::groupInfoToGroupItemInfo() Failed to cast data to GxsChannelGroupInfoData"<< std::endl;
 		return;
 	}
 
-	QMap<RsGxsGroupId, QString>::const_iterator descriptionIt = forumData->mDescription.find(groupInfo.mGroupId);
-	if (descriptionIt != forumData->mDescription.end()) {
-		groupItemInfo.description = descriptionIt.value();
-	}
-	
-	//if (IS_GROUP_ADMIN(groupInfo.mSubscribeFlags)) 
-	//	groupItemInfo.icon = QIcon(":images/konv_message2.png");
-	if ((IS_GROUP_PGP_AUTHED(groupInfo.mSignFlags)) || (IS_GROUP_MESSAGE_TRACKING(groupInfo.mSignFlags)) )
-		groupItemInfo.icon = QIcon(":icons/png/forums-signed.png");
+	groupItemInfo.description = QString::fromUtf8(forumGroupData->mDescription.c_str());
 
+	if(IS_GROUP_ADMIN(groupData->mMeta.mSubscribeFlags))
+		groupItemInfo.icon = QIcon(":icons/png/forums.png");
+	else if ((IS_GROUP_PGP_AUTHED(groupData->mMeta.mSignFlags)) || (IS_GROUP_MESSAGE_TRACKING(groupData->mMeta.mSignFlags)) )
+		groupItemInfo.icon = QIcon(":icons/png/forums-signed.png");
 }
+

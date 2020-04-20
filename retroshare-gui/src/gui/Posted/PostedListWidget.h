@@ -29,6 +29,7 @@
 class RsPostedGroup;
 class RsPostedPost;
 class PostedItem;
+class PostedCardView;
 
 namespace Ui {
 class PostedListWidget;
@@ -44,10 +45,11 @@ public:
 
 	/* GxsMessageFrameWidget */
 	virtual QIcon groupIcon();
+	virtual void groupIdChanged();
 
 	/* FeedHolder */
 	virtual QScrollArea *getScrollArea();
-	virtual void deleteFeedItem(QWidget *item, uint32_t type);
+	virtual void deleteFeedItem(FeedItem *item, uint32_t type);
 	virtual void openChat(const RsPeerId& peerId);
 	virtual void openComments(uint32_t type, const RsGxsGroupId &groupId, const QVector<RsGxsMessageId> &versions, const RsGxsMessageId &msgId, const QString &title);
 
@@ -55,13 +57,22 @@ public:
 	virtual void loadRequest(const TokenQueue *queue, const TokenRequest &req);
 
 protected:
+	void handleEvent_main_thread(std::shared_ptr<const RsEvent> event);
+	void insertAllPostedPosts(const std::vector<RsPostedPost>& posts, GxsMessageFramePostThread *thread) ;
+	void insertPostedPosts(const std::vector<RsPostedPost>& posts);
+
 	/* GxsMessageFramePostWidget */
-	virtual bool insertGroupData(const uint32_t &token, RsGroupMetaData &metaData);
-	virtual void insertAllPosts(const uint32_t &token, GxsMessageFramePostThread *thread);
-	virtual void insertPosts(const uint32_t &token);
 	virtual void clearPosts();
 	virtual void blank();
 	virtual bool navigatePostItem(const RsGxsMessageId& msgId);
+
+    virtual void getMsgData(const std::set<RsGxsMessageId>& msgIds,std::vector<RsGxsGenericMsgData*>& posts) override;
+    virtual void getAllMsgData(std::vector<RsGxsGenericMsgData*>& posts) override;
+    virtual bool getGroupData(RsGxsGenericGroupData*& data) override;
+
+	virtual bool insertGroupData(const RsGxsGenericGroupData *data) override;
+	virtual void insertPosts(const std::vector<RsGxsGenericMsgData*>& posts) override;
+	virtual void insertAllPosts(const std::vector<RsGxsGenericMsgData*>& posts, GxsMessageFramePostThread *thread) override;
 
 	/* GxsMessageFrameWidget */
 	virtual void setAllMessagesReadDo(bool read, uint32_t &token);
@@ -78,9 +89,13 @@ private slots:
 	void showNext();
 	void showPrev();
 
+	void setViewMode(int viewMode);
+
 private:
 	void processSettings(bool load);
 	void updateShowText();
+
+	int viewMode();
 
 	/*!
 	 * Only removes it from layout
@@ -88,6 +103,7 @@ private:
 	void shallowClearPosts();
 
 	void loadPost(const RsPostedPost &post);
+	void loadPostCardView(const RsPostedPost &post);
 
 	void insertPostedDetails(const RsPostedGroup &group);
 
@@ -114,8 +130,12 @@ private:
 	QMap<RsGxsMessageId, PostedItem*> mPosts;
 	QList<PostedItem*> mPostItems;
 
+	QMap<RsGxsMessageId, PostedCardView*> mCVPosts;
+	QList<PostedCardView*> mPostCardView;
+	
 	/* UI - from Designer */
 	Ui::PostedListWidget *ui;
+    RsEventsHandlerId_t mEventHandlerId ;
 };
 
 #endif

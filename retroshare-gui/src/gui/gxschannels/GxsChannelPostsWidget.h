@@ -58,21 +58,25 @@ public:
 
 	/* FeedHolder */
 	virtual QScrollArea *getScrollArea();
-	virtual void deleteFeedItem(QWidget *item, uint32_t type);
+	virtual void deleteFeedItem(FeedItem *feedItem, uint32_t type);
 	virtual void openChat(const RsPeerId& peerId);
 	virtual void openComments(uint32_t type, const RsGxsGroupId &groupId, const QVector<RsGxsMessageId> &msg_versions, const RsGxsMessageId &msgId, const QString &title);
 
 protected:
 	/* GxsMessageFramePostWidget */
 	virtual void groupNameChanged(const QString &name);
-	virtual bool insertGroupData(const uint32_t &token, RsGroupMetaData &metaData);
-	virtual void insertAllPosts(const uint32_t &token, GxsMessageFramePostThread *thread);
-	virtual void insertPosts(const uint32_t &token);
+	virtual bool insertGroupData(const RsGxsGenericGroupData *data) override;
 	virtual void clearPosts();
 	virtual bool useThread() { return mUseThread; }
 	virtual void fillThreadCreatePost(const QVariant &post, bool related, int current, int count);
 	virtual bool navigatePostItem(const RsGxsMessageId& msgId);
     virtual void blank() ;
+
+	virtual bool getGroupData(RsGxsGenericGroupData *& data) override;
+    virtual void getMsgData(const std::set<RsGxsMessageId>& msgIds,std::vector<RsGxsGenericMsgData*>& posts) override;
+    virtual void getAllMsgData(std::vector<RsGxsGenericMsgData*>& posts) override;
+	virtual void insertPosts(const std::vector<RsGxsGenericMsgData*>& posts) override;
+	virtual void insertAllPosts(const std::vector<RsGxsGenericMsgData*>& posts, GxsMessageFramePostThread *thread) override;
 
 	/* GxsMessageFrameWidget */
 	virtual void setAllMessagesReadDo(bool read, uint32_t &token);
@@ -97,11 +101,13 @@ private:
 	void insertChannelPosts(std::vector<RsGxsChannelPost> &posts, GxsMessageFramePostThread *thread, bool related);
 
 	void createPostItem(const RsGxsChannelPost &post, bool related);
+	void handleEvent_main_thread(std::shared_ptr<const RsEvent> event);
 
 private:
 	QAction *mAutoDownloadAction;
 
 	bool mUseThread;
+    RsEventsHandlerId_t mEventHandlerId ;
 
 	/* UI - from Designer */
 	Ui::GxsChannelPostsWidget *ui;

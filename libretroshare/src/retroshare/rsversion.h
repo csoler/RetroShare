@@ -3,7 +3,9 @@
  *                                                                             *
  * libretroshare: retroshare core library                                      *
  *                                                                             *
- * Copyright 2012-2018 by Retroshare Team <retroshare.project@gmail.com>       *
+ * Copyright (C) 2012-2018  Retroshare Team <contact@retroshare.cc>            *
+ * Copyright (C) 2018-2020  Gioacchino Mazzurco <gio@eigenlab.org>             *
+ * Copyright (C) 2020  Asociación Civil Altermundi <info@altermundi.net>       *
  *                                                                             *
  * This program is free software: you can redistribute it and/or modify        *
  * it under the terms of the GNU Lesser General Public License as              *
@@ -20,7 +22,6 @@
  *                                                                             *
  *******************************************************************************/
 #pragma once
-
 
 /**
  * @def RS_MINI_VERSION
@@ -55,7 +56,7 @@
  * Customize it trough qmake command line @see retroshare.pri
  */
 #ifndef RS_EXTRA_VERSION
-#	define RS_EXTRA_VERSION "alpha"
+#	define RS_EXTRA_VERSION "-alpha"
 #endif
 
 
@@ -69,13 +70,17 @@
 	(RS_MINOR_VERSION == (B) && RS_MINI_VERSION >= (C)))))
 
 
-#define __RS_PRIVATE_STRINGIFY2(X) #X
-#define __RS_PRIVATE_STRINGIFY(X) __RS_PRIVATE_STRINGIFY2(X)
+#define RS_PRIVATE_STRINGIFY2(X) #X
+#define RS_PRIVATE_STRINGIFY(X) RS_PRIVATE_STRINGIFY2(X)
 
 /**
  * Human readable string describing RetroShare version
  */
 constexpr auto RS_HUMAN_READABLE_VERSION =
-        __RS_PRIVATE_STRINGIFY(RS_MAJOR_VERSION) "." \
-        __RS_PRIVATE_STRINGIFY(RS_MINOR_VERSION) "." \
-        __RS_PRIVATE_STRINGIFY(RS_MINI_VERSION) RS_EXTRA_VERSION;
+        RS_PRIVATE_STRINGIFY(RS_MAJOR_VERSION) "." \
+        RS_PRIVATE_STRINGIFY(RS_MINOR_VERSION) "." \
+        RS_PRIVATE_STRINGIFY(RS_MINI_VERSION) RS_EXTRA_VERSION;
+
+/* Because RetroShare-gui include this file in gui/images/retroshare_win.rc
+ * including any C++ things like `#include <string>` will break compilation of
+ * RetroShare-gui on Windows. Therefore this file must be kept minimal. */

@@ -47,6 +47,7 @@
 #include "RSTreeWidgetItem.h"
 #include "StatusDefs.h"
 #include "util/misc.h"
+#include "util/qtthreadsutils.h"
 #include "vmessagebox.h"
 #include "util/QtVersion.h"
 #include "gui/chat/ChatUserNotify.h"
@@ -62,8 +63,8 @@
 #define IMAGE_EXPORTFRIEND       ":/images/user/friend_suggestion16.png"
 #define IMAGE_ADDFRIEND          ":/images/user/add_user16.png"
 #define IMAGE_FRIENDINFO         ":/images/info16.png"
-#define IMAGE_CHAT               ":/images/chat_24.png"
-#define IMAGE_MSG                ":/images/mail_new.png"
+#define IMAGE_CHAT               ":/icons/png/chats.png"
+#define IMAGE_MSG                ":/icons/mail/write-mail.png"
 #define IMAGE_CONNECT            ":/images/connect_friend.png"
 #define IMAGE_COPYLINK           ":/images/copyrslink.png"
 #define IMAGE_GROUP16            ":/images/user/group16.png"
@@ -176,6 +177,9 @@ NewFriendList::NewFriendList(QWidget *parent) : /* RsAutoUpdatePage(5000,parent)
     ui->filterLineEdit->setPlaceholderText(tr("Search")) ;
     ui->filterLineEdit->showFilterIcon();
 
+    mEventHandlerId=0; // forces initialization
+    rsEvents->registerEventsHandler( RsEventType::PEER_CONNECTION, [this](std::shared_ptr<const RsEvent> e) { handleEvent(e); }, mEventHandlerId );
+
     mModel = new RsFriendListModel();
 	mProxyModel = new FriendListSortFilterProxyModel(ui->peerTreeWidget->header(),this);
 
@@ -236,8 +240,6 @@ NewFriendList::NewFriendList(QWidget *parent) : /* RsAutoUpdatePage(5000,parent)
 
 	connect(NotifyQt::getInstance(), SIGNAL(friendsChanged())                , this, SLOT(forceUpdateDisplay()),Qt::QueuedConnection);
     connect(NotifyQt::getInstance(), SIGNAL(groupsChanged(int))              , this, SLOT(forceUpdateDisplay()),Qt::QueuedConnection);
-	connect(NotifyQt::getInstance(), SIGNAL(peerConnected(const QString&))   , this, SLOT(forceUpdateDisplay()),Qt::QueuedConnection);
-	connect(NotifyQt::getInstance(), SIGNAL(peerDisconnected(const QString&)), this, SLOT(forceUpdateDisplay()),Qt::QueuedConnection);
 
     connect(ui->actionShowOfflineFriends, SIGNAL(triggered(bool)), this, SLOT(setShowUnconnected(bool)));
     connect(ui->actionShowState,          SIGNAL(triggered(bool)), this, SLOT(setShowState(bool))      );
@@ -254,8 +256,17 @@ NewFriendList::NewFriendList(QWidget *parent) : /* RsAutoUpdatePage(5000,parent)
 
 }
 
+void NewFriendList::handleEvent(std::shared_ptr<const RsEvent> e)
+{
+	// /!\ The function we're in is called from a different thread. It's very important
+	//     to use this trick in order to avoid data races.
+
+	RsQThreadUtils::postToObject( [=]() { forceUpdateDisplay() ; }, this ) ;
+}
+
 NewFriendList::~NewFriendList()
 {
+    rsEvents->unregisterEventsHandler(mEventHandlerId);
     delete ui;
 }
 

@@ -2,7 +2,8 @@
  * RetroShare debugging utilities                                              *
  *                                                                             *
  * Copyright (C) 2004-2008  Robert Fernie <retroshare@lunamutt.com>            *
- * Copyright (C) 2019  Gioacchino Mazzurco <gio@eigenlab.org>                  *
+ * Copyright (C) 2019-2020 Gioacchino Mazzurco <gio@eigenlab.org>              *
+ * Copyright (C) 2020  Asociación Civil Altermundi <info@altermundi.net>       *
  *                                                                             *
  * This program is free software: you can redistribute it and/or modify        *
  * it under the terms of the GNU Lesser General Public License as              *
@@ -21,6 +22,10 @@
 #pragma once
 
 #include <ostream>
+#include <system_error>
+
+/** Stream helper for std::error_condition */
+std::ostream &operator<<(std::ostream& out, const std::error_condition& err);
 
 #ifdef __ANDROID__
 #	include <android/log.h>
@@ -41,12 +46,14 @@ struct t_RsLogger
 {
 	inline t_RsLogger() = default;
 
+	typedef t_RsLogger stream_type;
+
 	template<typename T>
-	inline t_RsLogger& operator<<(const T& val)
+	inline stream_type& operator<<(const T& val)
 	{ ostr << val; return *this; }
 
 	/// needed for manipulators and things like std::endl
-	t_RsLogger& operator<<(std::ostream& (*pf)(std::ostream&))
+	stream_type& operator<<(std::ostream& (*pf)(std::ostream&))
 	{
 		if(pf == static_cast<std::ostream& (*)(std::ostream&)>(
 		            &std::endl< char, std::char_traits<char> > ))
@@ -68,7 +75,8 @@ private:
 #else // def __ANDROID__
 
 #include <iostream>
-#include <ctime>
+#include <chrono>
+#include <iomanip>
 
 enum class RsLoggerCategories
 {
@@ -84,11 +92,20 @@ struct t_RsLogger
 {
 	inline t_RsLogger() = default;
 
+	typedef decltype(std::cerr) stream_type;
+
 	template<typename T>
-	inline std::ostream& operator<<(const T& val)
+	inline stream_type& operator<<(const T& val)
 	{
-		return std::cerr << static_cast<char>(CATEGORY) << " " << time(nullptr)
-		                 << " " << val;
+		using namespace std::chrono;
+		const auto now = system_clock::now();
+		const auto sec = time_point_cast<seconds>(now);
+		const auto msec = duration_cast<milliseconds>(now - sec);
+		const auto tFill = std::cerr.fill();
+		return std::cerr << static_cast<char>(CATEGORY) << " "
+		                 << sec.time_since_epoch().count() << "."
+		                 << std::setfill('0') << std::setw(3) << msec.count()
+		                 << std::setfill(tFill) << " " << val;
 	}
 };
 #endif // def __ANDROID__
@@ -97,7 +114,7 @@ struct t_RsLogger
 /**
  * Comfortable debug message loggin, supports chaining like std::cerr but can
  * be easly and selectively disabled at compile time to reduce generated binary
- * size and performance impact without too many #ifdef around.
+ * size and performance impact without too many \#ifdef around.
  *
  * To selectively debug your context you can just add something like this in
  * in that context, as an example for a class you can just add a line like this

@@ -46,9 +46,10 @@ public:
 	bool setGroup(const RsPostedGroup& group, bool doFill = true);
 	bool setPost(const RsPostedPost& post, bool doFill = true);
 
-	const RsPostedPost &getPost() const;
+	const RsPostedPost& getPost() const;
 	RsPostedPost &post();
 
+	uint64_t uniqueIdentifier() const override { return hash_64bits("PostedItem " + messageId().toStdString()); }
 protected:
 	/* FeedItem */
 	virtual void doExpand(bool open);
@@ -59,9 +60,10 @@ private slots:
 	void makeDownVote();
 	void readToggled(bool checked);
 	void readAndClearItem();
-	void toggle();
+	void toggle() override;
 	void copyMessageLink();
 	void toggleNotes();
+	void viewPicture();
 
 signals:
 	void vote(const RsGxsGrpMsgIdPair& msgId, bool up);
@@ -69,13 +71,14 @@ signals:
 protected:
 	/* GxsGroupFeedItem */
 	virtual QString groupName();
-	virtual void loadGroup(const uint32_t &token);
+	virtual void loadGroup() override;
 	virtual RetroShareLink::enumType getLinkType() { return RetroShareLink::TYPE_UNKNOWN; }
 
 	/* GxsFeedItem */
 	virtual QString messageName();
-	virtual void loadMessage(const uint32_t &token);
-	virtual void loadComment(const uint32_t &token);
+
+	virtual void loadMessage();
+	virtual void loadComment();
 
 private:
 	void setup();

@@ -28,13 +28,14 @@ DEFINES += TARGET=\\\"$${TARGET}\\\"
 DEPENDPATH  *= $${PWD} $${RS_INCLUDE_DIR} retroshare-gui
 INCLUDEPATH *= $${PWD} retroshare-gui
 
-libresapihttpserver {
-    !include("../../libresapi/src/use_libresapi.pri"):error("Including")
+!include("../../libretroshare/src/use_libretroshare.pri"):error("Including")
+
+rs_webui {
+rs_jsonapi {
     HEADERS *= gui/settings/WebuiPage.h
     SOURCES *= gui/settings/WebuiPage.cpp
     FORMS *= gui/settings/WebuiPage.ui
-} else {
-    !include("../../libretroshare/src/use_libretroshare.pri"):error("Including")
+}
 }
 
 rs_jsonapi {
@@ -112,6 +113,11 @@ CONFIG += gxscircles
 # Other Disabled Bits.
 #CONFIG += framecatcher
 #CONFIG += blogs
+
+## To enable unfinished services
+#CONFIG += wikipoos
+#CONFIG += gxsthewire
+#CONFIG += gxsphotoshare
 
 DEFINES += RS_RELEASE_VERSION
 RCC_DIR = temp/qrc
@@ -273,9 +279,9 @@ macx {
 	mac_icon.files = $$files($$PWD/rsMacIcon.icns)
 	mac_icon.path = Contents/Resources
 	QMAKE_BUNDLE_DATA += mac_icon
-	mac_webui.files = $$files($$PWD/../../libresapi/src/webui)
-	mac_webui.path = Contents/Resources
-	QMAKE_BUNDLE_DATA += mac_webui
+#	mac_webui.files = $$files($$PWD/../../libresapi/src/webui)
+#	mac_webui.path = Contents/Resources
+#	QMAKE_BUNDLE_DATA += mac_webui
 
 	CONFIG += version_detail_bash_script
         LIBS += -lssl -lcrypto -lz 
@@ -341,6 +347,7 @@ openbsd-* {
 wikipoos {
 	PRE_TARGETDEPS *= $$OUT_PWD/../../supportlibs/pegmarkdown/lib/libpegmarkdown.a
 	LIBS *= $$OUT_PWD/../../supportlibs/pegmarkdown/lib/libpegmarkdown.a
+	LIBS *= -lglib-2.0
 }
 
 # Tor controller
@@ -468,6 +475,8 @@ HEADERS +=  rshare.h \
             util/QtVersion.h \
             util/RsFile.h \
             util/qtthreadsutils.h \
+            util/ClickableLabel.h \
+            util/AspectRatioPixmapLabel.h \
             gui/profile/ProfileWidget.h \
             gui/profile/ProfileManager.h \
             gui/profile/StatusMessage.h \
@@ -622,13 +631,14 @@ HEADERS +=  rshare.h \
             gui/connect/ConnectProgressDialog.h \
             gui/groups/CreateGroup.h \
             gui/GetStartedDialog.h \
-        gui/statistics/BWGraph.h \
-    util/RsSyntaxHighlighter.h \
-    util/imageutil.h \
-    gui/NetworkDialog/pgpid_item_model.h \
-    gui/NetworkDialog/pgpid_item_proxy.h \
-    gui/common/RsCollection.h \
-    util/retroshareWin32.h
+            gui/statistics/BWGraph.h \
+            util/RsSyntaxHighlighter.h \
+            util/imageutil.h \
+            util/RichTextEdit.h \
+            gui/NetworkDialog/pgpid_item_model.h \
+            gui/NetworkDialog/pgpid_item_proxy.h \
+            gui/common/RsCollection.h \
+            util/retroshareWin32.h
 #            gui/ForumsDialog.h \
 #            gui/forums/ForumDetails.h \
 #            gui/forums/EditForumDetails.h \
@@ -746,7 +756,8 @@ FORMS +=    gui/StartDialog.ui \
             gui/statistics/StatisticsWindow.ui \
             gui/statistics/BwCtrlWindow.ui \
             gui/statistics/RttStatistics.ui \
-            gui/GetStartedDialog.ui
+            gui/GetStartedDialog.ui \
+            util/RichTextEdit.ui
 
 
 #            gui/ForumsDialog.ui \
@@ -824,6 +835,9 @@ SOURCES +=  main.cpp \
             util/HandleRichText.cpp \
             util/ObjectPainter.cpp \
             util/RsFile.cpp \
+            util/RichTextEdit.cpp \
+            util/ClickableLabel.cpp \
+            util/AspectRatioPixmapLabel.cpp \
             gui/profile/ProfileWidget.cpp \
             gui/profile/StatusMessage.cpp \
             gui/profile/ProfileManager.cpp \
@@ -1136,51 +1150,49 @@ unfinished_services {
 	
 	
 gxsphotoshare {
-	#DEFINES += RS_USE_PHOTOSHARE
+	#DEFINES += RS_USE_PHOTOSHARE # to enable in unfinished.
+	DEFINES += RS_USE_PHOTO # enable in MainWindow
 
 	HEADERS += \
+		gui/PhotoShare/AlbumGroupDialog.h \
+		gui/PhotoShare/AlbumExtra.h \
 		gui/PhotoShare/PhotoDrop.h \
 		gui/PhotoShare/AlbumItem.h \
 		gui/PhotoShare/AlbumDialog.h \
-		gui/PhotoShare/AlbumCreateDialog.h \
 		gui/PhotoShare/PhotoItem.h \
 		gui/PhotoShare/PhotoShareItemHolder.h \
 		gui/PhotoShare/PhotoShare.h \
 		gui/PhotoShare/PhotoSlideShow.h \
-		gui/PhotoShare/PhotoDialog.h \
-		gui/PhotoShare/PhotoCommentItem.h \
-		gui/PhotoShare/AddCommentDialog.h
-	
+		gui/PhotoShare/PhotoDialog.h
+
 	FORMS += \
+		gui/PhotoShare/AlbumExtra.ui \
 		gui/PhotoShare/PhotoItem.ui \
 		gui/PhotoShare/PhotoDialog.ui \
 		gui/PhotoShare/AlbumItem.ui \
 		gui/PhotoShare/AlbumDialog.ui \
-		gui/PhotoShare/AlbumCreateDialog.ui \
 		gui/PhotoShare/PhotoShare.ui \
-		gui/PhotoShare/PhotoSlideShow.ui \
-		gui/PhotoShare/PhotoCommentItem.ui \
-		gui/PhotoShare/AddCommentDialog.ui
-	
+		gui/PhotoShare/PhotoSlideShow.ui
+
 	SOURCES += \
+		gui/PhotoShare/AlbumGroupDialog.cpp \
+		gui/PhotoShare/AlbumExtra.cpp \
 		gui/PhotoShare/PhotoItem.cpp \
 		gui/PhotoShare/PhotoDialog.cpp \
 		gui/PhotoShare/PhotoDrop.cpp \
 		gui/PhotoShare/AlbumItem.cpp \
 		gui/PhotoShare/AlbumDialog.cpp \
-		gui/PhotoShare/AlbumCreateDialog.cpp \
 		gui/PhotoShare/PhotoShareItemHolder.cpp \
 		gui/PhotoShare/PhotoShare.cpp \
-		gui/PhotoShare/PhotoSlideShow.cpp \
-		gui/PhotoShare/PhotoCommentItem.cpp \
-		gui/PhotoShare/AddCommentDialog.cpp
-	
+		gui/PhotoShare/PhotoSlideShow.cpp
+
 	RESOURCES += gui/PhotoShare/Photo_images.qrc
 
 }
 	
 	
 wikipoos {
+	DEFINES += RS_USE_WIKI
 	
 	DEPENDPATH += ../../supportlibs/pegmarkdown
 	INCLUDEPATH += ../../supportlibs/pegmarkdown
@@ -1207,18 +1219,29 @@ wikipoos {
 	
 gxsthewire {
 	
+	DEFINES += RS_USE_WIRE
+
 	HEADERS += gui/TheWire/PulseItem.h \
+		gui/TheWire/PulseDetails.h \
 		gui/TheWire/WireDialog.h \
+		gui/TheWire/WireGroupItem.h \
+		gui/TheWire/WireGroupDialog.h \
 		gui/TheWire/PulseAddDialog.h \
 	
 	FORMS += gui/TheWire/PulseItem.ui \
+		gui/TheWire/PulseDetails.ui \
+		gui/TheWire/WireGroupItem.ui \
 		gui/TheWire/WireDialog.ui \
 		gui/TheWire/PulseAddDialog.ui \
 	
 	SOURCES += gui/TheWire/PulseItem.cpp \
+		gui/TheWire/PulseDetails.cpp \
 		gui/TheWire/WireDialog.cpp \
+		gui/TheWire/WireGroupItem.cpp \
+		gui/TheWire/WireGroupDialog.cpp \
 		gui/TheWire/PulseAddDialog.cpp \
-	
+
+	RESOURCES += gui/TheWire/TheWire_images.qrc
 }
 
 identities {
@@ -1340,9 +1363,11 @@ posted {
 	HEADERS += gui/Posted/PostedDialog.h \
 		gui/Posted/PostedListWidget.h \
 		gui/Posted/PostedItem.h \
+		gui/Posted/PostedCardView.h \
 		gui/Posted/PostedGroupDialog.h \
 		gui/feeds/PostedGroupItem.h \
 		gui/Posted/PostedCreatePostDialog.h \
+		gui/Posted/PhotoView.h \
 		gui/Posted/PostedUserNotify.h
 
 		#gui/Posted/PostedCreateCommentDialog.h \
@@ -1351,8 +1376,9 @@ posted {
 	FORMS += gui/Posted/PostedListWidget.ui \
 		gui/feeds/PostedGroupItem.ui \
 		gui/Posted/PostedItem.ui \
+		gui/Posted/PostedCardView.ui \
 		gui/Posted/PostedCreatePostDialog.ui \
-
+		gui/Posted/PhotoView.ui 
 		#gui/Posted/PostedDialog.ui \
 		#gui/Posted/PostedComments.ui \
 		#gui/Posted/PostedCreateCommentDialog.ui
@@ -1361,8 +1387,10 @@ posted {
 		gui/Posted/PostedListWidget.cpp \
 		gui/feeds/PostedGroupItem.cpp \
 		gui/Posted/PostedItem.cpp \
+		gui/Posted/PostedCardView.cpp \
 		gui/Posted/PostedGroupDialog.cpp \
 		gui/Posted/PostedCreatePostDialog.cpp \
+		gui/Posted/PhotoView.cpp \
 		gui/Posted/PostedUserNotify.cpp
 
 		#gui/Posted/PostedDialog.cpp \
@@ -1390,9 +1418,6 @@ gxsgui {
 		gui/gxs/GxsMessageFramePostWidget.h \
 		gui/gxs/GxsGroupFeedItem.h \
 		gui/gxs/GxsFeedItem.h \
-		gui/gxs/RsGxsUpdateBroadcastBase.h \
-		gui/gxs/RsGxsUpdateBroadcastWidget.h \
-		gui/gxs/RsGxsUpdateBroadcastPage.h \
 		gui/gxs/GxsGroupShareKey.h \
 		gui/gxs/GxsUserNotify.h \
 		gui/gxs/GxsFeedWidget.h \
@@ -1427,9 +1452,6 @@ gxsgui {
 		gui/gxs/GxsMessageFramePostWidget.cpp \
 		gui/gxs/GxsGroupFeedItem.cpp \
 		gui/gxs/GxsFeedItem.cpp \
-		gui/gxs/RsGxsUpdateBroadcastBase.cpp \
-		gui/gxs/RsGxsUpdateBroadcastWidget.cpp \
-		gui/gxs/RsGxsUpdateBroadcastPage.cpp \
 		gui/gxs/GxsUserNotify.cpp \
 		gui/gxs/GxsFeedWidget.cpp \
 		util/TokenQueue.cpp \
@@ -1438,4 +1460,17 @@ gxsgui {
 #		gui/gxs/GxsMsgDialog.cpp \
 	
 	
+}
+
+
+wikipoos {
+	HEADERS += \
+		gui/gxs/RsGxsUpdateBroadcastBase.h \
+		gui/gxs/RsGxsUpdateBroadcastWidget.h \
+		gui/gxs/RsGxsUpdateBroadcastPage.h 
+
+	SOURCES += \
+		gui/gxs/RsGxsUpdateBroadcastBase.cpp \
+		gui/gxs/RsGxsUpdateBroadcastWidget.cpp \
+		gui/gxs/RsGxsUpdateBroadcastPage.cpp \
 }

@@ -206,6 +206,100 @@ std::string RsPeerTrustString(uint32_t trustLvl);
 std::string RsPeerNetModeString(uint32_t netModel);
 std::string RsPeerLastConnectString(uint32_t lastConnect);
 
+//===================================================================================================//
+//                               Connexion and security events                                       //
+//===================================================================================================//
+
+enum class RsAuthSslError: uint8_t
+{
+//	NO_ERROR                        = 0x00, // enabling break windows build
+	MISSING_AUTHENTICATION_INFO     = 0x01,
+	PGP_SIGNATURE_VALIDATION_FAILED = 0x02,
+	MISMATCHED_PGP_ID               = 0x03,
+	NO_CERTIFICATE_SUPPLIED         = 0x04,
+	NOT_A_FRIEND                    = 0x05,
+	MISSING_CERTIFICATE             = 0x06,
+	IP_IS_BLACKLISTED               = 0x07,
+	PEER_REFUSED_CONNECTION         = 0x08,
+	UNKNOWN_ERROR                   = 0x09,
+};
+
+/**
+ * Event triggered by AuthSSL when authentication of a connection attempt either
+ * fail or success
+ */
+struct RsAuthSslConnectionAutenticationEvent : RsEvent
+{
+	RsAuthSslConnectionAutenticationEvent() :
+	    RsEvent(RsEventType::AUTHSSL_CONNECTION_AUTENTICATION) {}
+
+	RsPeerId mSslId;
+	std::string mSslCn;
+	RsPgpId mPgpId;
+	RsUrl mLocator;
+	std::string mErrorMsg;
+	RsAuthSslError mErrorCode;
+
+	///* @see RsEvent @see RsSerializable
+	void serial_process( RsGenericSerializer::SerializeJob j,
+	                     RsGenericSerializer::SerializeContext& ctx) override
+	{
+		RsEvent::serial_process(j, ctx);
+		RS_SERIAL_PROCESS(mSslId);
+		RS_SERIAL_PROCESS(mSslCn);
+		RS_SERIAL_PROCESS(mPgpId);
+		RS_SERIAL_PROCESS(mLocator);
+		RS_SERIAL_PROCESS(mErrorMsg);
+		RS_SERIAL_PROCESS(mErrorCode);
+	}
+
+	~RsAuthSslConnectionAutenticationEvent() override;
+};
+
+enum class RsConnectionEventCode: uint8_t
+{
+	UNKNOWN                 = 0x00,
+	PEER_CONNECTED          = 0x01,
+	PEER_DISCONNECTED       = 0x02,
+	PEER_TIME_SHIFT         = 0x03, // mTimeShift = time shift in seconds
+	PEER_REPORTS_WRONG_IP   = 0x04, // mPeerLocator = address reported, mOwnLocator = own address
+};
+
+struct RsConnectionEvent : RsEvent
+{
+	RsConnectionEvent()
+	    : RsEvent(RsEventType::PEER_CONNECTION),
+	      mConnectionInfoCode(RsConnectionEventCode::UNKNOWN), mTimeShift(0) {}
+
+	RsConnectionEventCode mConnectionInfoCode;
+	RsPeerId mSslId;
+	RsUrl mOwnLocator;
+	RsUrl mReportedLocator;
+
+	/** If there is a time shift with the peer aka
+	 * mConnectionInfoCode == PEER_TIME_SHIFT contains the time shift value in
+	 * seconds */
+	rstime_t mTimeShift;
+
+	///* @see RsEvent @see RsSerializable
+	void serial_process(
+	        RsGenericSerializer::SerializeJob j,
+	        RsGenericSerializer::SerializeContext& ctx ) override
+	{
+		RsEvent::serial_process(j, ctx);
+		RS_SERIAL_PROCESS(mConnectionInfoCode);
+		RS_SERIAL_PROCESS(mSslId);
+		RS_SERIAL_PROCESS(mOwnLocator);
+		RS_SERIAL_PROCESS(mReportedLocator);
+		RS_SERIAL_PROCESS(mTimeShift);
+	}
+
+	~RsConnectionEvent() override;
+};
+
+//===================================================================================================//
+//                                         Peer Details                                              //
+//===================================================================================================//
 
 /* We should definitely split this into 2 sub-structures:
  *    PGP info (or profile info) with all info related to PGP keys
@@ -396,10 +490,6 @@ struct RsPeerStateChangedEvent : RsEvent
 class RsPeers
 {
 public:
-
-	RsPeers() {}
-	virtual ~RsPeers() {}
-
 	/**
 	 * @brief Get own SSL peer id
 	 * @return own peer id
@@ -415,6 +505,14 @@ public:
 	 * @return false if error occurred, true otherwise
 	 */
 	virtual bool getFriendList(std::list<RsPeerId>& sslIds) = 0;
+
+	/**
+	 * @brief Get trusted PGP ids list
+	 * @jsonapi{development}
+	 * @param[out] pgpIds storage for the trusted PGP ids
+	 * @return false if error occurred, true otherwise
+	 */
+	virtual bool getPgpFriendList(std::vector<RsPgpId>& pgpIds) = 0;
 
 	/**
 	 * @brief Get connected peers list
@@ -498,6 +596,8 @@ public:
 	 */
 	virtual RsPgpId getGPGId(const RsPeerId& sslId) = 0;
 	virtual bool isKeySupported(const RsPgpId& gpg_ids) = 0;
+
+	RS_DEPRECATED_FOR(getPgpFriendList)
 	virtual bool getGPGAcceptedList(std::list<RsPgpId> &gpg_ids) = 0;
 	virtual bool getGPGSignedList(std::list<RsPgpId> &gpg_ids) = 0;// keys signed by our own PGP key.
 	virtual bool getGPGValidList(std::list<RsPgpId> &gpg_ids) = 0;// all PGP keys without filtering
@@ -706,7 +806,6 @@ public:
 	/* Auth Stuff */
 	virtual	std::string getPGPKey(const RsPgpId& pgp_id,bool include_signatures) = 0;
 	virtual bool GetPGPBase64StringAndCheckSum(const RsPgpId& gpg_id,std::string& gpg_base64_string,std::string& gpg_base64_checksum) = 0;
-	virtual  bool hasExportMinimal() = 0;
 
 	/**
 	 * @brief Import certificate into the keyring
@@ -740,8 +839,9 @@ public:
                                            std::string& error_string )=0;
 
 	// Certificate utils
-	virtual	bool cleanCertificate(const std::string &certstr, std::string &cleanCert,bool& is_short_format,uint32_t& error_code) = 0;
-	virtual	bool saveCertificateToFile(const RsPeerId& id, const std::string &fname) = 0;
+	virtual	bool cleanCertificate(
+	        const std::string& certstr, std::string& cleanCert,
+	        bool& is_short_format, uint32_t& error_code ) = 0;
 	virtual	std::string saveCertificateToString(const RsPeerId &id) = 0;
 
 	virtual	bool signGPGCertificate(const RsPgpId &gpg_id) = 0;
@@ -847,4 +947,6 @@ public:
 
 	RS_DEPRECATED_FOR(isPgpFriend)
 	virtual bool isGPGAccepted(const RsPgpId &gpg_id_is_friend) = 0;
+
+	virtual ~RsPeers();
 };

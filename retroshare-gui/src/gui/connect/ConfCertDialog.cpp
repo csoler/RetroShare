@@ -275,10 +275,16 @@ void ConfCertDialog::loadInvitePage()
 	std::string invite ;
 
     if(ui._shortFormat_CB->isChecked())
-        rsPeers->getShortInvite(invite,detail.id,true,!ui._includeIPHistory_CB->isChecked() );
+	{
+		rsPeers->getShortInvite(invite,detail.id,true,!ui._includeIPHistory_CB->isChecked() );
+		ui.stabWidget->setTabText(1, tr("Retroshare ID"));
+	}
 	else
+	{
 		invite = rsPeers->GetRetroshareInvite(detail.id, ui._shouldAddSignatures_CB->isChecked(), ui._includeIPHistory_CB->isChecked() ) ;
-
+		ui.stabWidget->setTabText(1, tr("Retroshare Certificate"));
+	}
+	
 	QString infotext = getCertificateDescription(detail,ui._shouldAddSignatures_CB->isChecked(),ui._shortFormat_CB->isChecked(), ui._includeIPHistory_CB->isChecked() );
 
     ui.userCertificateText->setToolTip(infotext) ;
@@ -300,11 +306,15 @@ QString ConfCertDialog::getCertificateDescription(const RsPeerDetails& detail,bo
     infotext += "<UL>" ;
 
     if(use_short_format)
+    {
 		infotext += "<li> a <b>Profile fingerprint</b>";
+    	infotext += " (" + QString::fromUtf8(detail.name.c_str())  + "@" + detail.fpr.toStdString().c_str()+") " ;
+    }
 	else
-		infotext += "<li> a <b>Profile key</b>";
-
-    infotext += " (" + QString::fromUtf8(detail.name.c_str())  + "@" + detail.gpg_id.toStdString().c_str()+") " ;
+    {
+		infotext += "<li> a <b>Profile public key</b>";
+    	infotext += " (" + QString::fromUtf8(detail.name.c_str())  + "@" + detail.gpg_id.toStdString().c_str()+") " ;
+    }
 
     if(signatures_included && !use_short_format)
         infotext += tr("with")+" "+QString::number(detail.gpgSigners.size()-1)+" "+tr("external signatures</li>") ;

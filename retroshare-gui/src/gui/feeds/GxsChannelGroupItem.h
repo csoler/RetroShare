@@ -41,19 +41,19 @@ public:
 	~GxsChannelGroupItem();
 
 	bool setGroup(const RsGxsChannelGroup &group);
-
+    uint64_t uniqueIdentifier() const override { return hash_64bits("GxsChannelGroupItem " + groupId().toStdString()) ; }
 protected:
 	/* FeedItem */
 	virtual void doExpand(bool open);
 
 	/* GxsGroupFeedItem */
 	virtual QString groupName();
-	virtual void loadGroup(const uint32_t &token);
+	virtual void loadGroup() override;
 	virtual RetroShareLink::enumType getLinkType() { return RetroShareLink::TYPE_CHANNEL; }
 
 private slots:
 	/* default stuff */
-	void toggle();
+	void toggle() override;
 
 	void subscribeChannel();
 

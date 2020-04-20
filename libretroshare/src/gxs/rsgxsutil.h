@@ -183,7 +183,7 @@ private:
  * Checks the integrity message and groups
  * in rsDataService using computed hash
  */
-class RsGxsIntegrityCheck : public RsSingleJobThread
+class RsGxsIntegrityCheck : public RsThread
 {
 
 	enum CheckState { CheckStart, CheckChecking };
@@ -213,7 +213,7 @@ private:
 
 	RsGeneralDataService* const mDs;
 	RsGenExchange *mGenExchangeClient;
-#ifdef RS_DEEP_SEARCH
+#ifdef RS_DEEP_CHANNEL_INDEX
 	RsSerialType& mSerializer;
 #endif
 	bool mDone;

@@ -81,11 +81,11 @@
 #define IMAGE_SEARCH               ":/icons/svg/magnifying-glass.svg"
 #define IMAGE_EXPAND               ":/images/edit_add24.png"
 #define IMAGE_COLLAPSE             ":/images/edit_remove24.png"
-#define IMAGE_LIBRARY              ":/images/library.png"
-#define IMAGE_COLLCREATE           ":/images/library_add.png"
-#define IMAGE_COLLMODIF            ":/images/library_edit.png"
-#define IMAGE_COLLVIEW             ":/images/library_view.png"
-#define IMAGE_COLLOPEN             ":/images/library.png"
+#define IMAGE_LIBRARY              ":/icons/collections.png"
+#define IMAGE_COLLCREATE           ":/iconss/png/add.png"
+#define IMAGE_COLLMODIF            ":/icons/png/pencil-edit-button.png"
+#define IMAGE_COLLVIEW             ":/images/find.png"
+#define IMAGE_COLLOPEN             ":/icons/collections.png"
 #define IMAGE_FRIENDSFILES         ":/icons/svg/folders.svg"
 #define IMAGE_MYFILES              ":icons/svg/folders1.svg"
 #define IMAGE_RENAMEFILE           ":images/filecomments.png"
@@ -1091,10 +1091,34 @@ TransfersDialog::TransfersDialog(QWidget *parent)
 
 
 	 registerHelpButton(ui.helpButton,help_str,"TransfersDialog") ;
+
+     mEventHandlerId=0;
+     rsEvents->registerEventsHandler(RsEventType::FILE_TRANSFER, [this](std::shared_ptr<const RsEvent> event) { handleEvent(event); }, mEventHandlerId );
+}
+
+void TransfersDialog::handleEvent(std::shared_ptr<const RsEvent> event)
+{
+    if(event->mType != RsEventType::FILE_TRANSFER)
+        return;
+
+	const RsFileTransferEvent *fe = dynamic_cast<const RsFileTransferEvent*>(event.get());
+	if(!fe)
+        return;
+
+ 	switch (fe->mFileTransferEventCode)
+    {
+	case RsFileTransferEventCode::DOWNLOAD_COMPLETE:
+	case RsFileTransferEventCode::COMPLETED_FILES_REMOVED:
+        getUserNotify()->updateIcon();
+    default:
+        break;
+    }
 }
 
 TransfersDialog::~TransfersDialog()
 {
+	rsEvents->unregisterEventsHandler(mEventHandlerId);
+
     // save settings
     processSettings(false);
 }
@@ -1114,7 +1138,7 @@ void TransfersDialog::activatePage(TransfersDialog::Page page)
 	}
 }
 
-UserNotify *TransfersDialog::getUserNotify(QObject *parent)
+UserNotify *TransfersDialog::createUserNotify(QObject *parent)
 {
     return new TransferUserNotify(parent);
 }

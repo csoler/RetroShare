@@ -42,7 +42,7 @@ struct CircleUpdateOrder
 };
 
 
-class GxsCircleItem : public FeedItem, public TokenResponse
+class GxsCircleItem : public FeedItem
 {
 	Q_OBJECT
 
@@ -52,9 +52,7 @@ public:
 	GxsCircleItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsCircleId &circleId, const RsGxsId &gxsId, const uint32_t type);
 	virtual ~GxsCircleItem();
 
-	bool isSame(const RsGxsCircleId &circleId, const RsGxsId &gxsId, uint32_t type);
-
-	void loadRequest(const TokenQueue *queue, const TokenRequest &req);
+    uint64_t uniqueIdentifier() const override;
 
 
 protected:
@@ -66,9 +64,6 @@ protected:
 
 
 private slots:
-	/* default stuff */
-	void removeItem();
-
 	void showCircleDetails();
 	void acceptCircleSubscription();
 	void grantCircleMembership() ;
@@ -77,16 +72,10 @@ private slots:
 private:
 	void setup();
 
-	FeedHolder *mFeedHolder;
-	uint32_t mFeedId;
 	uint32_t mType;
 
 	RsGxsCircleId mCircleId;
 	RsGxsId mGxsId;
-
-	TokenQueue *mCircleQueue;
-	std::map<uint32_t, CircleUpdateOrder> mCircleUpdates ;
-
 
 	/** Qt Designer generated object */
 	Ui::GxsCircleItem *ui;

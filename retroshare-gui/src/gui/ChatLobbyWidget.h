@@ -38,6 +38,7 @@
 
 class RSTreeWidgetItemCompareRole;
 class ChatTabWidget ;
+class ChatDialog ;
 class ChatLobbyDialog ;
 class QTextBrowser ;
 
@@ -63,12 +64,13 @@ public:
 	virtual QString pageName() const { return tr("Chats") ; } //MainPage
 	virtual QString helpText() const { return ""; } //MainPage
 
-	virtual UserNotify *getUserNotify(QObject *parent); //MainPage
+	virtual UserNotify *createUserNotify(QObject *parent) override; //MainPage
 
 	virtual void updateDisplay();
 
 	void setCurrentChatPage(ChatLobbyDialog *) ;	// used by ChatLobbyDialog to raise.
 	void addChatPage(ChatLobbyDialog *) ;
+	void removeChatPage(ChatLobbyDialog *) ;
 	bool showLobbyAnchor(ChatLobbyId id, QString anchor) ;
 
 	uint unreadCount();
@@ -77,6 +79,7 @@ signals:
 	void unreadCountChanged(uint unreadCount);
 
 protected slots:
+	void dialogClose(ChatDialog*);
 	void lobbyChanged();
 	void lobbyTreeWidgetCustomPopupMenu(QPoint);
 	void createChatLobby();
@@ -87,7 +90,7 @@ protected slots:
     void displayChatLobbyEvent(qulonglong lobby_id, int event_type, const RsGxsId& gxs_id, const QString& str);
 	void readChatLobbyInvites();
 	void showLobby(QTreeWidgetItem *lobby_item) ;
-	void showBlankPage(ChatLobbyId id) ;
+	void showBlankPage(ChatLobbyId id, bool subscribed = false) ;
     void unsubscribeChatLobby(ChatLobbyId id) ;
     void createIdentityAndSubscribe();
     void subscribeChatLobbyAs() ;
@@ -137,7 +140,7 @@ private:
 	QAction* showTopicAct;
 	int getNumColVisible();
 
-	ChatLobbyUserNotify* myChatLobbyUserNotify;
+	ChatLobbyUserNotify* myChatLobbyUserNotify; // local copy that avoids dynamic casts
 
 	QAbstractButton* myInviteYesButton;
 	GxsIdChooser* myInviteIdChooser;

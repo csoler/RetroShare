@@ -113,13 +113,21 @@ public:
 
     /*!
      * \brief getStatistics
-     * 				Gathers all sorts of statistics about the internals of p3GxsTrans, in order to display info about the running status,
-     * 			message transport, etc.
+     * 				Gathers all sorts of statistics about the data transported by p3GxsTrans, in order to display info about the running status,
+     * 			message transport, etc. This is a blocking call. Use it in a thread.
      * \param stats This structure contains all statistics information.
      * \return 		true is the call succeeds.
      */
 
-	virtual bool getStatistics(GxsTransStatistics& stats);
+	virtual bool getDataStatistics(GxsTransStatistics& stats) override;
+
+    /*!
+     * \brief getGroupStatistics
+     * 				Gathers statistics about GXS groups and messages used by GxsTrans to transport data. This is a blocking call. Use it in a thread.
+     * \param stats
+     * \return true if the data collection succeeds.
+     */
+	virtual bool getGroupStatistics(std::map<RsGxsGroupId,RsGxsTransGroupStatistics>& stats) override;
 
 	/**
 	 * Send an email to recipient, in the process author of the email is
@@ -288,15 +296,15 @@ private:
 
 	void notifyClientService(const OutgoingRecord& pr);
 
-	/*!
-	 * Checks the integrity message and groups
-	 */
-	class GxsTransIntegrityCleanupThread : public RsSingleJobThread
+	/// Checks the integrity message and groups
+	class GxsTransIntegrityCleanupThread : public RsThread
 	{
 		enum CheckState { CheckStart, CheckChecking };
 
 	public:
-        explicit GxsTransIntegrityCleanupThread(RsGeneralDataService *const dataService): mDs(dataService),mMtx("GxsTransIntegrityCheck") { mDone=false;}
+		explicit GxsTransIntegrityCleanupThread(
+		        RsGeneralDataService* const dataService ):
+		    mDs(dataService), mMtx("GxsTransIntegrityCheck"), mDone(false) {}
 
 		bool isDone();
 		void run();
@@ -312,7 +320,7 @@ private:
 
 		GxsMsgReq mMsgToDel ;
 		std::map<RsGxsId,MsgSizeCount> total_message_size_and_count;
-        bool mDone ;
+		bool mDone;
 	};
 
 	// Overloaded from RsGenExchange.

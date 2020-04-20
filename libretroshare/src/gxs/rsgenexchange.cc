@@ -21,6 +21,7 @@
  *                                                                             *
  *******************************************************************************/
 #include <unistd.h>
+#include <algorithm>
 
 #include "pqi/pqihash.h"
 #include "rsgenexchange.h"
@@ -38,8 +39,7 @@
 #include "rsgxsutil.h"
 #include "rsserver/p3face.h"
 #include "retroshare/rsevents.h"
-
-#include <algorithm>
+#include "util/radix64.h"
 
 #define PUB_GRP_MASK     0x000f
 #define RESTR_GRP_MASK   0x00f0
@@ -132,7 +132,7 @@ bool RsGenExchange::getGroupServerUpdateTS(const RsGxsGroupId& gid, rstime_t& gr
     return mNetService->getGroupServerUpdateTS(gid,grp_server_update_TS,msg_server_update_TS) ;
 }
 
-void RsGenExchange::data_tick()
+void RsGenExchange::threadTick()
 {
 	static const double timeDelta = 0.1; // slow tick in sec
 
@@ -163,10 +163,25 @@ void RsGenExchange::tick()
 
 	processRoutingClues() ;
 
-	if(!mNotifications.empty())
 	{
-		notifyChanges(mNotifications);
-		mNotifications.clear();
+		std::vector<RsGxsNotify*> mNotifications_copy;
+
+        // make a non-deep copy of mNotifications so that it can be passed off-mutex to notifyChanged()
+        // that will delete it. The potential high cost of notifyChanges() makes it preferable to call off-mutex.
+		{
+			RS_STACK_MUTEX(mGenMtx);
+			if(!mNotifications.empty())
+			{
+				mNotifications_copy = mNotifications;
+				mNotifications.clear();
+			}
+		}
+
+        // Calling notifyChanges() calls back RsGxsIfaceHelper::receiveChanges() that deletes the pointers in the array
+        // and the array itself.  This is pretty bad and we should normally delete the changes here.
+
+		if(!mNotifications_copy.empty())
+			notifyChanges(mNotifications_copy);
 	}
 
 	// implemented service tick function
@@ -1097,6 +1112,7 @@ static void addMessageChanged(std::map<RsGxsGroupId, std::set<RsGxsMessageId> > 
 
 void RsGenExchange::receiveChanges(std::vector<RsGxsNotify*>& changes)
 {
+    std::cerr << "***********************************  RsGenExchange::receiveChanges()" << std::endl;
 #ifdef GEN_EXCH_DEBUG
     std::cerr << "RsGenExchange::receiveChanges()" << std::endl;
 #endif
@@ -1118,38 +1134,25 @@ void RsGenExchange::receiveChanges(std::vector<RsGxsNotify*>& changes)
 		if((mc = dynamic_cast<RsGxsMsgChange*>(n)) != nullptr)
         {
             if (mc->metaChange())
-            {
                 addMessageChanged(out.mMsgsMeta, mc->msgChangeMap);
-            }
             else
-            {
                 addMessageChanged(out.mMsgs, mc->msgChangeMap);
-            }
         }
 		else if((gc = dynamic_cast<RsGxsGroupChange*>(n)) != nullptr)
         {
             if(gc->metaChange())
-            {
                 out.mGrpsMeta.splice(out.mGrpsMeta.end(), gc->mGrpIdList);
-            }
             else
-            {
                 out.mGrps.splice(out.mGrps.end(), gc->mGrpIdList);
-            }
         }
-		else if(( gt =
-		          dynamic_cast<RsGxsDistantSearchResultChange*>(n) ) != nullptr)
-        {
+		else if(( gt = dynamic_cast<RsGxsDistantSearchResultChange*>(n) ) != nullptr)
             out.mDistantSearchReqs.push_back(gt->mRequestId);
-        }
         else
-			RsErr() << __PRETTY_FUNCTION__ << " Unknown changes type!"
-			        << std::endl;
+			RsErr() << __PRETTY_FUNCTION__ << " Unknown changes type!" << std::endl;
         delete n;
     }
     changes.clear() ;
 
-	RsServer::notify()->notifyGxsChange(out);
 	if(rsEvents) rsEvents->postEvent(std::move(evt));
 }
 
@@ -1190,7 +1193,7 @@ bool RsGenExchange::getGroupList(const uint32_t &token, std::list<RsGxsGroupId> 
 bool RsGenExchange::getMsgList(const uint32_t &token,
                                GxsMsgIdResult &msgIds)
 {
-	return mDataAccess->getMsgList(token, msgIds);
+	return mDataAccess->getMsgIdList(token, msgIds);
 }
 
 bool RsGenExchange::getMsgRelatedList(const uint32_t &token, MsgRelatedIdResult &msgIds)
@@ -1689,7 +1692,7 @@ void RsGenExchange::notifyChangedGroupStats(const RsGxsGroupId &grpId)
 {
 	RS_STACK_MUTEX(mGenMtx);
 
-	RsGxsGroupChange* gc = new RsGxsGroupChange(RsGxsNotify::TYPE_PROCESSED, false);
+	RsGxsGroupChange* gc = new RsGxsGroupChange(RsGxsNotify::TYPE_STATISTICS_CHANGED, false);
 	gc->mGrpIdList.push_back(grpId);
 	mNotifications.push_back(gc);
 }
@@ -3445,6 +3448,83 @@ bool RsGenExchange::localSearch( const std::string& matchString,
 	return mNetService->search(matchString, results);
 }
 
+bool RsGenExchange::exportGroupBase64(
+        std::string& radix, const RsGxsGroupId& groupId, std::string& errMsg )
+{
+	constexpr auto fname = __PRETTY_FUNCTION__;
+	const auto failure = [&](const std::string& err)
+	{
+		errMsg = err;
+		RsErr() << fname << " " << err << std::endl;
+		return false;
+	};
+
+	if(groupId.isNull()) return failure("groupId cannot be null");
+
+    // We have no blocking API here, so we need to make a blocking request manually.
+	const std::list<RsGxsGroupId> groupIds({groupId});
+	RsTokReqOptions opts;
+	opts.mReqType = GXS_REQUEST_TYPE_GROUP_DATA;
+	uint32_t token;
+	mDataAccess->requestGroupInfo( token, RS_TOKREQ_ANSTYPE_DATA, opts, groupIds);
+
+    // provide a sync response: actually wait for the token.
+    std::chrono::milliseconds maxWait = std::chrono::milliseconds(10000);
+    std::chrono::milliseconds checkEvery = std::chrono::milliseconds(100);
+
+	auto timeout = std::chrono::steady_clock::now() + maxWait;	// wait for 10 secs at most
+	auto st = mDataAccess->requestStatus(token);
+
+	while( !(st == RsTokenService::FAILED || st >= RsTokenService::COMPLETE) && std::chrono::steady_clock::now() < timeout )
+	{
+		std::this_thread::sleep_for(checkEvery);
+		st = mDataAccess->requestStatus(token);
+	}
+	if(st != RsTokenService::COMPLETE)
+		return failure( "waitToken(...) failed with: " + std::to_string(st) );
+
+	uint8_t* buf = nullptr;
+	uint32_t size;
+	RsGxsGroupId grpId;
+
+	if(!getSerializedGroupData(token, grpId, buf, size))
+		return failure("failed retrieving GXS data");
+
+	Radix64::encode(buf, static_cast<int>(size), radix);
+	free(buf);
+
+	return true;
+}
+
+bool RsGenExchange::importGroupBase64(
+        const std::string& radix, RsGxsGroupId& groupId,
+        std::string& errMsg )
+{
+	constexpr auto fname = __PRETTY_FUNCTION__;
+	const auto failure = [&](const std::string& err)
+	{
+		errMsg = err;
+		RsErr() << fname << " " << err << std::endl;
+		return false;
+	};
+
+	if(radix.empty()) return failure("radix is empty");
+
+	std::vector<uint8_t> mem = Radix64::decode(radix);
+	if(mem.empty()) return failure("radix seems corrupted");
+
+	// On success this also import the group as pending validation
+	if(!deserializeGroupData(
+	            mem.data(), static_cast<uint32_t>(mem.size()),
+	            reinterpret_cast<RsGxsGroupId*>(&groupId) ))
+		return failure("failed deserializing group");
+
+	return true;
+}
+
 RsGxsChanges::RsGxsChanges() :
     RsEvent(RsEventType::GXS_CHANGES), mServiceType(RsServiceType::NONE),
     mService(nullptr) {}
+
+RsGxsIface::~RsGxsIface() = default;
+RsGxsGroupSummary::~RsGxsGroupSummary() = default;

@@ -43,30 +43,29 @@ public:
 	bool setGroup(const RsGxsForumGroup &group, bool doFill = true);
 	bool setMessage(const RsGxsForumMsg &msg, bool doFill = true);
 
+    uint64_t uniqueIdentifier() const override { return hash_64bits("GxsForumMsgItem " + messageId().toStdString()) ; }
 protected:
 	/* FeedItem */
 	virtual void doExpand(bool open);
 	virtual void expandFill(bool first);
 
 	/* load message data */
-	void requestParentMessage(const RsGxsMessageId &msgId);
-	virtual void loadParentMessage(const uint32_t &token);
+	virtual void loadParentMessage(const RsGxsMessageId &parent_msg);
 
 	/* GxsGroupFeedItem */
 	virtual QString groupName();
-	virtual void loadGroup(const uint32_t &token);
-	virtual void loadRequest(const TokenQueue *queue, const TokenRequest &req);
+	virtual void loadGroup() override;
 	virtual RetroShareLink::enumType getLinkType() { return RetroShareLink::TYPE_FORUM; }
-	virtual bool isLoading();
+	//virtual bool isLoading();
 
 	/* GxsFeedItem */
 	virtual QString messageName();
-	virtual void loadMessage(const uint32_t &token);
-	virtual void loadComment(const uint32_t &/*token*/){ return;}
+	virtual void loadMessage() override;
+	virtual void loadComment() override { return; }
 
 private slots:
 	/* default stuff */
-	void toggle();
+	void toggle() override;
 	void readAndClearItem();
 
 	void unsubscribeForum();
@@ -89,7 +88,6 @@ private:
 	RsGxsForumGroup mGroup;
 	RsGxsForumMsg mMessage;
 	RsGxsForumMsg mParentMessage;
-	uint32_t mTokenTypeParentMessage;
 
 	/** Qt Designer generated object */
 	Ui::GxsForumMsgItem *ui;

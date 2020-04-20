@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1140</width>
-    <height>342</height>
+    <width>922</width>
+    <height>187</height>
    </rect>
   </property>
   <layout class="QGridLayout" name="gxsChannelPostItem_GLayout">
@@ -50,32 +50,30 @@
       <item>
        <layout class="QHBoxLayout" name="mainTopHLayout">
         <item>
-         <widget class="QLabel" name="logoLabel">
-          <property name="minimumSize">
-           <size>
-            <width>158</width>
-            <height>108</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>156</width>
-            <height>107</height>
-           </size>
-          </property>
-          <property name="text">
-           <string/>
-          </property>
-          <property name="pixmap">
-           <pixmap resource="../images.qrc">:/images/thumb-default-video.png</pixmap>
-          </property>
-          <property name="scaledContents">
-           <bool>false</bool>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignCenter</set>
-          </property>
-         </widget>
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <item>
+           <widget class="QLabel" name="logoLabel">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+            <property name="pixmap">
+             <pixmap resource="../images.qrc">:/images/thumb-default-video.png</pixmap>
+            </property>
+            <property name="scaledContents">
+             <bool>false</bool>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
         <item>
          <layout class="QVBoxLayout" name="mainRTopVLayout">
@@ -120,46 +118,30 @@
               </property>
              </widget>
             </item>
+            <item>
+             <widget class="QLabel" name="newLabel">
+              <property name="text">
+               <string>New</string>
+              </property>
+             </widget>
+            </item>
            </layout>
           </item>
           <item>
-           <layout class="QHBoxLayout" name="subjectHLayout">
-            <item>
-             <widget class="QLabel" name="subjectLabel">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="MinimumExpanding" vsizetype="Expanding">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>60</height>
-               </size>
-              </property>
-              <property name="text">
-               <string notr="true">Short Description</string>
-              </property>
-              <property name="wordWrap">
-               <bool>true</bool>
-              </property>
-              <property name="openExternalLinks">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="filelabel">
-              <property name="text">
-               <string notr="true">fileLabel</string>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignRight|Qt::AlignTop|Qt::AlignTrailing</set>
-              </property>
-             </widget>
-            </item>
-           </layout>
+           <spacer name="verticalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="subjectHLayout"/>
           </item>
           <item>
            <layout class="QHBoxLayout" name="warningHLayout">
@@ -247,13 +229,6 @@
              </widget>
             </item>
             <item>
-             <widget class="QLabel" name="newLabel">
-              <property name="text">
-               <string>New</string>
-              </property>
-             </widget>
-            </item>
-            <item>
              <widget class="QLabel" name="scoreLabel">
               <property name="font">
                <font>
@@ -303,8 +278,8 @@
                <string>Download</string>
               </property>
               <property name="icon">
-               <iconset resource="../images.qrc">
-                <normaloff>:/images/download16.png</normaloff>:/images/download16.png</iconset>
+               <iconset resource="../icons.qrc">
+                <normaloff>:/icons/png/download.png</normaloff>:/icons/png/download.png</iconset>
               </property>
               <property name="autoExclusive">
                <bool>false</bool>
@@ -320,8 +295,8 @@
                <string>Play</string>
               </property>
               <property name="icon">
-               <iconset resource="../images.qrc">
-                <normaloff>:/images/player_play.png</normaloff>:/images/player_play.png</iconset>
+               <iconset resource="../icons.qrc">
+                <normaloff>:/icons/png/play.png</normaloff>:/icons/png/play.png</iconset>
               </property>
              </widget>
             </item>
@@ -330,6 +305,10 @@
               <property name="text">
                <string>Comments</string>
               </property>
+              <property name="icon">
+               <iconset resource="../icons.qrc">
+                <normaloff>:/icons/png/comment.png</normaloff>:/icons/png/comment.png</iconset>
+              </property>
              </widget>
             </item>
             <item>
@@ -337,20 +316,11 @@
               <property name="text">
                <string>Edit</string>
               </property>
+              <property name="icon">
+               <iconset resource="../icons.qrc">
+                <normaloff>:/icons/png/pencil-edit-button.png</normaloff>:/icons/png/pencil-edit-button.png</iconset>
+              </property>
              </widget>
-            </item>
-            <item>
-             <spacer name="horizontalSpacer">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>40</width>
-                <height>20</height>
-               </size>
-              </property>
-             </spacer>
             </item>
             <item>
              <widget class="QPushButton" name="copyLinkButton">
@@ -367,8 +337,18 @@
                <string>Copy RetroShare Link</string>
               </property>
               <property name="icon">
-               <iconset resource="../images.qrc">
-                <normaloff>:/images/copyrslink.png</normaloff>:/images/copyrslink.png</iconset>
+               <iconset resource="../icons.qrc">
+                <normaloff>:/icons/png/copy.png</normaloff>:/icons/png/copy.png</iconset>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="filelabel">
+              <property name="text">
+               <string notr="true">fileLabel</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
               </property>
              </widget>
             </item>
@@ -386,11 +366,23 @@
               <property name="toolTip">
                <string>Unsubscribe From Channel</string>
               </property>
-              <property name="icon">
-               <iconset resource="../images.qrc">
-                <normaloff>:/images/mail_delete.png</normaloff>:/images/mail_delete.png</iconset>
+              <property name="text">
+               <string>Unsubscribe</string>
               </property>
              </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_2">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
             </item>
             <item>
              <widget class="QPushButton" name="expandButton">
@@ -407,8 +399,8 @@
                <string>Expand</string>
               </property>
               <property name="icon">
-               <iconset resource="../images.qrc">
-                <normaloff>:/images/edit_add24.png</normaloff>:/images/edit_add24.png</iconset>
+               <iconset resource="../icons.qrc">
+                <normaloff>:/icons/png/down-arrow.png</normaloff>:/icons/png/down-arrow.png</iconset>
               </property>
              </widget>
             </item>
@@ -427,8 +419,8 @@
                <string>Set as read and remove item</string>
               </property>
               <property name="icon">
-               <iconset resource="../images.qrc">
-                <normaloff>:/images/cancel.png</normaloff>:/images/cancel.png</iconset>
+               <iconset resource="../icons.qrc">
+                <normaloff>:/icons/png/correct.png</normaloff>:/icons/png/correct.png</iconset>
               </property>
              </widget>
             </item>
@@ -447,8 +439,8 @@
                <string>Remove Item</string>
               </property>
               <property name="icon">
-               <iconset resource="../images.qrc">
-                <normaloff>:/images/close_normal.png</normaloff>:/images/close_normal.png</iconset>
+               <iconset resource="../icons.qrc">
+                <normaloff>:/icons/png/exit2.png</normaloff>:/icons/png/exit2.png</iconset>
               </property>
              </widget>
             </item>
@@ -557,6 +549,7 @@
   </customwidget>
  </customwidgets>
  <resources>
+  <include location="../icons.qrc"/>
   <include location="../images.qrc"/>
  </resources>
  <connections/>

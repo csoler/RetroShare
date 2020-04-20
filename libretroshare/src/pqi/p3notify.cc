@@ -217,8 +217,6 @@ void p3Notify::notifyChatLobbyEvent(uint64_t lobby_id, uint32_t event_type,const
 void p3Notify::notifyListPreChange(int list, int type) { FOR_ALL_NOTIFY_CLIENTS (*it)->notifyListPreChange(list,type) ; }
 void p3Notify::notifyListChange   (int list, int type) { FOR_ALL_NOTIFY_CLIENTS (*it)->notifyListChange   (list,type) ; }
 
-void p3Notify::notifyPeerConnected (const std::string& peer_id)                                                                 { FOR_ALL_NOTIFY_CLIENTS (*it)->notifyPeerConnected(peer_id); }
-void p3Notify::notifyPeerDisconnected (const std::string& peer_id)                                                              { FOR_ALL_NOTIFY_CLIENTS (*it)->notifyPeerDisconnected(peer_id); }
 void p3Notify::notifyErrorMsg      (int list, int sev, std::string msg)                                                         { FOR_ALL_NOTIFY_CLIENTS (*it)->notifyErrorMsg(list,sev,msg) ; }
 void p3Notify::notifyChatMessage   (const ChatMessage &msg)                                                                     { FOR_ALL_NOTIFY_CLIENTS (*it)->notifyChatMessage(msg) ; }
 void p3Notify::notifyChatStatus    (const ChatId&  chat_id, const std::string& status_string)                                   { FOR_ALL_NOTIFY_CLIENTS (*it)->notifyChatStatus(chat_id,status_string) ; }
@@ -235,8 +233,6 @@ void p3Notify::notifyOwnAvatarChanged       ()                                  
 void p3Notify::notifyOwnStatusMessageChanged()                                                                                  { FOR_ALL_NOTIFY_CLIENTS (*it)->notifyOwnStatusMessageChanged() ; } 
 void p3Notify::notifyDiskFull               (uint32_t           location  , uint32_t                         size_limit_in_MB ) { FOR_ALL_NOTIFY_CLIENTS (*it)->notifyDiskFull          (location,size_limit_in_MB) ; }
 void p3Notify::notifyPeerStatusChanged      (const std::string& peer_id   , uint32_t                         status           ) { FOR_ALL_NOTIFY_CLIENTS (*it)->notifyPeerStatusChanged (peer_id,status) ; }
-void p3Notify::notifyGxsChange              (const RsGxsChanges& changes) {FOR_ALL_NOTIFY_CLIENTS (*it)->notifyGxsChange(changes) ;}
-void p3Notify::notifyConnectionWithoutCert  ()                                                                                  { FOR_ALL_NOTIFY_CLIENTS (*it)->notifyConnectionWithoutCert(); }
 
 void p3Notify::notifyPeerStatusChangedSummary   ()                                                                              { FOR_ALL_NOTIFY_CLIENTS (*it)->notifyPeerStatusChangedSummary() ; }
 void p3Notify::notifyDiscInfoChanged            ()                                                                              { FOR_ALL_NOTIFY_CLIENTS (*it)->notifyDiscInfoChanged         () ; } 
@@ -293,14 +289,6 @@ bool p3Notify::askForPluginConfirmation         (const std::string& plugin_filen
 {
 	FOR_ALL_NOTIFY_CLIENTS
 		if( (*it)->askForPluginConfirmation(plugin_filename,plugin_file_hash,first_time))
-			return true ;
-
-	return false ;
-}
-bool p3Notify::askForDeferredSelfSignature      (const void *       data     , const uint32_t     len  , unsigned char *sign, unsigned int *signlen,int& signature_result, std::string reason /*=""*/)
-{
-	FOR_ALL_NOTIFY_CLIENTS
-		if( (*it)->askForDeferredSelfSignature(data,len,sign,signlen,signature_result, reason))
 			return true ;
 
 	return false ;

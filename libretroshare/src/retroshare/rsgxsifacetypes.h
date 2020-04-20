@@ -45,6 +45,13 @@ struct RsMsgMetaData;
 
 typedef std::map<RsGxsGroupId, std::vector<RsMsgMetaData> > MsgMetaResult;
 
+enum class GxsRequestPriority {
+    VERY_HIGH      =  0x00,
+    HIGH           =  0x01,
+    NORMAL         =  0x02,
+    LOW            =  0x03,
+    VERY_LOW       =  0x04,
+};
 
 class RsGxsGrpMetaData;
 class RsGxsMsgMetaData;
@@ -118,8 +125,15 @@ struct RsGroupMetaData : RsSerializable
 	}
 };
 
+// This is the parent class of all interface-level GXS group data. Derived classes
+// will include service-specific information, such as icon, description, etc
 
+struct RsGxsGenericGroupData
+{
+    virtual ~RsGxsGenericGroupData() = default; // making the type polymorphic
 
+	RsGroupMetaData mMeta;
+};
 
 struct RsMsgMetaData : RsSerializable
 {
@@ -177,6 +191,14 @@ struct RsMsgMetaData : RsSerializable
 	}
 };
 
+struct RsGxsGenericMsgData
+{
+    virtual ~RsGxsGenericMsgData() = default; // making the type polymorphic
+
+	RsMsgMetaData mMeta;
+};
+
+
 class GxsGroupStatistic
 {
 public:
@@ -217,7 +239,7 @@ public:
 		mNumChildMsgsNew = 0;
 		mNumChildMsgsUnread = 0;
 		mSizeStore = 0;
-	}
+    }
 
 public:
 	uint32_t mNumMsgs;

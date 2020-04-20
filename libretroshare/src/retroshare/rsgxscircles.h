@@ -123,7 +123,7 @@ struct RsGxsCircleDetails : RsSerializable
 {
 	RsGxsCircleDetails() :
 	    mCircleType(static_cast<uint32_t>(RsGxsCircleType::EXTERNAL)),
-	    mAmIAllowed(false) {}
+	    mAmIAllowed(false),mAmIAdmin(false) {}
 	~RsGxsCircleDetails() override;
 
 	RsGxsCircleId mCircleId;
@@ -135,6 +135,9 @@ struct RsGxsCircleDetails : RsSerializable
 	/** true when one of load GXS ids belong to the circle allowed list (admin
 	 * list & subscribed list). */
 	bool mAmIAllowed;
+
+    /// true when we're an administrator of the circle group, meaning that we can add/remove members from the invitee list.
+	bool mAmIAdmin;
 
 	/// This crosses admin list and subscribed list
 	std::set<RsGxsId> mAllowedGxsIds;
@@ -152,10 +155,67 @@ struct RsGxsCircleDetails : RsSerializable
 		RS_SERIAL_PROCESS(mCircleType);
 		RS_SERIAL_PROCESS(mRestrictedCircleId);
 		RS_SERIAL_PROCESS(mAmIAllowed);
+		RS_SERIAL_PROCESS(mAmIAdmin);
 		RS_SERIAL_PROCESS(mAllowedGxsIds);
 		RS_SERIAL_PROCESS(mAllowedNodes);
 		RS_SERIAL_PROCESS(mSubscriptionFlags);
 	}
+};
+
+
+enum class RsGxsCircleEventCode: uint8_t
+{
+	UNKNOWN                   = 0x00,
+
+	/** mCircleId contains the circle id and mGxsId is the id requesting
+	 * membership */
+	CIRCLE_MEMBERSHIP_REQUEST = 0x01,
+
+	/** mCircleId is the circle that invites me, and mGxsId is my own Id that is
+	 * invited */
+	CIRCLE_MEMBERSHIP_INVITE  = 0x02,
+
+	/** mCircleId contains the circle id and mGxsId is the id dropping
+	 * membership */
+	CIRCLE_MEMBERSHIP_LEAVE   = 0x03,
+
+	/// mCircleId contains the circle id and mGxsId is the id of the new member
+	CIRCLE_MEMBERSHIP_JOIN    = 0x04,
+
+	/** mCircleId contains the circle id and mGxsId is the id that was revoqued * by admin */
+	CIRCLE_MEMBERSHIP_REVOQUED= 0x05,
+
+	/** mCircleId contains the circle id */
+	NEW_CIRCLE                = 0x06,
+
+	/** no additional information. Simply means that the info previously from the cache has changed. */
+	CACHE_DATA_UPDATED        = 0x07,
+
+};
+
+struct RsGxsCircleEvent: RsEvent
+{
+	RsGxsCircleEvent()
+	    : RsEvent(RsEventType::GXS_CIRCLES),
+	      mCircleEventType(RsGxsCircleEventCode::UNKNOWN) {}
+
+
+	RsGxsCircleEventCode mCircleEventType;
+	RsGxsCircleId mCircleId;
+	RsGxsId mGxsId;
+
+	///* @see RsEvent @see RsSerializable
+	void serial_process(
+	        RsGenericSerializer::SerializeJob j,
+	        RsGenericSerializer::SerializeContext& ctx ) override
+	{
+		RsEvent::serial_process(j, ctx);
+		RS_SERIAL_PROCESS(mCircleEventType);
+		RS_SERIAL_PROCESS(mCircleId);
+		RS_SERIAL_PROCESS(mGxsId);
+	}
+
+	~RsGxsCircleEvent() override;
 };
 
 class RsGxsCircles: public RsGxsIfaceHelper
@@ -243,15 +303,36 @@ public:
 	 */
 	virtual bool getCircleRequests( const RsGxsGroupId& circleId,
 	                                std::vector<RsGxsCircleMsg>& requests ) = 0;
+	/**
+	 * @brief Get specific circle request
+	 * @jsonapi{development}
+	 * @param[in] circleId id of the circle of which the requests are requested
+	 * @param[in] msgId id of the request
+	 * @param[out] msg storage for the circle request
+	 * @return false if something failed, true otherwhise
+	 */
+	virtual bool getCircleRequest(const RsGxsGroupId& circleId,
+	                              const RsGxsMessageId& msgId,
+	                              RsGxsCircleMsg& msg) =0;
 
 	/**
-	 * @brief Invite identities to circle
+	 * @brief Invite identities to circle (admin key is required)
 	 * @jsonapi{development}
 	 * @param[in] identities ids of the identities to invite
 	 * @param[in] circleId Id of the circle you own and want to invite ids in
 	 * @return false if something failed, true otherwhise
 	 */
 	virtual bool inviteIdsToCircle( const std::set<RsGxsId>& identities,
+	                                const RsGxsCircleId& circleId ) = 0;
+
+	/**
+	 * @brief Remove identities from circle (admin key is required)
+	 * @jsonapi{development}
+	 * @param[in] identities ids of the identities to remove from the invite list
+	 * @param[in] circleId Id of the circle you own and want to invite ids in
+	 * @return false if something failed, true otherwhise
+	 */
+	virtual bool revokeIdsFromCircle( const std::set<RsGxsId>& identities,
 	                                const RsGxsCircleId& circleId ) = 0;
 
 	/**
@@ -273,6 +354,54 @@ public:
 	 */
 	virtual bool cancelCircleMembership(
 	        const RsGxsId& ownGxsId, const RsGxsCircleId& circleId ) = 0;
+
+	/// default base URL used for circle links @see exportCircleLink
+	static const std::string DEFAULT_CIRCLE_BASE_URL;
+
+	/// Circle link query field used to store circle name @see exportCircleLink
+	static const std::string CIRCLE_URL_NAME_FIELD;
+
+	/// Circle link query field used to store circle id @see exportCircleLink
+	static const std::string CIRCLE_URL_ID_FIELD;
+
+	/// Circle link query field used to store circle data @see exportCircleLink
+	static const std::string CIRCLE_URL_DATA_FIELD;
+
+	/**
+	 * @brief Get link to a circle
+	 * @jsonapi{development}
+	 * @param[out] link storage for the generated link
+	 * @param[in] circleId Id of the circle of which we want to generate a link
+	 * @param[in] includeGxsData if true include the circle GXS group data so
+	 *	the receiver can request circle membership even if the circle hasn't
+	 *	propagated through GXS to her yet
+	 * @param[in] baseUrl URL into which to sneak in the RetroShare circle link
+	 *	radix, this is primarly useful to induce applications into making the
+	 *	link clickable, or to disguise the RetroShare circle link into a
+	 *	"normal" looking web link. If empty the circle data link will be
+	 *	outputted in plain base64 format.
+	 * @param[out] errMsg optional storage for error message, meaningful only in
+	 *	case of failure
+	 * @return false if something failed, true otherwhise
+	 */
+	virtual bool exportCircleLink(
+	        std::string& link, const RsGxsCircleId& circleId,
+	        bool includeGxsData = true,
+	        const std::string& baseUrl = RsGxsCircles::DEFAULT_CIRCLE_BASE_URL,
+	        std::string& errMsg = RS_DEFAULT_STORAGE_PARAM(std::string) ) = 0;
+
+	/**
+	 * @brief Import circle from full link
+	 * @param[in] link circle link either in radix or link format
+	 * @param[out] circleId optional storage for parsed circle id
+	 * @param[out] errMsg optional storage for error message, meaningful only in
+	 *	case of failure
+	 * @return false if some error occurred, true otherwise
+	 */
+	virtual bool importCircleLink(
+	        const std::string& link,
+	        RsGxsCircleId& circleId = RS_DEFAULT_STORAGE_PARAM(RsGxsCircleId),
+	        std::string& errMsg = RS_DEFAULT_STORAGE_PARAM(std::string) ) = 0;
 
 	RS_DEPRECATED_FOR("getCirclesSummaries getCirclesInfo")
 	virtual bool getGroupData(

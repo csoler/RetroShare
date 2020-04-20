@@ -43,7 +43,7 @@ p3GxsTrans::~p3GxsTrans()
 	}
 }
 
-bool p3GxsTrans::getStatistics(GxsTransStatistics& stats)
+bool p3GxsTrans::getDataStatistics(GxsTransStatistics& stats)
 {
 	{
 		RS_STACK_MUTEX(mDataMutex);
@@ -434,8 +434,7 @@ void p3GxsTrans::GxsTransIntegrityCleanupThread::run()
 			totalMessageSizeAndCount[msg->metaData->mAuthorId].count++;
 		    delete msg;
 
-			if(item != NULL)
-				delete item ;
+			delete item;
 	    }
     }
 
@@ -657,8 +656,7 @@ void p3GxsTrans::notifyChanges(std::vector<RsGxsNotify*>& changes)
 #ifdef DEBUG_GXSTRANS
 	std::cout << "p3GxsTrans::notifyChanges(...)" << std::endl;
 #endif
-	for( std::vector<RsGxsNotify*>::const_iterator it = changes.begin();
-	     it != changes.end(); ++it )
+	for( auto it = changes.begin(); it != changes.end(); ++it )
 	{
 		RsGxsGroupChange* grpChange = dynamic_cast<RsGxsGroupChange *>(*it);
 		RsGxsMsgChange* msgChange = dynamic_cast<RsGxsMsgChange *>(*it);
@@ -698,8 +696,8 @@ void p3GxsTrans::notifyChanges(std::vector<RsGxsNotify*>& changes)
 			}
 #endif
 		}
+        delete *it;
 	}
-	RsGxsIfaceHelper::receiveChanges(changes);
 }
 
 uint32_t p3GxsTrans::AuthenPolicy()
@@ -1336,5 +1334,54 @@ bool p3GxsTrans::acceptNewMessage(const RsGxsMsgMetaData *msgMeta,uint32_t msg_s
 	}
 }
 
+
+bool p3GxsTrans::getGroupStatistics(std::map<RsGxsGroupId,RsGxsTransGroupStatistics>& stats)
+{
+    uint32_t token1;
+
+	RsTokReqOptions opts1;
+	opts1.mReqType = GXS_REQUEST_TYPE_GROUP_META;
+	if( !requestGroupInfo(token1, opts1) || waitToken(token1) != RsTokenService::COMPLETE )
+        return false;
+
+    std::list<RsGroupMetaData> group_metas;
+    getGroupSummary(token1,group_metas);
+
+	for(auto& group_meta:group_metas)
+	{
+		RsGxsTransGroupStatistics& stat(stats[group_meta.mGroupId]);
+
+		uint32_t token2;
+		if(!RsGxsIfaceHelper::requestGroupStatistic(token2,group_meta.mGroupId) || waitToken(token2) != RsTokenService::COMPLETE)
+			continue;
+
+		RsGenExchange::getGroupStatistic(token2,stat);
+
+		stat.popularity = group_meta.mPop ;
+		stat.subscribed = IS_GROUP_SUBSCRIBED(group_meta.mSubscribeFlags) ;
+		stat.mGrpId = group_meta.mGroupId ;
+
+		std::vector<RsMsgMetaData> metas;
+
+        uint32_t token3;
+		RsTokReqOptions opts;
+		opts.mReqType = GXS_REQUEST_TYPE_MSG_META;
+
+		std::list<RsGxsGroupId> groupIds;
+		groupIds.push_back(group_meta.mGroupId);
+
+		if( !requestMsgInfo(token3, opts, groupIds) || waitToken(token3, std::chrono::seconds(5)) != RsTokenService::COMPLETE )
+			continue;
+
+		GxsMsgMetaMap metaMap;
+		if(!RsGenExchange::getMsgMeta(token3, metaMap) || metaMap.size() != 1)
+            continue;
+
+		for(auto& meta: metaMap.begin()->second)
+			stat.addMessageMeta(group_meta.mGroupId,meta) ;
+	}
+
+	return true;
+}
 
 

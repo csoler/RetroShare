@@ -32,12 +32,7 @@
 #include <iomanip>
 #include <string>
 #include <typeinfo> // for typeid
-
-#ifdef HAS_RAPIDJSON
 #include <rapidjson/prettywriter.h>
-#else
-#include <rapid_json/prettywriter.h>
-#endif // HAS_RAPIDJSON
 
 static constexpr uint32_t MAX_SERIALIZED_CHUNK_SIZE = 10*1024*1024 ; // 10 MB.
 
@@ -772,4 +767,38 @@ bool RsTypeSerializer::from_JSON( const std::string& memberName,
 		        memcpy(member.first, decodedValue.data(), member.second);
 	}
 	return ret;
+}
+
+void RsTypeSerializer::ErrConditionWrapper::serial_process(
+        RsGenericSerializer::SerializeJob j,
+        RsGenericSerializer::SerializeContext& ctx )
+{
+	switch(j)
+	{
+	case RsGenericSerializer::SIZE_ESTIMATE: // fallthrough
+	case RsGenericSerializer::DESERIALIZE: // fallthrough
+	case RsGenericSerializer::SERIALIZE: // fallthrough
+	case RsGenericSerializer::FROM_JSON:
+		RsFatal() << __PRETTY_FUNCTION__ << " SerializeJob: " << j
+		          << "is not supported on std::error_condition " << std::endl;
+		print_stacktrace();
+		exit(-2);
+	case RsGenericSerializer::PRINT: // fallthrough
+	case RsGenericSerializer::TO_JSON:
+	{
+		constexpr RsGenericSerializer::SerializeJob rj =
+		        RsGenericSerializer::TO_JSON;
+
+		int32_t tNum = mec.value();
+		RsTypeSerializer::serial_process(rj, ctx, tNum, "errorNumber");
+
+		std::string tStr = mec.category().name();
+		RsTypeSerializer::serial_process(rj, ctx, tStr, "errorCategory");
+
+		tStr = mec.message();
+		RsTypeSerializer::serial_process(rj, ctx, tStr, "errorMessage");
+		break;
+	}
+	default: RsTypeSerializer::fatalUnknownSerialJob(j);
+	}
 }

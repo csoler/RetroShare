@@ -48,8 +48,8 @@
 /* Images for Newsfeed icons */
 //#define IMAGE_NEWSFEED           ""
 //#define IMAGE_NEWSFEED_NEW       ":/images/message-state-new.png"
-#define IMAGE_NETWORK2          ":/icons/png/netgraph.png"
-#define IMAGE_PEERS         	":/icons/png/keyring.png"
+#define IMAGE_NETWORK2          ":/icons/png/netgraph2.png"
+#define IMAGE_PEERS         	":/icons/png/digital-key.png"
 #define IMAGE_IDENTITY          ":/images/identity/identities_32.png"
 
 /******
@@ -163,7 +163,7 @@ void FriendsDialog::activatePage(FriendsDialog::Page page)
 	}
 }
 
-UserNotify *FriendsDialog::getUserNotify(QObject *parent)
+UserNotify *FriendsDialog::createUserNotify(QObject *parent)
 {
     return new ChatUserNotify(parent);
 }

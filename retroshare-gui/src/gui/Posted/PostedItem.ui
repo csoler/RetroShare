@@ -18,16 +18,16 @@
   </property>
   <layout class="QGridLayout" name="gridLayout_3">
    <property name="leftMargin">
-    <number>6</number>
+    <number>1</number>
    </property>
    <property name="topMargin">
-    <number>0</number>
+    <number>1</number>
    </property>
    <property name="rightMargin">
-    <number>6</number>
+    <number>1</number>
    </property>
    <property name="bottomMargin">
-    <number>0</number>
+    <number>1</number>
    </property>
    <property name="spacing">
     <number>0</number>
@@ -109,6 +109,9 @@
            <property name="toolTip">
             <string>Vote up</string>
            </property>
+           <property name="styleSheet">
+            <string notr="true"/>
+           </property>
            <property name="text">
             <string/>
            </property>
@@ -148,8 +151,8 @@
            <property name="toolTip">
             <string>Vote down</string>
            </property>
-           <property name="text">
-            <string>\/</string>
+           <property name="styleSheet">
+            <string notr="true"/>
            </property>
            <property name="icon">
             <iconset resource="Posted_images.qrc">
@@ -185,7 +188,7 @@
          <number>6</number>
         </property>
         <item>
-         <widget class="QLabel" name="thumbnailLabel">
+         <widget class="ClickableLabel" name="thumbnailLabel">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
             <horstretch>0</horstretch>
@@ -267,6 +270,9 @@
           <property name="openExternalLinks">
            <bool>true</bool>
           </property>
+          <property name="textInteractionFlags">
+           <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+          </property>
          </widget>
         </item>
         <item>
@@ -314,6 +320,23 @@
           <property name="rightMargin">
            <number>6</number>
           </property>
+          <item>
+           <widget class="QLabel" name="nameLabel">
+            <property name="font">
+             <font>
+              <weight>75</weight>
+              <italic>true</italic>
+              <bold>true</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>Name</string>
+            </property>
+            <property name="openExternalLinks">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
           <item>
            <widget class="QLabel" name="fromBoldLabel">
             <property name="sizePolicy">
@@ -407,11 +430,17 @@
           <property name="leftMargin">
            <number>0</number>
           </property>
+          <property name="rightMargin">
+           <number>6</number>
+          </property>
           <property name="bottomMargin">
            <number>3</number>
           </property>
           <item>
            <widget class="QToolButton" name="expandButton">
+            <property name="toolTip">
+             <string>Expand</string>
+            </property>
             <property name="text">
              <string/>
             </property>
@@ -425,7 +454,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="readButton">
+           <widget class="QToolButton" name="readButton">
             <property name="maximumSize">
              <size>
               <width>24</width>
@@ -448,7 +477,7 @@
             <property name="checked">
              <bool>false</bool>
             </property>
-            <property name="flat">
+            <property name="autoRaise">
              <bool>true</bool>
             </property>
            </widget>
@@ -479,12 +508,27 @@
           </item>
           <item>
            <widget class="QPushButton" name="shareButton">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="baseSize">
+             <size>
+              <width>0</width>
+              <height>22</height>
+             </size>
+            </property>
             <property name="text">
              <string>Share</string>
             </property>
             <property name="icon">
              <iconset resource="Posted_images.qrc">
               <normaloff>:/images/share.png</normaloff>:/images/share.png</iconset>
+            </property>
+            <property name="default">
+             <bool>false</bool>
             </property>
             <property name="flat">
              <bool>true</bool>
@@ -526,12 +570,6 @@
           </item>
           <item>
            <widget class="QPushButton" name="readAndClearButton">
-            <property name="maximumSize">
-             <size>
-              <width>24</width>
-              <height>16777215</height>
-             </size>
-            </property>
             <property name="focusPolicy">
              <enum>Qt::NoFocus</enum>
             </property>
@@ -539,19 +577,13 @@
              <string>Set as read and remove item</string>
             </property>
             <property name="icon">
-             <iconset resource="../images.qrc">
-              <normaloff>:/images/cancel.png</normaloff>:/images/cancel.png</iconset>
+             <iconset resource="../icons.qrc">
+              <normaloff>:/icons/png/correct.png</normaloff>:/icons/png/correct.png</iconset>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="clearButton">
-            <property name="maximumSize">
-             <size>
-              <width>24</width>
-              <height>16777215</height>
-             </size>
-            </property>
             <property name="focusPolicy">
              <enum>Qt::NoFocus</enum>
             </property>
@@ -559,8 +591,8 @@
              <string>Remove Item</string>
             </property>
             <property name="icon">
-             <iconset resource="../images.qrc">
-              <normaloff>:/images/close_normal.png</normaloff>:/images/close_normal.png</iconset>
+             <iconset resource="../icons.qrc">
+              <normaloff>:/icons/png/exit2.png</normaloff>:/icons/png/exit2.png</iconset>
             </property>
            </widget>
           </item>
@@ -607,6 +639,9 @@
         <property name="scaledContents">
          <bool>true</bool>
         </property>
+        <property name="textInteractionFlags">
+         <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+        </property>
        </widget>
       </item>
       <item>
@@ -649,13 +684,19 @@
       <property name="spacing">
        <number>1</number>
       </property>
-      <item row="0" column="0">
+      <item row="0" column="0" colspan="2">
        <widget class="QLabel" name="notes">
         <property name="text">
          <string/>
         </property>
         <property name="wordWrap">
          <bool>true</bool>
+        </property>
+        <property name="openExternalLinks">
+         <bool>true</bool>
+        </property>
+        <property name="textInteractionFlags">
+         <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
         </property>
        </widget>
       </item>
@@ -671,20 +712,26 @@
    <header>gui/common/StyledLabel.h</header>
   </customwidget>
   <customwidget>
-   <class>GxsIdLabel</class>
-   <extends>QLabel</extends>
-   <header>gui/gxs/GxsIdLabel.h</header>
-  </customwidget>
-  <customwidget>
    <class>ElidedLabel</class>
    <extends>QLabel</extends>
    <header location="global">gui/common/ElidedLabel.h</header>
    <container>1</container>
   </customwidget>
+  <customwidget>
+   <class>GxsIdLabel</class>
+   <extends>QLabel</extends>
+   <header>gui/gxs/GxsIdLabel.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ClickableLabel</class>
+   <extends>QLabel</extends>
+   <header>util/ClickableLabel.h</header>
+  </customwidget>
  </customwidgets>
  <resources>
   <include location="Posted_images.qrc"/>
   <include location="../images.qrc"/>
+  <include location="../icons.qrc"/>
  </resources>
  <connections/>
 </ui>
