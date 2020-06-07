@@ -1267,14 +1267,12 @@ gxscircles {
 #	DEFINES += RS_USE_NEW_PEOPLE_DIALOG
 
 	HEADERS +=  \
-		gui/Circles/CirclesDialog.h \
 		gui/Circles/CreateCircleDialog.h \
 	
-	FORMS += gui/Circles/CirclesDialog.ui \
-		gui/Circles/CreateCircleDialog.ui \
+	FORMS += \
+		gui/Circles/CreateCircleDialog.ui 
 	
 	SOURCES +=  \
-		gui/Circles/CirclesDialog.cpp \
 		gui/Circles/CreateCircleDialog.cpp \
 
 	HEADERS += gui/People/PeopleDialog.h
