@@ -1134,6 +1134,8 @@ void GxsChannelPostsWidgetWithModel::insertChannelDetails(const RsGxsChannelGrou
 
         ui->infoSyncTimeLabel->show();
         ui->syncPeriodTitleLabel->show();
+        ui->infoLastActivity->hide();
+        ui->infoLastActivityLabel->hide();
     }
     else
     {
@@ -1143,15 +1145,17 @@ void GxsChannelPostsWidgetWithModel::insertChannelDetails(const RsGxsChannelGrou
 
         ui->infoSyncTimeLabel->hide();
         ui->syncPeriodTitleLabel->hide();
+        ui->infoLastActivity->show();
+        ui->infoLastActivityLabel->show();
     }
 
 
 	ui->infoPosts->setText(QString::number(group.mMeta.mVisibleMsgCount));
 
-	if(group.mMeta.mLastPost==0)
-		ui->infoLastPost->setText(tr("Never"));
+    if(group.mMeta.mLastActivity==0)
+        ui->infoLastActivity->setText(tr("Never"));
 	else
-		ui->infoLastPost->setText(DateTime::formatLongDateTime(group.mMeta.mLastPost));
+        ui->infoLastActivity->setText(DateTime::formatLongDateTime(group.mMeta.mLastActivity));
 
     uint32_t current_sync_time  = GxsGroupFrameDialog::checkDelay(rsGxsChannels->getSyncPeriod(group.mMeta.mGroupId))/86400 ;
 
@@ -1172,7 +1176,7 @@ void GxsChannelPostsWidgetWithModel::insertChannelDetails(const RsGxsChannelGrou
     auto sync_period = rsGxsChannels->getSyncPeriod(group.mMeta.mGroupId) ;
 
     if(sync_period > 0 && group.mMeta.mLastPost > 0 && group.mMeta.mLastPost + rsGxsChannels->getSyncPeriod(group.mMeta.mGroupId) < time(NULL) && IS_GROUP_SUBSCRIBED(group.mMeta.mSubscribeFlags))
-        sync_string += " (Warning: will not allow posts to sync)";
+        sync_string += " (Warning: may not allow posts to sync)";
 
     ui->infoSyncTimeLabel->setText(sync_string);
 
@@ -1299,7 +1303,7 @@ void GxsChannelPostsWidgetWithModel::blank()
 	ui->channelName_LB->setText(tr("No Channel Selected"));
 	ui->logoLabel->setPixmap(FilesDefs::getPixmapFromQtResourcePath(":/icons/png/channels.png"));
 	ui->infoPosts->setText("");
-	ui->infoLastPost->setText("");
+    ui->infoLastActivity->setText("");
 	ui->infoAdministrator->setText("");
 	ui->infoDistribution->setText("");
 	ui->infoCreated->setText("");

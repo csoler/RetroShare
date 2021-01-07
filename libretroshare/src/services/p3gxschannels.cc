@@ -52,6 +52,7 @@
 /****
  * #define GXSCHANNEL_DEBUG 1
  ****/
+#define GXSCHANNEL_DEBUG 1
 
 /*extern*/ RsGxsChannels* rsGxsChannels = nullptr;
 
@@ -69,7 +70,7 @@
 #define CHANNEL_DOWNLOAD_PERIOD 	                        (3600 * 24 * 7)
 #define CHANNEL_MAX_AUTO_DL		                            (8 * 1024 * 1024 * 1024ull)	// 8 GB. Just a security ;-)
 #define	CHANNEL_UNUSED_BY_FRIENDS_DELAY                     (3600*24*60)                // Two months. Will be used to delete a channel if too old
-#define CHANNEL_DELAY_FOR_CHECKING_AND_DELETING_OLD_GROUPS   300                       // check for old channels every 30 mins. Far too often than above delay by RS needs to run it at least once per session
+#define CHANNEL_DELAY_FOR_CHECKING_AND_DELETING_OLD_GROUPS   30*60                       // check for old channels every 30 mins. Far too often than above delay by RS needs to run it at least once per session
 
 /********************************************************************************/
 /******************* Startup / Tick    ******************************************/
@@ -459,26 +460,21 @@ void	p3GxsChannels::service_tick()
 	}
 }
 
-bool p3GxsChannels::service_checkIfGroupIsStillUsed(const RsGxsGrpMetaData& meta)
+rstime_t p3GxsChannels::service_lastGroupActivity(const RsGxsGroupId& gid)
 {
-#ifdef GXSFORUMS_CHANNELS
-    std::cerr << "p3gxsChannels: Checking unused channel: called by GxsCleaning." << std::endl;
-#endif
-
     // request all group infos at once
 
     rstime_t now = time(nullptr);
 
     RS_STACK_MUTEX(mKnownChannelsMutex);
 
-    auto it = mKnownChannels.find(meta.mGroupId);
-    bool unknown_channel = it == mKnownChannels.end();
+    auto it = mKnownChannels.find(gid);
 
 #ifdef GXSFORUMS_CHANNELS
-    std::cerr << "  Channel " << meta.mGroupId ;
+    std::cerr << "  Channel " << gid;
 #endif
 
-    if(unknown_channel)
+    if(it == mKnownChannels.end())
     {
         // This case should normally not happen. It does because this channel was never registered since it may
         // arrived before this code was here
@@ -486,34 +482,44 @@ bool p3GxsChannels::service_checkIfGroupIsStillUsed(const RsGxsGrpMetaData& meta
 #ifdef GXSFORUMS_CHANNELS
         std::cerr << ". Not known yet. Adding current time as new TS." << std::endl;
 #endif
-        mKnownChannels[meta.mGroupId] = now;
+        mKnownChannels[gid] = now;
         IndicateConfigChanged();
 
-        return true;
+        return now;
+    }
+    else
+        return it->second;
+}
+
+bool p3GxsChannels::service_checkIfGroupIsStillUsed(const RsGxsGrpMetaData& meta)
+{
+#ifdef GXSFORUMS_CHANNELS
+    std::cerr << "p3gxsChannels: Checking unused channel: called by GxsCleaning." << std::endl;
+#endif
+
+    rstime_t now = time(nullptr);
+    rstime_t last_used_ts = service_lastGroupActivity(meta.mGroupId);
+
+    bool used_by_friends = (now < last_used_ts + CHANNEL_UNUSED_BY_FRIENDS_DELAY);
+    bool subscribed = static_cast<bool>(meta.mSubscribeFlags & GXS_SERV::GROUP_SUBSCRIBE_SUBSCRIBED);
+
+#ifdef GXSFORUMS_CHANNELS
+    std::cerr << ". subscribed: " << subscribed << ", used_by_friends: " << used_by_friends << " last TS: " << now - it->second << " secs ago (" << (now-it->second)/86400 << " days)";
+#endif
+
+    if(!subscribed && !used_by_friends)
+    {
+#ifdef GXSFORUMS_CHANNELS
+        std::cerr << ". Scheduling for deletion" << std::endl;
+#endif
+        return false;
     }
     else
     {
-        bool used_by_friends = (now < it->second + CHANNEL_UNUSED_BY_FRIENDS_DELAY);
-        bool subscribed = static_cast<bool>(meta.mSubscribeFlags & GXS_SERV::GROUP_SUBSCRIBE_SUBSCRIBED);
-
 #ifdef GXSFORUMS_CHANNELS
-        std::cerr << ". subscribed: " << subscribed << ", used_by_friends: " << used_by_friends << " last TS: " << now - it->second << " secs ago (" << (now-it->second)/86400 << " days)";
+        std::cerr << ". Keeping!" << std::endl;
 #endif
-
-        if(!subscribed && !used_by_friends)
-        {
-#ifdef GXSFORUMS_CHANNELS
-            std::cerr << ". Scheduling for deletion" << std::endl;
-#endif
-            return false;
-        }
-        else
-        {
-#ifdef GXSFORUMS_CHANNELS
-            std::cerr << ". Keeping!" << std::endl;
-#endif
-            return true;
-        }
+        return true;
     }
 }
 

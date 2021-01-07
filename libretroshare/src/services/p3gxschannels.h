@@ -63,6 +63,7 @@ public:
 protected:
 
     virtual bool service_checkIfGroupIsStillUsed(const RsGxsGrpMetaData& meta) override;	// see RsGenExchange
+    virtual rstime_t service_lastGroupActivity(const RsGxsGroupId& gid) override;
 
     virtual RsSerialiser* setupSerialiser() override;                            // @see p3Config::setupSerialiser()
     virtual bool saveList(bool &cleanup, std::list<RsItem *>&saveList) override; // @see p3Config::saveList(bool &cleanup, std::list<RsItem *>&)

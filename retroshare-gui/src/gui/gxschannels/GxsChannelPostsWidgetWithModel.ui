@@ -253,9 +253,9 @@
             </widget>
            </item>
            <item row="1" column="3">
-            <widget class="QLabel" name="infoLastPost">
+            <widget class="QLabel" name="infoLastActivity">
              <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This includes posts, comments to posts and votes to comments.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Last time a non subscribed channel was seen at friends. Inactive channels will disappear automatically after  2 months. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="text">
               <string notr="true">unknown</string>
@@ -270,7 +270,7 @@
             </widget>
            </item>
            <item row="1" column="1" colspan="2">
-            <widget class="QLabel" name="infoLastPostLabel">
+            <widget class="QLabel" name="infoLastActivityLabel">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
                <horstretch>0</horstretch>
@@ -284,10 +284,10 @@
               </font>
              </property>
              <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This includes posts, comments to posts and votes to comments.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Last time a non subscribed channel was seen at friends. Inactive channels will disappear automatically after  2 months. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="text">
-              <string>Last activity:</string>
+              <string>Last seen:</string>
              </property>
             </widget>
            </item>

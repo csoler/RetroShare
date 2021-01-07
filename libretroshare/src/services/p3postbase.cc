@@ -920,59 +920,65 @@ public:
 	}
 };
 
-bool p3PostBase::service_checkIfGroupIsStillUsed(const RsGxsGrpMetaData& meta)
+rstime_t p3PostBase::service_lastGroupActivity(const RsGxsGroupId& gid)
 {
-#ifdef GXSFORUMS_CHANNELS
-    std::cerr << "p3gxsChannels: Checking unused board: called by GxsCleaning." << std::endl;
-#endif
-
     // request all group infos at once
 
     rstime_t now = time(nullptr);
 
     RS_STACK_MUTEX(mKnownPostedMutex);
 
-    auto it = mKnownPosted.find(meta.mGroupId);
-    bool unknown_posted = (it == mKnownPosted.end());
+    auto it = mKnownPosted.find(gid);
 
-#ifdef GXSFORUMS_CHANNELS
-    std::cerr << "  Board " << meta.mGroupId ;
+#ifdef POSTBASE_DEBUG
+    std::cerr << "  Board " << gid ;
 #endif
-
-    if(unknown_posted)
+    if(it == mKnownPosted.end())
     {
         // This case should normally not happen. It does because this board was never registered since it may
         // arrived before this code was here
 
-#ifdef GXSFORUMS_CHANNELS
+#ifdef POSTBASE_DEBUG
         std::cerr << ". Not known yet. Adding current time as new TS." << std::endl;
 #endif
-        mKnownPosted[meta.mGroupId] = now;
+        mKnownPosted[gid] = now;
         IndicateConfigChanged();
 
-        return true;
+        return now;
+    }
+    else
+        return it->second;
+}
+
+bool p3PostBase::service_checkIfGroupIsStillUsed(const RsGxsGrpMetaData& meta)
+{
+#ifdef POSTBASE_DEBUG
+    std::cerr << "p3gxsChannels: Checking unused board: called by GxsCleaning." << std::endl;
+#endif
+
+    rstime_t now = time(nullptr);
+    rstime_t last_used_ts = service_lastGroupActivity(meta.mGroupId);
+
+    bool used_by_friends = (now < last_used_ts + POSTED_UNUSED_BY_FRIENDS_DELAY);
+    bool subscribed = static_cast<bool>(meta.mSubscribeFlags & GXS_SERV::GROUP_SUBSCRIBE_SUBSCRIBED);
+
+#ifdef POSTBASE_DEBUG
+    std::cerr << ". subscribed: " << subscribed << ", used_by_friends: " << used_by_friends << " last TS: " << now - last_used_ts << " secs ago (" << (now-last_used_ts)/86400 << " days)";
+#endif
+
+    if(!subscribed && !used_by_friends)
+    {
+#ifdef POSTBASE_DEBUG
+        std::cerr << ". Scheduling for deletion" << std::endl;
+#endif
+        return false;
     }
     else
     {
-        bool used_by_friends = (now < it->second + POSTED_UNUSED_BY_FRIENDS_DELAY);
-        bool subscribed = static_cast<bool>(meta.mSubscribeFlags & GXS_SERV::GROUP_SUBSCRIBE_SUBSCRIBED);
-
-        std::cerr << ". subscribed: " << subscribed << ", used_by_friends: " << used_by_friends << " last TS: " << now - it->second << " secs ago (" << (now-it->second)/86400 << " days)";
-
-        if(!subscribed && !used_by_friends)
-        {
-#ifdef GXSFORUMS_CHANNELS
-            std::cerr << ". Scheduling for deletion" << std::endl;
+#ifdef POSTBASE_DEBUG
+        std::cerr << ". Keeping!" << std::endl;
 #endif
-            return false;
-        }
-        else
-        {
-#ifdef GXSFORUMS_CHANNELS
-            std::cerr << ". Keeping!" << std::endl;
-#endif
-            return true;
-        }
+        return true;
     }
 }
 

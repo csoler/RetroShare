@@ -417,7 +417,7 @@ void	p3GxsForums::service_tick()
 	return;
 }
 
-bool p3GxsForums::service_checkIfGroupIsStillUsed(const RsGxsGrpMetaData& meta)
+rstime_t p3GxsForums::service_lastGroupActivity(const RsGxsGroupId& gid)
 {
 #ifdef GXSFORUMS_DEBUG
     std::cerr << "p3gxsForums: Checking unused forums: called by GxsCleaning." << std::endl;
@@ -429,14 +429,13 @@ bool p3GxsForums::service_checkIfGroupIsStillUsed(const RsGxsGrpMetaData& meta)
 
     RS_STACK_MUTEX(mKnownForumsMutex);
 
-    auto it = mKnownForums.find(meta.mGroupId);
-    bool unknown_forum = it == mKnownForums.end();
+    auto it = mKnownForums.find(gid);
 
 #ifdef GXSFORUMS_DEBUG
     std::cerr << "  Forum " << meta.mGroupId ;
 #endif
 
-    if(unknown_forum)
+    if(it == mKnownForums.end())
     {
         // This case should normally not happen. It does because this forum was never registered since it may
         // arrived before this code was here
@@ -444,34 +443,46 @@ bool p3GxsForums::service_checkIfGroupIsStillUsed(const RsGxsGrpMetaData& meta)
 #ifdef GXSFORUMS_DEBUG
         std::cerr << ". Not known yet. Adding current time as new TS." << std::endl;
 #endif
-        mKnownForums[meta.mGroupId] = now;
+        mKnownForums[gid] = now;
         IndicateConfigChanged();
 
-        return true;
+        return now;
     }
     else
-    {
-        bool used_by_friends = (now < it->second + FORUM_UNUSED_BY_FRIENDS_DELAY);
-        bool subscribed = static_cast<bool>(meta.mSubscribeFlags & GXS_SERV::GROUP_SUBSCRIBE_SUBSCRIBED);
+        return it->second;
+}
+
+bool p3GxsForums::service_checkIfGroupIsStillUsed(const RsGxsGrpMetaData& meta)
+{
+#ifdef GXSFORUMS_DEBUG
+    std::cerr << "p3gxsForums: Checking unused forums: called by GxsCleaning." << std::endl;
+#endif
+
+    // request all group infos at once
+
+    rstime_t now = time(nullptr);
+    rstime_t last_used_ts = service_lastGroupActivity(meta.mGroupId);
+
+    bool used_by_friends = (now < last_used_ts + FORUM_UNUSED_BY_FRIENDS_DELAY);
+    bool subscribed = static_cast<bool>(meta.mSubscribeFlags & GXS_SERV::GROUP_SUBSCRIBE_SUBSCRIBED);
 
 #ifdef GXSFORUMS_DEBUG
         std::cerr << ". subscribed: " << subscribed << ", used_by_friends: " << used_by_friends << " last TS: " << now - it->second << " secs ago (" << (now-it->second)/86400 << " days)";
 #endif
 
-        if(!subscribed && !used_by_friends)
-        {
+    if(!subscribed && !used_by_friends)
+    {
 #ifdef GXSFORUMS_DEBUG
-            std::cerr << ". Scheduling for deletion" << std::endl;
+        std::cerr << ". Scheduling for deletion" << std::endl;
 #endif
-            return false;
-        }
-        else
-        {
+        return false;
+    }
+    else
+    {
 #ifdef GXSFORUMS_DEBUG
-            std::cerr << ". Keeping!" << std::endl;
+        std::cerr << ". Keeping!" << std::endl;
 #endif
-            return true;
-        }
+        return true;
     }
 }
 bool p3GxsForums::getGroupData(const uint32_t &token, std::vector<RsGxsForumGroup> &groups)

@@ -665,7 +665,8 @@ protected:
      * 			true if the group is still used, false otherwise, meaning that the group can be deleted. Default is
      * 			that the group is always in use.
      */
-    virtual bool service_checkIfGroupIsStillUsed(const RsGxsGrpMetaData& /* meta */) { return true; }	// see RsGenExchange
+    virtual bool     service_checkIfGroupIsStillUsed(const RsGxsGrpMetaData& /* meta */) { return true; }	// see RsGenExchange
+    virtual rstime_t service_lastGroupActivity(const RsGxsGroupId& /* gid */) { return time(nullptr); }	// see RsGenExchange
 
 public:
 

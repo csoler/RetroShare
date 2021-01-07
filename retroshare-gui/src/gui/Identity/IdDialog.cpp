@@ -43,6 +43,7 @@
 #include "gui/msgs/MessageComposer.h"
 #include "gui/settings/rsharesettings.h"
 #include "util/qtthreadsutils.h"
+#include "util/DateTime.h"
 #include "retroshare-gui/RsAutoUpdatePage.h"
 #include "util/misc.h"
 #include "util/QtVersion.h"
@@ -695,7 +696,7 @@ void IdDialog::loadCircles(const std::list<RsGroupMetaData>& groupInfo)
 		if(am_I_subscribed)
 			tooltip += tr("subscribed (Receive/forward membership requests from others and invite list).") ;
 		else
-			tooltip += tr("unsubscribed (Only receive invite list).") ;
+            tooltip += tr("unsubscribed (Only receive invite list). Last seen: %1.").arg(DateTime::formatLongDateTime(vit->mLastActivity));
 
 		tooltip += "\n"+tr("Your status: ") ;
 

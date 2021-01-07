@@ -861,16 +861,24 @@ void PostedListWidgetWithModel::insertBoardDetails(const RsPostedGroup& group)
     RetroShareLink link;
 
 	if (IS_GROUP_SUBSCRIBED(group.mMeta.mSubscribeFlags))
+    {
 		ui->subscribeToolButton->setText(tr("Subscribed") + " " + QString::number(group.mMeta.mPop) );
+        ui->infoLastActivity->hide();
+        ui->infoLastActivityLabel->hide();
+    }
     else
+    {
 		ui->subscribeToolButton->setText(tr("Subscribe"));
+        ui->infoLastActivity->show();
+        ui->infoLastActivityLabel->show();
+    }
 
 	ui->infoPosts->setText(QString::number(group.mMeta.mVisibleMsgCount));
 
-    if(group.mMeta.mLastPost==0)
-        ui->infoLastPost->setText(tr("Never"));
+    if(group.mMeta.mLastActivity==0)
+        ui->infoLastActivity->setText(tr("Never"));
     else
-        ui->infoLastPost->setText(DateTime::formatLongDateTime(group.mMeta.mLastPost));
+        ui->infoLastActivity->setText(DateTime::formatLongDateTime(group.mMeta.mLastActivity));
 
     uint32_t current_sync_time  = GxsGroupFrameDialog::checkDelay(rsPosted->getSyncPeriod(group.mMeta.mGroupId))/86400 ;
 
@@ -891,7 +899,7 @@ void PostedListWidgetWithModel::insertBoardDetails(const RsPostedGroup& group)
     auto sync_period = rsPosted->getSyncPeriod(group.mMeta.mGroupId) ;
 
     if(sync_period > 0 && group.mMeta.mLastPost > 0 && group.mMeta.mLastPost + sync_period < time(NULL) && IS_GROUP_SUBSCRIBED(group.mMeta.mSubscribeFlags))
-        sync_string += " (Warning: will not allow posts to sync)";
+        sync_string += " (Warning: may not allow posts to sync)";
 
     ui->syncPeriodLabel->setText(sync_string);
 

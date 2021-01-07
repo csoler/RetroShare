@@ -89,8 +89,9 @@ struct RsGroupMetaData : RsSerializable
     uint32_t    mSubscribeFlags;
 
     uint32_t    mPop; 			// Popularity = number of friend subscribers
-    uint32_t    mVisibleMsgCount; 	// Max messages reported by friends
-    rstime_t      mLastPost; 		// Timestamp for last message. Not used yet.
+    uint32_t    mVisibleMsgCount;// Max messages reported by friends
+    rstime_t    mLastPost; 		// Timestamp for last message. Not used yet.
+    rstime_t    mLastActivity; 	// Timestamp for last time a friend sent information about this group
 
     uint32_t    mGroupStatus;
 
@@ -117,7 +118,8 @@ struct RsGroupMetaData : RsSerializable
 		RS_SERIAL_PROCESS(mPop);
 		RS_SERIAL_PROCESS(mVisibleMsgCount);
 		RS_SERIAL_PROCESS(mLastPost);
-		RS_SERIAL_PROCESS(mGroupStatus);
+        RS_SERIAL_PROCESS(mLastActivity);
+        RS_SERIAL_PROCESS(mGroupStatus);
 		RS_SERIAL_PROCESS(mServiceString);
 		RS_SERIAL_PROCESS(mOriginator);
 		RS_SERIAL_PROCESS(mInternalCircle);
