@@ -117,18 +117,29 @@ public:
     }
 
 	bool lessThan(const QModelIndex& left, const QModelIndex& right) const override
-	{
-		bool is_group_1 = left.data(RsFriendListModel::TypeRole).toUInt() == (uint)RsFriendListModel::ENTRY_TYPE_GROUP;
+    {
+        bool is_group_1 = left.data(RsFriendListModel::TypeRole).toUInt() == (uint)RsFriendListModel::ENTRY_TYPE_GROUP;
 		bool is_group_2 = right.data(RsFriendListModel::TypeRole).toUInt() == (uint)RsFriendListModel::ENTRY_TYPE_GROUP;
 
-		if(is_group_1 ^ is_group_2)	// if the two are different, put the group first.
+        if(is_group_1 ^ is_group_2)	// if the two are different, put the group firs, meaning true if the first is a group, false otherwise
 			return is_group_1 ;
 
-		bool online1 = (left .data(RsFriendListModel::OnlineRole).toInt() != RS_STATUS_OFFLINE);
-		bool online2 = (right.data(RsFriendListModel::OnlineRole).toInt() != RS_STATUS_OFFLINE);
+        bool online1 = left .data(RsFriendListModel::OnlineRole).toBool() ;
+        bool online2 = right.data(RsFriendListModel::OnlineRole).toBool() ;
 
-		if(online1 != online2 && m_sortByState)
-			return (m_header->sortIndicatorOrder()==Qt::AscendingOrder)?online1:online2 ;    // always put online nodes first
+        std::cerr << "online1=" << online1 << " online2=" << online2 << std::endl;
+        if((online1 != online2) && m_sortByState)
+        {
+            // In this situation exactly one of them is online.
+            // Whatever the sort order, the one that is online should always be less than the one that is offline
+
+            // online 1 = true     =>    return true
+            // online 1 = false    =>    return false
+
+            bool res = (m_header->sortIndicatorOrder()==Qt::AscendingOrder)?online1:online2 ;    // always put online nodes first
+            std::cerr << "Sorting by state index " << left.internalId() << " (" << online1 <<  ") w.r.t.  " << right.internalId() << " (" << online2 << ") returning " << res << std::endl;
+            return res;
+        }
 
 		return left.data(RsFriendListModel::SortRole) < right.data(RsFriendListModel::SortRole) ;
 	}
@@ -144,7 +155,7 @@ public:
 
 		// Filter offline friends
 
-		if(!m_showOfflineNodes && (index.data(RsFriendListModel::OnlineRole).toInt() == RS_STATUS_OFFLINE))
+        if(!m_showOfflineNodes && !index.data(RsFriendListModel::OnlineRole).toBool())
 			return false;
 
 		return index.data(RsFriendListModel::FilterRole).toString() == RsFriendListModel::FilterString ;
@@ -525,8 +536,12 @@ void NewFriendList::processSettings(bool load)
 
 void NewFriendList::toggleSortByState(bool sort)
 {
-    mProxyModel->setSortByState(sort);
-	mProxyModel->setFilterRegExp(QRegExp(QString(RsFriendListModel::FilterString))) ;// triggers a re-display.
+//    applyWhileKeepingTree( [this,sort]() {
+
+        mProxyModel->setSortByState(sort);
+        mProxyModel->setFilterRegExp(QRegExp(QString(RsFriendListModel::FilterString))) ;// triggers a re-display.
+
+//    });
 }
 
 void NewFriendList::changeEvent(QEvent *e)
@@ -1164,6 +1179,8 @@ void NewFriendList::applyWhileKeepingTree(std::function<void()> predicate)
     // sortColumn(mLastSortColumn,mLastSortOrder);
     mProxyModel->sort(mLastSortColumn,mLastSortOrder);
 
+    std::cerr << "Sorted with sort column " << mLastSortColumn << " and order " << mLastSortOrder << " sort by state = " << mProxyModel->sortByState()<< std::endl;
+
     if(selected_index.isValid())
         ui->peerTreeWidget->scrollTo(selected_index);
 }
@@ -1176,6 +1193,8 @@ void NewFriendList::sortColumn(int col,Qt::SortOrder so)
 
     saveExpandedPathsAndSelection(expanded_indexes, selected);
     whileBlocking(ui->peerTreeWidget)->clearSelection();
+
+    std::cerr << "Sorting with sort column " << col << " and sort order " << so << " sort by state = " << mProxyModel->sortByState()<< std::endl;
 
     mProxyModel->setSortingEnabled(true);
     mProxyModel->sort(col,so);
