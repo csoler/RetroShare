@@ -19,6 +19,7 @@
  *******************************************************************************/
 
 #include "WikiGroupDialog.h"
+#include "gui/common/FilesDefs.h"
 
 #include <retroshare/rswiki.h>
 #include <iostream>
@@ -87,7 +88,7 @@ void WikiGroupDialog::initUi()
 
 QPixmap WikiGroupDialog::serviceImage()
 {
-	return QPixmap(":/icons/png/wiki.png");
+    return FilesDefs::getPixmapFromQtResourcePath(":/icons/png/wiki.png");
 }
 
 

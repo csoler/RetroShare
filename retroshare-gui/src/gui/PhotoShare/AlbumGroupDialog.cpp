@@ -22,6 +22,7 @@
 #include "AlbumGroupDialog.h"
 #include "AlbumExtra.h"
 #include "gui/gxs/GxsIdDetails.h"
+#include "gui/common/FilesDefs.h"
 
 #include <iostream>
 
@@ -99,7 +100,7 @@ void AlbumGroupDialog::initUi()
 
 QPixmap AlbumGroupDialog::serviceImage()
 {
-    return QPixmap(":/images/album_create_64.png");
+    return FilesDefs::getPixmapFromQtResourcePath(":/images/album_create_64.png");
 }
 
 void AlbumGroupDialog::prepareAlbumGroup(RsPhotoAlbum &group, const RsGroupMetaData &meta)
@@ -175,7 +176,7 @@ bool AlbumGroupDialog::service_loadGroup(const RsGxsGenericGroupData *data, Mode
             setLogo(pixmap);
         }
     } else {
-            setLogo(QPixmap(":/images/album_create_64.png"));
+            setLogo(FilesDefs::getPixmapFromQtResourcePath(":/images/album_create_64.png"));
     }
 
     // Load additional data....

@@ -56,31 +56,51 @@ CreateGxsChannelMsg::CreateGxsChannelMsg(const RsGxsGroupId &cId, RsGxsMessageId
 	setupUi(this);
 	Settings->loadWidgetInformation(this);
 
-	headerFrame->setHeaderImage(QPixmap(":/icons/png/channel.png"));
+    headerFrame->setHeaderImage(FilesDefs::getPixmapFromQtResourcePath(":/icons/png/channel.png"));
 
-    if(!existing_post.isNull())
+    if(!existing_post.isNull()){
 		headerFrame->setHeaderText(tr("Edit Channel Post"));
-	else
+		postButton->setText(tr("Update"));
+	}else{
 		headerFrame->setHeaderText(tr("New Channel Post"));
+	}
 
 	setAttribute ( Qt::WA_DeleteOnClose, true );
 
-	buttonBox->button(QDialogButtonBox::Ok)->setText(tr("Post"));
-
-	connect(buttonBox, SIGNAL(accepted()), this, SLOT(sendMsg()));
-	connect(buttonBox, SIGNAL(rejected()), this, SLOT(cancelMsg()));
+	connect(postButton, SIGNAL(clicked()), this, SLOT(sendMsg()));
+	connect(cancelButton, SIGNAL(clicked()), this, SLOT(cancelMsg()));
+    connect(pasteFromClipboardButton, SIGNAL(clicked()), this, SLOT(pasteLink()));
 
 	connect(addFileButton, SIGNAL(clicked() ), this , SLOT(addExtraFile()));
-	connect(addfilepushButton, SIGNAL(clicked() ), this , SLOT(addExtraFile()));
-	
+    connect(removeAllFilesButton, SIGNAL(clicked() ), this , SLOT(clearAllAttachments()));
+    //connect(addfilepushButton, SIGNAL(clicked() ), this , SLOT(addExtraFile()));
+	connect(subjectEdit,SIGNAL(textChanged(const QString&)),this,SLOT(updatePreviewText(const QString&)));
+	connect(expandButton, SIGNAL(clicked()), this, SLOT( toggle()));
+
 	connect(addThumbnailButton, SIGNAL(clicked() ), this , SLOT(addThumbnail()));
 	connect(thumbNailCb, SIGNAL(toggled(bool)), this, SLOT(allowAutoMediaThumbNail(bool)));
 	connect(stackedWidget, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(contextMenu(QPoint)));
 	connect(generateCheckBox, SIGNAL(toggled(bool)), generateSpinBox, SLOT(setEnabled(bool)));
+	connect(aspectRatio_CB,SIGNAL(currentIndexChanged(int)),this,SLOT(changeAspectRatio(int)));
+	connect(RichTextEditWidget, SIGNAL(textSizeOk(bool)),postButton, SLOT(setEnabled(bool)));
+
+	channelpostButton->setIcon(FilesDefs::getIconFromQtResourcePath(":/icons/png/comment.png"));
+	attachmentsButton->setIcon(FilesDefs::getIconFromQtResourcePath(":/icons/png/attachements.png"));
+	addThumbnailButton->setIcon(FilesDefs::getIconFromQtResourcePath(":/icons/png/add-image.png"));
+	expandButton->setIcon(FilesDefs::getIconFromQtResourcePath(QString(":/icons/png/up-arrow.png")));
+	removeButton->setIcon(FilesDefs::getIconFromQtResourcePath(QString(":/icons/mail/delete.png")));
+
+    aspectRatio_CB->setItemIcon(0,FilesDefs::getIconFromQtResourcePath(":/icons/svg/ratio-auto.svg"));
+    aspectRatio_CB->setItemIcon(1,FilesDefs::getIconFromQtResourcePath(":/icons/svg/ratio-1-1.svg"));
+    aspectRatio_CB->setItemIcon(2,FilesDefs::getIconFromQtResourcePath(":/icons/svg/ratio-3-4.svg"));
+    aspectRatio_CB->setItemIcon(3,FilesDefs::getIconFromQtResourcePath(":/icons/svg/ratio-16-9.svg"));
 
 	generateSpinBox->setEnabled(false);
 
-	thumbNailCb->setVisible(false);
+    preview_W->setPixmap(FilesDefs::getPixmapFromQtResourcePath(ChannelPostThumbnailView::CHAN_DEFAULT_IMAGE),true);
+    preview_W->setText("[Text preview]");
+
+    thumbNailCb->setVisible(false);
 	thumbNailCb->setEnabled(false);
 #ifdef CHANNELS_FRAME_CATCHER
 	fCatcher = new framecatcher();
@@ -96,6 +116,11 @@ CreateGxsChannelMsg::CreateGxsChannelMsg(const RsGxsGroupId &cId, RsGxsMessageId
 	generateCheckBox->hide();
 	generateSpinBox->hide();
 #endif
+
+	removeButton->hide();
+
+	/* load settings */
+	processSettings(true);
 }
 	
 CreateGxsChannelMsg::~CreateGxsChannelMsg()
@@ -104,6 +129,51 @@ CreateGxsChannelMsg::~CreateGxsChannelMsg()
 #ifdef CHANNELS_FRAME_CATCHER
 	delete fCatcher;
 #endif
+
+	// save settings
+	processSettings(false);
+}
+
+void CreateGxsChannelMsg::processSettings(bool load)
+{
+	Settings->beginGroup(QString("CreateGxsChannelMsg"));
+
+	if (load) {
+		// load settings
+		
+		// state of Ratio combobox
+		int index = Settings->value("aspectRatio_CB", 0).toInt();
+		aspectRatio_CB->setCurrentIndex(index);
+	} else {
+		// save settings
+
+		// state of Ratio combobox
+		Settings->setValue("aspectRatio_CB", aspectRatio_CB->currentIndex());
+	}
+
+	Settings->endGroup();
+}
+
+void CreateGxsChannelMsg::changeAspectRatio(int s)
+{
+    switch(s)
+    {
+    case 0: break;
+    case 1: preview_W->setAspectRatio(ChannelPostThumbnailView::ASPECT_RATIO_1_1);
+        break;
+    case 2: preview_W->setAspectRatio(ChannelPostThumbnailView::ASPECT_RATIO_2_3);
+        break;
+    case 3: preview_W->setAspectRatio(ChannelPostThumbnailView::ASPECT_RATIO_16_9);
+        break;
+    }
+}
+
+void CreateGxsChannelMsg::reject()
+{
+    if(QMessageBox::warning(nullptr,tr("Close this window?"),tr("Do you really want to discard your post?"),QMessageBox::Yes,QMessageBox::No) == QMessageBox::No)
+        return;
+
+    QDialog::reject();
 }
 
 void CreateGxsChannelMsg::contextMenu(QPoint /*point*/)
@@ -121,9 +191,9 @@ void CreateGxsChannelMsg::contextMenu(QPoint /*point*/)
 
 	QAction *action ;
 	if(n_file > 1)
-		action = contextMnu.addAction(QIcon(":/images/pasterslink.png"), tr("Paste RetroShare Links"), this, SLOT(pasteLink()));
+        action = contextMnu.addAction(FilesDefs::getIconFromQtResourcePath(":/images/pasterslink.png"), tr("Paste RetroShare Links"), this, SLOT(pasteLink()));
 	else
-		action = contextMnu.addAction(QIcon(":/images/pasterslink.png"), tr("Paste RetroShare Link"), this, SLOT(pasteLink()));
+        action = contextMnu.addAction(FilesDefs::getIconFromQtResourcePath(":/images/pasterslink.png"), tr("Paste RetroShare Link"), this, SLOT(pasteLink()));
 
 	action->setDisabled(n_file < 1) ;
 	contextMnu.exec(QCursor::pos());
@@ -133,7 +203,7 @@ void CreateGxsChannelMsg::pasteLink()
 {
 	std::cerr << "Pasting links: " << std::endl;
 
-	QList<RetroShareLink> links,not_have ;
+    QList<RetroShareLink> links;
 	RSLinkClipboard::pasteLinks(links) ;
 
 	for(QList<RetroShareLink>::const_iterator it(links.begin());it!=links.end();++it)
@@ -147,14 +217,19 @@ void CreateGxsChannelMsg::pasteLink()
             FileInfo info ;
             RsFileHash hash( (*it).hash().toStdString()) ;
 
+#ifdef TO_REMOVE
             if(rsFiles->alreadyHaveFile( hash,info ) )
-                addAttachment(hash, (*it).name().toUtf8().constData(), (*it).size(), true, RsPeerId()) ;
-			else
-				not_have.push_back( *it ) ;
-		}
+#endif
+                addAttachment(hash, (*it).name().toUtf8().constData(), (*it).size(), rsFiles->alreadyHaveFile( hash,info ), RsPeerId()) ;
+#ifdef TO_REMOVE
+            else
+                not_have.push_back( *it ) ;
+#endif
+        }
 
-	if(!not_have.empty())
-	{
+#ifdef TO_REMOVE
+    if(!not_have.empty())
+    {
         QString msg = tr("You are about to add files you're not actually sharing. Do you still want this to happen?")+"<br><br>" ;
 
         for(QList<RetroShareLink>::const_iterator it(not_have.begin());it!=not_have.end();++it)
@@ -163,7 +238,8 @@ void CreateGxsChannelMsg::pasteLink()
         if(QMessageBox::YesToAll == QMessageBox::question(NULL,tr("About to post un-owned files to a channel."),msg,QMessageBox::YesToAll | QMessageBox::No))
             for(QList<RetroShareLink>::const_iterator it(not_have.begin());it!=not_have.end();++it)
                 addAttachment(RsFileHash((*it).hash().toStdString()), (*it).name().toUtf8().constData(), (*it).size(), false, RsPeerId()) ;
-	}
+    }
+#endif
 }
 
 /* Dropping */
@@ -255,7 +331,7 @@ void CreateGxsChannelMsg::dropEvent(QDropEvent *event)
 					QMessageBox mb(tr("Drop file error."), tr("Directory can't be dropped, only files are accepted."),QMessageBox::Information,QMessageBox::Ok,0,0,this);
 					mb.exec();
 				} else if (QFile::exists(localpath)) {
-					addAttachment(localpath.toUtf8().constData());
+                    addAttachment(localpath.toUtf8().constData());
 				} else {
 					std::cerr << "CreateGxsChannelMsg::dropEvent() file does not exists."<< std::endl;
 					QMessageBox mb(tr("Drop file error."), tr("File not found or file name not accepted."),QMessageBox::Information,QMessageBox::Ok,0,0,this);
@@ -379,6 +455,16 @@ void CreateGxsChannelMsg::addAttachment(const RsFileHash &hash, const std::strin
 
 	if (mCheckAttachment)
 		checkAttachmentReady();
+
+    updateAttachmentCount();
+}
+
+void CreateGxsChannelMsg::updateAttachmentCount()
+{
+    if(mAttachments.size() > 0)
+        attachmentsButton->setText(tr("Attachments (%1)").arg(mAttachments.size()));
+    else
+        attachmentsButton->setText(tr("Attachments"));
 }
 
 void CreateGxsChannelMsg::deleteAttachment()
@@ -397,6 +483,21 @@ void CreateGxsChannelMsg::deleteAttachment()
         }
 		else
             ++it;
+
+    updateAttachmentCount();
+}
+
+void CreateGxsChannelMsg::clearAllAttachments()
+{
+    QLayoutItem* item;
+    while ( ( item = fileFrame->layout()->takeAt( 0 ) ) != NULL )
+    {
+        delete item->widget();
+        delete item;
+    }
+
+    mAttachments.clear();
+    attachmentsButton->setText(tr("Attachments"));
 }
 
 void CreateGxsChannelMsg::addExtraFile()
@@ -425,7 +526,7 @@ void CreateGxsChannelMsg::addHtmlText(const QString& text)
 	RichTextEditWidget->setText(text) ;
 }
 
-void CreateGxsChannelMsg::addAttachment(const std::string &path)
+bool CreateGxsChannelMsg::addAttachment(const std::string &path)
 {
 	/* add a SubFileItem to the attachment section */
 #ifdef DEBUG_CREATE_GXS_MSG
@@ -437,7 +538,7 @@ void CreateGxsChannelMsg::addAttachment(const std::string &path)
 	setThumbNail(path, 2000);
 
 	/* add widget in for new destination */
-	uint32_t flags =  SFI_TYPE_CHANNEL | SFI_STATE_EXTRA | SFI_FLAG_CREATE;
+    uint32_t flags =  SFI_TYPE_CHANNEL | SFI_STATE_EXTRA | SFI_FLAG_CREATE;
 
 	// check attachment if hash exists already
 	std::list<SubFileItem* >::iterator  it;
@@ -445,13 +546,12 @@ void CreateGxsChannelMsg::addAttachment(const std::string &path)
 	for(it= mAttachments.begin(); it != mAttachments.end(); ++it){
 
 		if((*it)->FilePath() == path){
-			QMessageBox::warning(this, tr("RetroShare"), tr("File already Added and Hashed"), QMessageBox::Ok, QMessageBox::Ok);
+            QMessageBox::warning(this, tr("RetroShare"), tr("This file already in this post:")+"<br/>"+QString::fromStdString(path), QMessageBox::Ok, QMessageBox::Ok);
 
-			return;
+            return false;
 		}
 	}
 
-	FileInfo fInfo;
 	std::string filename = RsDirUtil::getTopDir(path);
 	uint64_t size = 0;
     RsFileHash hash ;
@@ -464,16 +564,18 @@ void CreateGxsChannelMsg::addAttachment(const std::string &path)
 	//SubFileItem *file = new SubFileItem(hash, filename, path, size, flags, mChannelId); 
 	SubFileItem *file = new SubFileItem(hash, filename, path, size, flags, RsPeerId()); 
 
-	mAttachments.push_back(file);
+    connect(file,SIGNAL(wantsToBeDeleted()),this,SLOT(deleteAttachment())) ;
+
+    mAttachments.push_back(file);
 	QLayout *layout = fileFrame->layout();
 	layout->addWidget(file);
 
 	if (mCheckAttachment)
-	{
 		checkAttachmentReady();
-	}
 
-	return;
+    updateAttachmentCount();
+
+    return true;
 }
 
 bool CreateGxsChannelMsg::setThumbNail(const std::string& path, int frame){
@@ -545,8 +647,8 @@ void CreateGxsChannelMsg::checkAttachmentReady()
 				 * recognized by librs but not correctly by gui (can't
 				 * formally remove it)
 				 */
-				buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
-				buttonBox->button(QDialogButtonBox::Cancel)->setEnabled(false);
+				postButton->setEnabled(false);
+				cancelButton->setEnabled(false);
 				break;
 			}
 		}
@@ -554,11 +656,13 @@ void CreateGxsChannelMsg::checkAttachmentReady()
 
 	if (fit == mAttachments.end())
 	{
-		buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
-		buttonBox->button(QDialogButtonBox::Cancel)->setEnabled(true);
+		postButton->setEnabled(true);
+		cancelButton->setEnabled(true);
 	}
 
-	/* repeat... */
+    updateAttachmentCount();
+
+    /* repeat... */
 	int msec_rate = 1000;
 	QTimer::singleShot( msec_rate, this, SLOT(checkAttachmentReady(void)));
 }
@@ -605,6 +709,11 @@ void CreateGxsChannelMsg::saveChannelInfo(const RsGroupMetaData &meta)
 	subjectEdit->setFocus();
 }
 
+void CreateGxsChannelMsg::updatePreviewText(const QString& s)
+{
+	preview_W->setText(s);
+}
+
 void CreateGxsChannelMsg::sendMsg()
 {
 #ifdef DEBUG_CREATE_GXS_MSG
@@ -620,32 +729,55 @@ void CreateGxsChannelMsg::sendMsg()
 	std::string msg = std::string(text.toUtf8());
 
 	std::list<RsGxsFile> files;
+    std::list<RsGxsFile> missing_files;
+    std::list<RsGxsFile> files_only_extra;
 
-	std::list<SubFileItem *>::iterator fit;
-
-	for(fit = mAttachments.begin(); fit != mAttachments.end(); ++fit)
-	{
-		if (!(*fit)->isHidden())
+    for(auto fit :mAttachments)
+        if (!fit->isHidden())
 		{
 			RsGxsFile fi;
-			fi.mHash = (*fit)->FileHash();
-			fi.mName = (*fit)->FileName();
-			fi.mSize = (*fit)->FileSize();
+            fi.mHash = fit->FileHash();
+            fi.mName = fit->FileName();
+            fi.mSize = fit->FileSize();
 
 			files.push_back(fi);
 
-			/* commence downloads - if we don't have the file */
+            /* if we don't have the file, display info about it */
 
-			if (!(*fit)->done())
-			{
-				if ((*fit)->ready())
-				{
-					(*fit)->download();
-				}
-			// Skips unhashed files.
-			}
-		}
-	}
+            if (!fit->done() && fit->ready()) // Skips unhashed files.
+                    missing_files.push_back(fi);
+
+            FileInfo finfo;
+            bool extra = rsFiles->FileDetails(fi.mHash, RS_FILE_HINTS_EXTRA | RS_FILE_HINTS_SPEC_ONLY, finfo );
+            bool local = rsFiles->FileDetails(fi.mHash, RS_FILE_HINTS_LOCAL | RS_FILE_HINTS_SPEC_ONLY, finfo );
+
+            if(extra && !local)
+                files_only_extra.push_back(fi);
+        }
+
+    if(!missing_files.empty())
+    {
+        QString filesstr = "<br/>";
+
+        for(auto& file: missing_files)
+            filesstr += "<br/>" /*+QString::fromStdString(file.mHash.toStdString()) + " "*/ + QString::fromStdString(file.mName) ;
+
+        if(QMessageBox::Cancel == QMessageBox::warning(nullptr,tr("Post refers to non shared files"),
+                                tr("This post contains files that you are currently not sharing. Do you still want to post?")+filesstr,QMessageBox::Ok,QMessageBox::Cancel))
+            return;
+    }
+    if(!files_only_extra.empty())
+    {
+        QString filesstr = "<br/>";
+
+        for(auto& file: files_only_extra)
+            filesstr += "<br/>" /*+QString::fromStdString(file.mHash.toStdString()) + " "*/ + QString::fromStdString(file.mName) ;
+
+        QMessageBox::information(nullptr,
+                                tr("Post refers to temporary shared files"),
+                                tr("The following files will only be shared for 30 days. Think about adding them to a shared directory.")
+                                                           +filesstr);
+    }
 
 	sendMessage(subject, msg, files);
 }
@@ -682,7 +814,7 @@ void CreateGxsChannelMsg::sendMessage(const std::string &subject, const std::str
 			// send chan image
 
 			buffer.open(QIODevice::WriteOnly);
-			picture.save(&buffer, "PNG"); // writes image into ba in PNG format
+            preview_W->getCroppedScaledPicture().save(&buffer, "PNG"); // writes image into ba in PNG format
 			post.mThumbnail.copy((uint8_t *) ba.data(), ba.size());
 		}
 
@@ -717,7 +849,7 @@ void CreateGxsChannelMsg::sendMessage(const std::string &subject, const std::str
 
 void CreateGxsChannelMsg::addThumbnail()
 {
-	QPixmap img = misc::getOpenThumbnailedPicture(this, tr("Load thumbnail picture"), 156, 107);
+    QPixmap img = misc::getOpenThumbnailedPicture(this, tr("Load thumbnail picture"), 0,0);	// 0,0 means: no scale.
 
 	if (img.isNull())
 		return;
@@ -725,7 +857,8 @@ void CreateGxsChannelMsg::addThumbnail()
 	picture = img;
 
 	// to show the selected
-	thumbnail_label->setPixmap(picture);
+	preview_W->setPixmap(picture, aspectRatio_CB->currentIndex()==0);
+	removeButton->show();
 }
 
 void CreateGxsChannelMsg::loadOriginalChannelPostInfo()
@@ -738,14 +871,15 @@ void CreateGxsChannelMsg::loadOriginalChannelPostInfo()
 	{
 		std::vector<RsGxsChannelPost> posts;
 		std::vector<RsGxsComment> comments;
+		std::vector<RsGxsVote> votes;
 
-        if( !rsGxsChannels->getChannelContent(mChannelId,std::set<RsGxsMessageId>({mOrigPostId}),posts,comments) || posts.size() != 1)
-        {
-            std::cerr << "Cannot get channel post data for channel " << mChannelId << " and post " << mOrigPostId << std::endl;
-            return;
-        }
+		if( !rsGxsChannels->getChannelContent(mChannelId,std::set<RsGxsMessageId>({mOrigPostId}),posts,comments,votes) || posts.size() != 1)
+		{
+			std::cerr << "Cannot get channel post data for channel " << mChannelId << " and post " << mOrigPostId << std::endl;
+			return;
+		}
 
-        RsQThreadUtils::postToObject( [posts,this]()
+		RsQThreadUtils::postToObject( [posts,this]()
 		{
 			/* Here it goes any code you want to be executed on the Qt Gui
 			 * thread, for example to update the data model with new information
@@ -768,7 +902,8 @@ void CreateGxsChannelMsg::loadOriginalChannelPostInfo()
 			if(post.mThumbnail.mData != NULL)
 			{
 				GxsIdDetails::loadPixmapFromData(post.mThumbnail.mData,post.mThumbnail.mSize,picture,GxsIdDetails::ORIGINAL);
-				thumbnail_label->setPixmap(picture);
+				preview_W->setPixmap(picture,true);
+				removeButton->show();
 			}
 
 
@@ -825,3 +960,28 @@ void CreateGxsChannelMsg::on_attachmentsButton_clicked()
 {
 	stackedWidget->setCurrentIndex(1);
 }
+
+void CreateGxsChannelMsg::toggle()
+{
+	if (expandButton->isChecked())
+	{
+		thumbnailFrame->hide();
+		gridLayoutTextEdit->setContentsMargins(0,9,0,0);
+		expandButton->setIcon(FilesDefs::getIconFromQtResourcePath(QString(":/icons/png/down-arrow.png")));
+		expandButton->setToolTip(tr("Show"));
+	}
+	else
+	{
+		thumbnailFrame->show();
+		gridLayoutTextEdit->setContentsMargins(0,0,0,0);
+		expandButton->setIcon(FilesDefs::getIconFromQtResourcePath(QString(":/icons/png/up-arrow.png")));
+		expandButton->setToolTip(tr("Hide"));
+	}
+}
+
+void CreateGxsChannelMsg::on_removeButton_clicked()
+{
+	preview_W->setPixmap(QPixmap(), false);
+	removeButton->hide();
+}
+

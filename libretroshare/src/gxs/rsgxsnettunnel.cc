@@ -167,7 +167,12 @@ public:
 class RsGxsNetTunnelTurtleSearchGroupDataItem: public RsGxsNetTunnelItem
 {
 public:
-    explicit RsGxsNetTunnelTurtleSearchGroupDataItem(): RsGxsNetTunnelItem(RS_PKT_SUBTYPE_GXS_NET_TUNNEL_TURTLE_SEARCH_GROUP_DATA) {}
+    explicit RsGxsNetTunnelTurtleSearchGroupDataItem()
+        : RsGxsNetTunnelItem(RS_PKT_SUBTYPE_GXS_NET_TUNNEL_TURTLE_SEARCH_GROUP_DATA),
+          encrypted_group_data(NULL),
+          encrypted_group_data_len(0)
+    {}
+
     virtual ~RsGxsNetTunnelTurtleSearchGroupDataItem() {}
 
     uint16_t service ;
@@ -551,6 +556,7 @@ void RsGxsNetTunnelService::receiveTurtleData(const RsTurtleGenericTunnelItem *i
 		mTurtle2GxsPeer[turtle_virtual_peer_id] = pid_item->virtual_peer_id ;
 
 		RsGxsNetTunnelVirtualPeerInfo& vp_info(mVirtualPeers[pid_item->virtual_peer_id]) ;
+        delete pid_item;
 
 		vp_info.vpid_status = RsGxsNetTunnelVirtualPeerInfo::RS_GXS_NET_TUNNEL_VP_STATUS_ACTIVE ;					// status of the peer
 		vp_info.side = direction;	                        // client/server
@@ -760,7 +766,12 @@ void RsGxsNetTunnelService::threadTick()
 	}
 #endif
 
-	rstime::rs_usleep(1*1000*1000) ; // 1 sec
+    for(uint32_t i=0;i<2;++i)
+    {
+        if(shouldStop())
+            return;
+        rstime::rs_usleep(500*1000) ; // 1 sec
+    }
 }
 
 const Bias20Bytes& RsGxsNetTunnelService::locked_randomBias()
@@ -1034,6 +1045,8 @@ bool RsGxsNetTunnelService::receiveSearchRequest(unsigned char *search_request_d
             search_result_data_size = RsGxsNetTunnelSerializer().size(&search_result_item) ;
 			search_result_data = (unsigned char*)rs_malloc(search_result_data_size) ;
 
+            delete item;
+
 			if(search_result_data == NULL)
 				return false ;
 
@@ -1071,10 +1084,12 @@ bool RsGxsNetTunnelService::receiveSearchRequest(unsigned char *search_request_d
 
 			RsGxsNetTunnelSerializer().serialise(&search_result_item,search_result_data,&search_result_data_size);
 
+            delete item;
 			return true ;
         }
     }
 
+    delete item;
     return false ;
 }
 
@@ -1090,8 +1105,10 @@ void RsGxsNetTunnelService::receiveSearchResult(TurtleSearchRequestId request_id
 	{
 		GXS_NET_TUNNEL_DEBUG() << "  : result is of type group summary result for service " << result_gs->service << std::dec << ": " << std::endl;
 
+#ifdef DEBUG_RSGXSNETTUNNEL
 		for(auto it(result_gs->group_infos.begin());it!=result_gs->group_infos.end();++it)
 			std::cerr << "   group " << (*it).mGroupId << ": " << (*it).mGroupName << ", " << (*it).mNumberOfMessages << " messages, last is " << time(NULL)-(*it).mLastMessageTs << " secs ago." << std::endl;
+#endif
 
 		auto it = mSearchableServices.find(result_gs->service) ;
 

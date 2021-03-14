@@ -23,7 +23,7 @@
 
 #include <retroshare/rstypes.h>
 #include "ui_SearchDialog.h"
-#include "mainpage.h"
+#include <retroshare-gui/mainpage.h>
 
 class AdvancedSearchDialog;
 class RSTreeWidgetItemCompareRole;
@@ -155,6 +155,9 @@ private:
 
     RSTreeWidgetItemCompareRole *compareSummaryRole;
     RSTreeWidgetItemCompareRole *compareResultRole;
+
+    QAbstractItemDelegate *mAgeColumnDelegate;
+    QAbstractItemDelegate *mSizeColumnDelegate;
 
 	/* Color definitions (for standard see qss.default) */
 	QColor mTextColorLocal;

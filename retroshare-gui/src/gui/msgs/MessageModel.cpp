@@ -27,6 +27,7 @@
 #include <QIcon>
 
 #include "gui/common/TagDefs.h"
+#include "gui/common/FilesDefs.h"
 #include "util/HandleRichText.h"
 #include "util/DateTime.h"
 #include "gui/gxs/GxsIdDetails.h"
@@ -41,6 +42,9 @@
 
 #define IMAGE_STAR_ON          ":/images/star-on-16.png"
 #define IMAGE_STAR_OFF         ":/images/star-off-16.png"
+#define IMAGE_SPAM             ":/images/junk.png"
+#define IMAGE_SPAM_ON          ":/images/junk_on.png"
+#define IMAGE_SPAM_OFF         ":/images/junk_off.png"
 
 std::ostream& operator<<(std::ostream& o, const QModelIndex& i);// defined elsewhere
 
@@ -57,31 +61,32 @@ RsMessageModel::RsMessageModel(QObject *parent)
 
 void RsMessageModel::preMods()
 {
- 	emit layoutAboutToBeChanged();
+	emit layoutAboutToBeChanged();
 }
 void RsMessageModel::postMods()
 {
 	emit dataChanged(createIndex(0,0,(void*)NULL), createIndex(mMessages.size()-1,COLUMN_THREAD_NB_COLUMNS-1,(void*)NULL));
+	emit layoutChanged();
 }
 
 int RsMessageModel::rowCount(const QModelIndex& parent) const
 {
 	if(!parent.isValid())
-        return 0;
+		return 0;
 
-    if(parent.column() > 0)
-        return 0;
+	if(parent.column() > 0)
+		return 0;
 
-    if(mMessages.empty())	// security. Should never happen.
-        return 0;
+	if(mMessages.empty())	// security. Should never happen.
+		return 0;
 
 	if(parent.internalPointer() == NULL)
 		return mMessages.size();
 
-    return 0;
+	return 0;
 }
 
-int RsMessageModel::columnCount(const QModelIndex &parent) const
+int RsMessageModel::columnCount(const QModelIndex &/*parent*/) const
 {
 	return COLUMN_THREAD_NB_COLUMNS ;
 }
@@ -141,8 +146,8 @@ QModelIndex RsMessageModel::index(int row, int column, const QModelIndex & paren
 
 QModelIndex RsMessageModel::parent(const QModelIndex& index) const
 {
-    if(!index.isValid())
-        return QModelIndex();
+	if(!index.isValid())
+		return QModelIndex();
 
 	return QModelIndex();
 }
@@ -150,12 +155,12 @@ QModelIndex RsMessageModel::parent(const QModelIndex& index) const
 Qt::ItemFlags RsMessageModel::flags(const QModelIndex& index) const
 {
     if (!index.isValid())
-        return 0;
+        return Qt::ItemFlags();
 
     return QAbstractItemModel::flags(index);
 }
 
-QVariant RsMessageModel::headerData(int section, Qt::Orientation orientation, int role) const
+QVariant RsMessageModel::headerData(int section, Qt::Orientation /*orientation*/, int role) const
 {
 	if(role == Qt::DisplayRole)
 		switch(section)
@@ -171,9 +176,10 @@ QVariant RsMessageModel::headerData(int section, Qt::Orientation orientation, in
 	if(role == Qt::DecorationRole)
 		switch(section)
 		{
-		case COLUMN_THREAD_STAR:         return QIcon(IMAGE_STAR_ON);
-		case COLUMN_THREAD_READ:         return QIcon(":/images/message-state-header.png");
-		case COLUMN_THREAD_ATTACHMENT:   return QIcon(":/icons/png/attachements.png");
+		case COLUMN_THREAD_STAR:         return FilesDefs::getIconFromQtResourcePath(IMAGE_STAR_ON);
+		case COLUMN_THREAD_SPAM:         return FilesDefs::getIconFromQtResourcePath(IMAGE_SPAM);
+		case COLUMN_THREAD_READ:         return FilesDefs::getIconFromQtResourcePath(":/images/message-state-header.png");
+		case COLUMN_THREAD_ATTACHMENT:   return FilesDefs::getIconFromQtResourcePath(":/icons/png/attachements.png");
 		default:
 			return QVariant();
 		}
@@ -188,6 +194,7 @@ QVariant RsMessageModel::headerData(int section, Qt::Orientation orientation, in
         case COLUMN_THREAD_DATE:       return tr("Click to sort by date");
         case COLUMN_THREAD_TAGS:       return tr("Click to sort by tags");
         case COLUMN_THREAD_STAR:       return tr("Click to sort by star");
+        case COLUMN_THREAD_SPAM:       return tr("Click to sort by junk status");
 		default:
 			return QVariant();
         }
@@ -268,20 +275,20 @@ QVariant RsMessageModel::data(const QModelIndex &index, int role) const
 	}
 }
 
-QVariant RsMessageModel::textColorRole(const Rs::Msgs::MsgInfoSummary& fmpe,int column) const
+QVariant RsMessageModel::textColorRole(const Rs::Msgs::MsgInfoSummary& fmpe,int /*column*/) const
 {
 	Rs::Msgs::MsgTagType tags;
 	rsMsgs->getMessageTagTypes(tags);
 
-    for(auto it(fmpe.msgtags.begin());it!=fmpe.msgtags.end();++it)
-        for(auto it2(tags.types.begin());it2!=tags.types.end();++it2)
-            if(it2->first == *it)
-                return QColor(it2->second.second);
+	for(auto it(fmpe.msgtags.begin());it!=fmpe.msgtags.end();++it)
+		for(auto it2(tags.types.begin());it2!=tags.types.end();++it2)
+			if(it2->first == *it)
+				return QColor(it2->second.second);
 
 	return QVariant();
 }
 
-QVariant RsMessageModel::statusRole(const Rs::Msgs::MsgInfoSummary& fmpe,int column) const
+QVariant RsMessageModel::statusRole(const Rs::Msgs::MsgInfoSummary& /*fmpe*/,int /*column*/) const
 {
 // 	if(column != COLUMN_THREAD_DATA)
 //        return QVariant();
@@ -289,12 +296,12 @@ QVariant RsMessageModel::statusRole(const Rs::Msgs::MsgInfoSummary& fmpe,int col
     return QVariant();//fmpe.mMsgStatus);
 }
 
-bool RsMessageModel::passesFilter(const Rs::Msgs::MsgInfoSummary& fmpe,int column) const
+bool RsMessageModel::passesFilter(const Rs::Msgs::MsgInfoSummary& fmpe,int /*column*/) const
 {
-    QString s ;
-    bool passes_strings = true ;
+	QString s ;
+	bool passes_strings = true ;
 
-    if(!mFilterStrings.empty())
+	if(!mFilterStrings.empty())
 	{
 		switch(mFilterType)
 		{
@@ -302,9 +309,9 @@ bool RsMessageModel::passesFilter(const Rs::Msgs::MsgInfoSummary& fmpe,int colum
 			break;
 
 		case FILTER_TYPE_FROM:      s = sortRole(fmpe,COLUMN_THREAD_AUTHOR).toString();
-            						if(s.isNull())
-                                        passes_strings = false;
-            break;
+			if(s.isNull())
+				passes_strings = false;
+			break;
 		case FILTER_TYPE_DATE:   	s = displayRole(fmpe,COLUMN_THREAD_DATE).toString();
 			break;
 		case FILTER_TYPE_CONTENT:   {
@@ -324,6 +331,9 @@ bool RsMessageModel::passesFilter(const Rs::Msgs::MsgInfoSummary& fmpe,int colum
 			for(auto it(minfo.files.begin());it!=minfo.files.end();++it)
 				s += QString::fromUtf8((*it).fname.c_str())+" ";
 		}
+			break;
+		case FILTER_TYPE_NONE:
+			RS_ERR("None Type for Filter.");
 		};
 	}
 
@@ -335,7 +345,9 @@ bool RsMessageModel::passesFilter(const Rs::Msgs::MsgInfoSummary& fmpe,int colum
             (mQuickViewFilter==QUICK_VIEW_ALL)
             || (std::find(fmpe.msgtags.begin(),fmpe.msgtags.end(),mQuickViewFilter) != fmpe.msgtags.end())
             || (mQuickViewFilter==QUICK_VIEW_STARRED && (fmpe.msgflags & RS_MSG_STAR))
-            || (mQuickViewFilter==QUICK_VIEW_SYSTEM && (fmpe.msgflags & RS_MSG_SYSTEM));
+            || (mQuickViewFilter==QUICK_VIEW_SYSTEM && (fmpe.msgflags & RS_MSG_SYSTEM))
+            || (mQuickViewFilter==QUICK_VIEW_SPAM && (fmpe.msgflags & RS_MSG_SPAM))
+            || (mQuickViewFilter==QUICK_VIEW_ATTACHMENT && (fmpe.count >= 1));
 #ifdef DEBUG_MESSAGE_MODEL
     std::cerr << "Passes filter: type=" << mFilterType << " s=\"" << s.toStdString() << "MsgFlags=" << fmpe.msgflags << " msgtags=" ;
     foreach(uint32_t i,fmpe.msgtags) std::cerr << i << " " ;
@@ -347,31 +359,30 @@ bool RsMessageModel::passesFilter(const Rs::Msgs::MsgInfoSummary& fmpe,int colum
 
 QVariant RsMessageModel::filterRole(const Rs::Msgs::MsgInfoSummary& fmpe,int column) const
 {
-    if(passesFilter(fmpe,column))
-        return QVariant(FilterString);
+	if(passesFilter(fmpe,column))
+		return QVariant(FilterString);
 
 	return QVariant(QString());
 }
 
-uint32_t RsMessageModel::updateFilterStatus(ForumModelIndex i,int column,const QStringList& strings)
+uint32_t RsMessageModel::updateFilterStatus(ForumModelIndex /*i*/,int /*column*/,const QStringList& /*strings*/)
 {
-    QString s ;
-	uint32_t count = 0;
-
-	return count;
+	return 0;
 }
 
 
 void RsMessageModel::setFilter(FilterType filter_type, const QStringList& strings)
 {
-    std::cerr << "Setting filter to filter_type=" << int(filter_type) << " and strings to " ;
-    foreach(const QString& str,strings)
-        std::cerr << "\"" << str.toStdString() << "\" " ;
-    std::cerr << std::endl;
+#ifdef DEBUG_MESSAGE_MODEL
+	std::cerr << "Setting filter to filter_type=" << int(filter_type) << " and strings to " ;
+	foreach(const QString& str,strings)
+		std::cerr << "\"" << str.toStdString() << "\" " ;
+	std::cerr << std::endl;
+#endif
 
-    preMods();
+	preMods();
 
-    mFilterType = filter_type;
+	mFilterType = filter_type;
 	mFilterStrings = strings;
 
 	postMods();
@@ -379,7 +390,7 @@ void RsMessageModel::setFilter(FilterType filter_type, const QStringList& string
 
 QVariant RsMessageModel::toolTipRole(const Rs::Msgs::MsgInfoSummary& fmpe,int column) const
 {
-    if(column == COLUMN_THREAD_AUTHOR)
+	if(column == COLUMN_THREAD_AUTHOR)
 	{
 		QString str,comment ;
 		QList<QIcon> icons;
@@ -400,7 +411,7 @@ QVariant RsMessageModel::toolTipRole(const Rs::Msgs::MsgInfoSummary& fmpe,int co
     return QVariant();
 }
 
-QVariant RsMessageModel::backgroundRole(const Rs::Msgs::MsgInfoSummary &fmpe, int column) const
+QVariant RsMessageModel::backgroundRole(const Rs::Msgs::MsgInfoSummary &/*fmpe*/, int /*column*/) const
 {
     return QVariant();
 }
@@ -418,7 +429,7 @@ QVariant RsMessageModel::sizeHintRole(int col) const
 	}
 }
 
-QVariant RsMessageModel::authorRole(const Rs::Msgs::MsgInfoSummary& fmpe,int column) const
+QVariant RsMessageModel::authorRole(const Rs::Msgs::MsgInfoSummary& /*fmpe*/,int /*column*/) const
 {
     return QVariant();
 }
@@ -433,65 +444,76 @@ QVariant RsMessageModel::sortRole(const Rs::Msgs::MsgInfoSummary& fmpe,int colum
 
 	case COLUMN_THREAD_STAR:  return QVariant((fmpe.msgflags & RS_MSG_STAR)? 1:0);
 
-    case COLUMN_THREAD_AUTHOR:{
-        						QString name;
+	case COLUMN_THREAD_SPAM:  return QVariant((fmpe.msgflags & RS_MSG_SPAM)? 1:0);
 
-        						if(GxsIdTreeItemDelegate::computeName(RsGxsId(fmpe.srcId.toStdString()),name))
-                                    return name;
-    }
-    default:
-        return displayRole(fmpe,column);
-    }
+	case COLUMN_THREAD_AUTHOR:{
+			QString name;
+
+			if(GxsIdTreeItemDelegate::computeName(RsGxsId(fmpe.srcId.toStdString()),name))
+				return name;
+			return ""; //Not Found
+		}
+	default:
+		return displayRole(fmpe,column);
+	}
 }
 
 QVariant RsMessageModel::displayRole(const Rs::Msgs::MsgInfoSummary& fmpe,int col) const
 {
 	switch(col)
 	{
-	case COLUMN_THREAD_SUBJECT:   return QVariant(QString::fromUtf8(fmpe.title.c_str()));
-	case COLUMN_THREAD_ATTACHMENT:return QVariant(QString::number(fmpe.count));
+		case COLUMN_THREAD_SUBJECT:   return QVariant(QString::fromUtf8(fmpe.title.c_str()));
+		case COLUMN_THREAD_ATTACHMENT:return QVariant(QString::number(fmpe.count));
 
-    case COLUMN_THREAD_STAR:
-	case COLUMN_THREAD_READ:return QVariant();
-	case COLUMN_THREAD_DATE:{
-		QDateTime qtime;
-		qtime.setTime_t(fmpe.ts);
+		case COLUMN_THREAD_STAR:
+		case COLUMN_THREAD_SPAM:
+		case COLUMN_THREAD_READ:return QVariant();
+		case COLUMN_THREAD_DATE:{
+			QDateTime qtime;
+			qtime.setTime_t(fmpe.ts);
 
-		return QVariant(DateTime::formatDateTime(qtime));
-	}
+			return QVariant(DateTime::formatDateTime(qtime));
+		}
 
-	case COLUMN_THREAD_TAGS:{
-        // Tags
-        Rs::Msgs::MsgTagInfo tagInfo;
-        rsMsgs->getMessageTag(fmpe.msgId, tagInfo);
+		case COLUMN_THREAD_TAGS:{
+			// Tags
+			Rs::Msgs::MsgTagInfo tagInfo;
+			rsMsgs->getMessageTag(fmpe.msgId, tagInfo);
 
-        Rs::Msgs::MsgTagType Tags;
-        rsMsgs->getMessageTagTypes(Tags);
+			Rs::Msgs::MsgTagType Tags;
+			rsMsgs->getMessageTagTypes(Tags);
 
-        QString text;
+			QString text;
 
-        // build tag names
-        std::map<uint32_t, std::pair<std::string, uint32_t> >::iterator Tag;
-        for (auto tagit = tagInfo.tagIds.begin(); tagit != tagInfo.tagIds.end(); ++tagit)
-        {
-            if (!text.isNull())
-                text += ",";
+			// build tag names
+			for (auto tagit = tagInfo.tagIds.begin(); tagit != tagInfo.tagIds.end(); ++tagit)
+			{
+				if (!text.isNull())
+					text += ",";
 
-            auto Tag = Tags.types.find(*tagit);
+				auto Tag = Tags.types.find(*tagit);
 
-            if (Tag != Tags.types.end())
-                text += TagDefs::name(Tag->first, Tag->second.first);
-            else
-                std::cerr << "(WW) unknown tag " << (int)Tag->first << " in message " << fmpe.msgId << std::endl;
-        }
-        return text;
-	}
-	case COLUMN_THREAD_AUTHOR: return QVariant();
+				if (Tag != Tags.types.end())
+					text += TagDefs::name(Tag->first, Tag->second.first);
+				else
+					RS_WARN("Unknown tag ", (int)Tag->first, " in message ", fmpe.msgId);
+			}
+			return text;
+		}
+		case COLUMN_THREAD_AUTHOR:{
+			QString name;
+			RsGxsId id = RsGxsId(fmpe.srcId.toStdString());
 
-	default:
+			if(id.isNull())
+				return QVariant(tr("[Notification]"));
+			if(GxsIdTreeItemDelegate::computeName(id,name))
+				return name;
+			return QVariant(tr("[Unknown]"));
+		}
+
+		default:
 		return QVariant("[ TODO ]");
 	}
-
 
 	return QVariant("[ERROR]");
 }
@@ -509,50 +531,55 @@ QVariant RsMessageModel::userRole(const Rs::Msgs::MsgInfoSummary& fmpe,int col) 
 
 QVariant RsMessageModel::decorationRole(const Rs::Msgs::MsgInfoSummary& fmpe,int col) const
 {
-	if(col == COLUMN_THREAD_READ)
-		if(fmpe.msgflags & (RS_MSG_NEW | RS_MSG_UNREAD_BY_USER))
-			return QIcon(":/images/message-state-unread.png");
-		else
-			return QIcon(":/images/message-state-read.png");
+	bool exist=false;
+	switch(col)
+	{
+		case COLUMN_THREAD_READ:
+		return (fmpe.msgflags & (RS_MSG_NEW | RS_MSG_UNREAD_BY_USER))
+		        ? FilesDefs::getIconFromQtResourcePath(":/images/message-state-unread.png")
+		        : FilesDefs::getIconFromQtResourcePath(":/images/message-state-read.png");
+		case COLUMN_THREAD_SUBJECT:
+		{
+			if(fmpe.msgflags & RS_MSG_NEW         )  return FilesDefs::getIconFromQtResourcePath(":/images/message-state-new.png");
+			if(fmpe.msgflags & RS_MSG_USER_REQUEST)  return FilesDefs::getIconFromQtResourcePath(":/images/user/user_request16.png");
+			if(fmpe.msgflags & RS_MSG_FRIEND_RECOMMENDATION) return FilesDefs::getIconFromQtResourcePath(":/images/user/friend_suggestion16.png");
+			if(fmpe.msgflags & RS_MSG_PUBLISH_KEY) return FilesDefs::getIconFromQtResourcePath(":/images/share-icon-16.png");
 
-    if(col == COLUMN_THREAD_SUBJECT)
-    {
-        if(fmpe.msgflags & RS_MSG_NEW         )  return QIcon(":/images/message-state-new.png");
-        if(fmpe.msgflags & RS_MSG_USER_REQUEST)  return QIcon(":/images/user/user_request16.png");
-        if(fmpe.msgflags & RS_MSG_FRIEND_RECOMMENDATION) return QIcon(":/images/user/friend_suggestion16.png");
-        if(fmpe.msgflags & RS_MSG_PUBLISH_KEY) return QIcon(":/images/share-icon-16.png");
+			if(fmpe.msgflags & RS_MSG_UNREAD_BY_USER)
+			{
+				if((fmpe.msgflags & (RS_MSG_REPLIED | RS_MSG_FORWARDED)) == RS_MSG_REPLIED)    return FilesDefs::getIconFromQtResourcePath(":/images/message-mail-replied.png");
+				if((fmpe.msgflags & (RS_MSG_REPLIED | RS_MSG_FORWARDED)) == RS_MSG_FORWARDED)  return FilesDefs::getIconFromQtResourcePath(":/images/message-mail-forwarded.png");
+				if((fmpe.msgflags & (RS_MSG_REPLIED | RS_MSG_FORWARDED)) == (RS_MSG_REPLIED | RS_MSG_FORWARDED)) return FilesDefs::getIconFromQtResourcePath(":/images/message-mail-replied-forw.png");
 
-        if(fmpe.msgflags & RS_MSG_UNREAD_BY_USER)
-        {
-            if((fmpe.msgflags & (RS_MSG_REPLIED | RS_MSG_FORWARDED)) == RS_MSG_REPLIED)    return QIcon(":/images/message-mail-replied.png");
-            if((fmpe.msgflags & (RS_MSG_REPLIED | RS_MSG_FORWARDED)) == RS_MSG_FORWARDED)  return QIcon(":/images/message-mail-forwarded.png");
-            if((fmpe.msgflags & (RS_MSG_REPLIED | RS_MSG_FORWARDED)) == (RS_MSG_REPLIED | RS_MSG_FORWARDED)) return QIcon(":/images/message-mail-replied-forw.png");
+				return FilesDefs::getIconFromQtResourcePath(":/images/message-mail.png");
+			}
+			if((fmpe.msgflags & (RS_MSG_REPLIED | RS_MSG_FORWARDED)) == RS_MSG_REPLIED)    return FilesDefs::getIconFromQtResourcePath(":/images/message-mail-replied-read.png");
+			if((fmpe.msgflags & (RS_MSG_REPLIED | RS_MSG_FORWARDED)) == RS_MSG_FORWARDED)  return FilesDefs::getIconFromQtResourcePath(":/images/message-mail-forwarded-read.png");
+			if((fmpe.msgflags & (RS_MSG_REPLIED | RS_MSG_FORWARDED)) == (RS_MSG_REPLIED | RS_MSG_FORWARDED)) return FilesDefs::getIconFromQtResourcePath(":/images/message-mail-replied-forw-read.png");
 
-            return QIcon(":/images/message-mail.png");
-        }
-		if((fmpe.msgflags & (RS_MSG_REPLIED | RS_MSG_FORWARDED)) == RS_MSG_REPLIED)    return QIcon(":/images/message-mail-replied-read.png");
-		if((fmpe.msgflags & (RS_MSG_REPLIED | RS_MSG_FORWARDED)) == RS_MSG_FORWARDED)  return QIcon(":/images/message-mail-forwarded-read.png");
-		if((fmpe.msgflags & (RS_MSG_REPLIED | RS_MSG_FORWARDED)) == (RS_MSG_REPLIED | RS_MSG_FORWARDED)) return QIcon(":/images/message-mail-replied-forw-read.png");
+			return FilesDefs::getIconFromQtResourcePath(":/images/message-mail-read.png");
+		}
 
-		return QIcon(":/images/message-mail-read.png");
-    }
+		case COLUMN_THREAD_STAR:
+		return FilesDefs::getIconFromQtResourcePath((fmpe.msgflags & RS_MSG_STAR) ? (IMAGE_STAR_ON ): (IMAGE_STAR_OFF));
 
-    if(col == COLUMN_THREAD_STAR)
-        return QIcon((fmpe.msgflags & RS_MSG_STAR) ? (IMAGE_STAR_ON ): (IMAGE_STAR_OFF));
+		case COLUMN_THREAD_SPAM:
+		return FilesDefs::getIconFromQtResourcePath((fmpe.msgflags & RS_MSG_SPAM) ? (IMAGE_SPAM_ON ): (IMAGE_SPAM_OFF));
 
-    bool isNew = fmpe.msgflags & (RS_MSG_NEW | RS_MSG_UNREAD_BY_USER);
-
-    if(col == COLUMN_THREAD_READ)
-        return QIcon(isNew ? ":/images/message-state-unread.png": ":/images/message-state-read.png");
-
+		case COLUMN_THREAD_AUTHOR://Return icon as place holder.
+		return FilesDefs::getIconFromGxsIdCache(RsGxsId(fmpe.srcId.toStdString()),QIcon(), exist);
+	}
 	return QVariant();
 }
 
 void RsMessageModel::clear()
 {
-    preMods();
+	preMods();
 
-    mMessages.clear();
+	beginResetModel();
+	mMessages.clear();
+	mMessagesMap.clear();
+	endResetModel();
 
 	postMods();
 
@@ -561,52 +588,50 @@ void RsMessageModel::clear()
 
 void RsMessageModel::setMessages(const std::list<Rs::Msgs::MsgInfoSummary>& msgs)
 {
-    preMods();
 
-    beginRemoveRows(QModelIndex(),0,mMessages.size()-1);
-    endRemoveRows();
+	clear();
 
-    mMessages.clear();
-    mMessagesMap.clear();
+	for(auto it(msgs.begin());it!=msgs.end();++it)
+	{
+		mMessagesMap[(*it).msgId] = mMessages.size();
+		mMessages.push_back(*it);
+	}
 
-    for(auto it(msgs.begin());it!=msgs.end();++it)
-    {
-        mMessagesMap[(*it).msgId] = mMessages.size();
-    	mMessages.push_back(*it);
-    }
-
-    // now update prow for all posts
+	// now update prow for all posts
 
 #ifdef DEBUG_MESSAGE_MODEL
-    debug_dump();
+	debug_dump();
 #endif
 
-    beginInsertRows(QModelIndex(),0,mMessages.size()-1);
-    endInsertRows();
-	postMods();
+	if (mMessages.size()>0)
+	{
+		beginInsertRows(QModelIndex(),0,mMessages.size()-1);
+		endInsertRows();
+	}
 
 	emit messagesLoaded();
 }
 
 void RsMessageModel::setCurrentBox(BoxName bn)
 {
-    if(mCurrentBox != bn)
-    {
+	if(mCurrentBox != bn)
+	{
 		mCurrentBox = bn;
-        updateMessages();
-    }
+		updateMessages();
+	}
 }
 
 void RsMessageModel::setQuickViewFilter(QuickViewFilter fn)
 {
-    if(fn != mQuickViewFilter)
-    {
-        std::cerr << "Changing new quickview filter to " << fn << std::endl;
+	if(fn != mQuickViewFilter)
+	{
+#ifdef DEBUG_MESSAGE_MODEL
+		std::cerr << "Changing new quickview filter to " << fn << std::endl;
+#endif
 
-		preMods();
-        mQuickViewFilter = fn ;
-		postMods();
-    }
+		mQuickViewFilter = fn ;
+		updateMessages();
+	}
 }
 
 void RsMessageModel::getMessageSummaries(BoxName box,std::list<Rs::Msgs::MsgInfoSummary>& msgs)
@@ -650,35 +675,107 @@ void RsMessageModel::updateMessages()
     emit messagesLoaded();
 }
 
-static bool decreasing_time_comp(const std::pair<time_t,RsGxsMessageId>& e1,const std::pair<time_t,RsGxsMessageId>& e2) { return e2.first < e1.first ; }
-
 void RsMessageModel::setMsgReadStatus(const QModelIndex& i,bool read_status)
 {
 	if(!i.isValid())
 		return ;
 
-    preMods();
-    rsMsgs->MessageRead(i.data(MsgIdRole).toString().toStdString(),!read_status);
+	preMods();
+	rsMsgs->MessageRead(i.data(MsgIdRole).toString().toStdString(),!read_status);
 
-    emit dataChanged(i.sibling(i.row(),0),i.sibling(i.row(),COLUMN_THREAD_NB_COLUMNS-1));
+	emit dataChanged(i,i);
+}
+
+void RsMessageModel::setMsgsReadStatus(const QModelIndexList& mil,bool read_status)
+{
+	//Get all msgId before changing model else Index are invalid and provoc SIGSEGV
+	QVector<std::string> list;
+	int start = rowCount(), stop = 0;
+	for(auto& it : mil)
+		if (it.isValid())
+		{
+			list.append(it.data(MsgIdRole).toString().toStdString());
+			start = std::min(start, it.row());
+			stop = std::max(stop, it.row());
+		}
+
+	preMods();
+	for(auto& it : list)
+		rsMsgs->MessageRead(it,!read_status);
+
+	emit dataChanged(createIndex(start,0),createIndex(stop,RsMessageModel::columnCount()-1));
 }
 
 void RsMessageModel::setMsgStar(const QModelIndex& i,bool star)
 {
-    preMods();
-    rsMsgs->MessageStar(i.data(MsgIdRole).toString().toStdString(),star);
+	if(!i.isValid())
+		return ;
 
-    emit dataChanged(i.sibling(i.row(),0),i.sibling(i.row(),COLUMN_THREAD_NB_COLUMNS-1));
+	preMods();
+	rsMsgs->MessageStar(i.data(MsgIdRole).toString().toStdString(),star);
+
+	emit dataChanged(i,i);
+}
+
+void RsMessageModel::setMsgsStar(const QModelIndexList& mil,bool star)
+{
+	//Get all msgId before changing model else Index are invalid and provoc SIGSEGV
+	QVector<std::string> list;
+	int start = rowCount(), stop = 0;
+	for(auto& it : mil)
+		if (it.isValid())
+		{
+			list.append(it.data(MsgIdRole).toString().toStdString());
+			start = std::min(start, it.row());
+			stop = std::max(stop, it.row());
+		}
+
+	preMods();
+	for(auto& it : list)
+		rsMsgs->MessageStar(it,star);
+
+	emit dataChanged(createIndex(start,0),createIndex(stop,RsMessageModel::columnCount()-1));
+}
+
+void RsMessageModel::setMsgJunk(const QModelIndex& i,bool junk)
+{
+	if(!i.isValid())
+		return ;
+
+	preMods();
+	rsMsgs->MessageJunk(i.data(MsgIdRole).toString().toStdString(),junk);
+
+	emit dataChanged(i,i);
+}
+
+void RsMessageModel::setMsgsJunk(const QModelIndexList& mil,bool junk)
+{
+	//Get all msgId before changing model else Index are invalid and provoc SIGSEGV
+	QVector<std::string> list;
+	int start = rowCount(), stop = 0;
+	for(auto& it : mil)
+		if (it.isValid())
+		{
+			list.append(it.data(MsgIdRole).toString().toStdString());
+			start = std::min(start, it.row());
+			stop = std::max(stop, it.row());
+		}
+
+	preMods();
+	for(auto& it : list)
+		rsMsgs->MessageJunk(it,junk);
+
+	emit dataChanged(createIndex(start,0),createIndex(stop,RsMessageModel::columnCount()-1));
 }
 
 QModelIndex RsMessageModel::getIndexOfMessage(const std::string& mid) const
 {
-    // Brutal search. This is not so nice, so dont call that in a loop! If too costly, we'll use a map.
+	// Brutal search. This is not so nice, so dont call that in a loop! If too costly, we'll use a map.
 
-    auto it = mMessagesMap.find(mid);
+	auto it = mMessagesMap.find(mid);
 
-    if(it == mMessagesMap.end() || it->second >= mMessages.size())
-        return QModelIndex();
+	if(it == mMessagesMap.end() || it->second >= mMessages.size())
+		return QModelIndex();
 
 	quintptr ref ;
 	convertMsgIndexToInternalId(it->second,ref);
@@ -686,8 +783,10 @@ QModelIndex RsMessageModel::getIndexOfMessage(const std::string& mid) const
 	return createIndex(it->second,0,ref);
 }
 
+#ifdef DEBUG_MESSAGE_MODEL
 void RsMessageModel::debug_dump() const
 {
-    for(auto it(mMessages.begin());it!=mMessages.end();++it)
-		std::cerr << "Id: " << it->msgId << ": from " << it->srcId << ": flags=" << it->msgflags << ": title=\"" << it->title << "\"" << std::endl;
+	for(auto& it : mMessages)
+		std::cerr << "Id: " << it.msgId << ": from " << it.srcId << ": flags=" << it.msgflags << ": title=\"" << it.title << "\"" << std::endl;
 }
+#endif

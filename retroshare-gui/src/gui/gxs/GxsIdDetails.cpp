@@ -18,21 +18,24 @@
  *                                                                             *
  *******************************************************************************/
 
-#include <QApplication>
-#include <QThread>
-#include <QTimerEvent>
-#include <QMutexLocker>
-
-#include <math.h>
-#include <util/rsdir.h>
-#include "gui/common/AvatarDialog.h"
 #include "GxsIdDetails.h"
+
+#include "gui/common/AvatarDialog.h"
+#include "gui/common/FilesDefs.h"
 #include "retroshare-gui/RsAutoUpdatePage.h"
 
 #include <retroshare/rspeers.h>
+#include <util/rsdir.h>
+
+#include <QApplication>
+#include <QMutexLocker>
+#include <QPainter>
+#include <QPainterPath>
+#include <QThread>
+#include <QTimerEvent>
 
 #include <iostream>
-#include <QPainter>
+#include <cmath>
 
 /* Images for tag icons */
 #define IMAGE_LOADING     ":/images/folder-draft.png"
@@ -57,6 +60,8 @@
 #define TIMER_INTERVAL              500
 #define MAX_ATTEMPTS                10
 #define MAX_PROCESS_COUNT_PER_TIMER 50
+
+// #define DEBUG_GXSIDDETAILS 1
 
 //const int kRecognTagClass_DEVELOPMENT = 1;
 //
@@ -373,10 +378,10 @@ static bool findTagIcon(int tag_class, int /*tag_type*/, QIcon &icon)
 	{
 		default:
 		case 0:
-			icon = QIcon(IMAGE_DEV_AMBASSADOR);
+            icon = FilesDefs::getIconFromQtResourcePath(IMAGE_DEV_AMBASSADOR);
 			break;
 		case 1:
-			icon = QIcon(IMAGE_DEV_CONTRIBUTOR);
+            icon = FilesDefs::getIconFromQtResourcePath(IMAGE_DEV_CONTRIBUTOR);
 			break;
 	}
 	return true;
@@ -401,6 +406,9 @@ const QPixmap GxsIdDetails::makeDefaultIcon(const RsGxsId& id, AvatarSize size)
     time_t now = time(NULL);
 
     // now look for the icon
+
+    if(id.isNull())
+        std::cerr << "Weird: null ID" << std::endl;
 
     QMutexLocker lock(&mIconCacheMutex);
     auto& it = mDefaultIconCache[id];
@@ -429,6 +437,31 @@ const QPixmap GxsIdDetails::makeDefaultIcon(const RsGxsId& id, AvatarSize size)
     return image;
 }
 
+void GxsIdDetails::debug_dumpImagesCache()
+{
+    QMutexLocker lock(&mIconCacheMutex);
+
+    std::cerr << "Current icon cache:" << std::endl;
+
+    for(const auto& it:mDefaultIconCache)	// the & is important here, otherwise pairs are copied and isDetached() is always false!
+    {
+        std::cerr << "  Identity " << it.first << ":" << std::endl;
+
+        for(uint32_t i=0;i<4;++i)
+        {
+            std::cerr << "    Size #" << i << ": " ;
+
+            if(it.second[i].first>0)
+            {
+                int s = it.second[i].second.width()*it.second[i].second.height()*4;
+                std::cerr << " Present. Size=" << s << " bytes. Age: " << time(nullptr)-it.second[i].first << " secs. ago. Used: " << !it.second[i].second.isDetached() << std::endl;
+            }
+            else
+                std::cerr << " None." << std::endl;
+        }
+    }
+}
+
 void GxsIdDetails::checkCleanImagesCache()
 {
     time_t now = time(NULL);
@@ -437,7 +470,9 @@ void GxsIdDetails::checkCleanImagesCache()
 
     if(mLastIconCacheCleaning + DELAY_BETWEEN_ICON_CACHE_CLEANING < now)
     {
+#ifdef DEBUG_GXSIDDETAILS
         std::cerr << "(II) Cleaning the icons cache." << std::endl;
+#endif
         int nb_deleted = 0;
         uint32_t size_deleted = 0;
         uint32_t total_size = 0;
@@ -447,26 +482,43 @@ void GxsIdDetails::checkCleanImagesCache()
         for(auto it(mDefaultIconCache.begin());it!=mDefaultIconCache.end();)
         {
             bool all_empty = true ;
+#ifdef DEBUG_GXSIDDETAILS
+            std::cerr << "  Examining pixmaps sizes for " << it->first << "." << std::endl;
+#endif
 
             for(int i=0;i<4;++i)
-				if(it->second[i].first + ICON_CACHE_STORAGE_TIME < now && it->second[i].second.isDetached())
-				{
-                    int s = it->second[i].second.width()*it->second[i].second.height()*4;
-
-					std::cerr << "Deleting pixmap " << it->first << " size " << i << " " << s << " bytes." << std::endl;
-
-                    it->second[i].second = QPixmap();
-					++nb_deleted;
-                    size_deleted += s;
-				}
-				else
+                if(it->second[i].first>0)
                 {
-					all_empty = false;
-                    total_size += it->second[i].second.width()*it->second[i].second.height()*4;
+                    if(it->second[i].first + ICON_CACHE_STORAGE_TIME < now && it->second[i].second.isDetached())
+                    {
+                        int s = it->second[i].second.width()*it->second[i].second.height()*4;
+
+#ifdef DEBUG_GXSIDDETAILS
+                        std::cerr << "    Deleting pixmap " << it->first << " size " << i << " " << s << " bytes." << std::endl;
+#endif
+
+                        it->second[i].second = QPixmap();
+                        it->second[i].first = 0;
+                        ++nb_deleted;
+                        size_deleted += s;
+                    }
+                    else
+                    {
+                        all_empty = false;
+                        total_size += it->second[i].second.width()*it->second[i].second.height()*4;
+#ifdef DEBUG_GXSIDDETAILS
+                        std::cerr << "    Keeking " << it->first << " size " << i << std::endl;
+#endif
+                    }
                 }
 
             if(all_empty)
-				it = mDefaultIconCache.erase(it);
+            {
+#ifdef DEBUG_GXSIDDETAILS
+                std::cerr << "    Deleting entry " << it->first << " because no pixmaps are stored here. " << std::endl;
+#endif
+                it = mDefaultIconCache.erase(it);
+            }
 			else
 				++it;
         }
@@ -487,10 +539,16 @@ bool GxsIdDetails::loadPixmapFromData(const unsigned char *data,size_t data_len,
     Sha1CheckSum chksum = RsDirUtil::sha1sum(data,data_len);
     RsGxsId id(chksum.toByteArray());
 
+    if(id.isNull())
+        std::cerr << "Weird: null ID" << std::endl;
+
     // We use a cache for images. QImage has its own smart pointer system, but it does not prevent
     // the same image to be allocated many times. We do this using a cache. The cache is also cleaned-up
     // on a regular time basis so as to get rid of unused images.
 
+#ifdef DEBUG_GXSIDDETAILS
+    debug_dumpImagesCache();
+#endif
     checkCleanImagesCache();
 
     // now look for the icon
@@ -972,7 +1030,7 @@ QString GxsIdDetails::getNameForType(GxsIdDetailsType type, const RsIdentityDeta
 
 QIcon GxsIdDetails::getLoadingIcon(const RsGxsId &/*id*/)
 {
-	return QIcon(IMAGE_LOADING);
+    return FilesDefs::getIconFromQtResourcePath(IMAGE_LOADING);
 }
 
 bool GxsIdDetails::MakeIdDesc(const RsGxsId &id, bool doIcons, QString &str, QList<QIcon> &icons, QString& comment,uint32_t icon_types)
@@ -1003,9 +1061,9 @@ bool GxsIdDetails::MakeIdDesc(const RsGxsId &id, bool doIcons, QString &str, QLi
 
 //	Cyril: I disabled these three which I believe to have been put for testing purposes.
 //
-//	icons.push_back(QIcon(IMAGE_ANON));
-//	icons.push_back(QIcon(IMAGE_ANON));
-//	icons.push_back(QIcon(IMAGE_ANON));
+//	icons.push_back(FilesDefs::getIconFromQtResourcePath(IMAGE_ANON));
+//	icons.push_back(FilesDefs::getIconFromQtResourcePath(IMAGE_ANON));
+//	icons.push_back(FilesDefs::getIconFromQtResourcePath(IMAGE_ANON));
 
 //	std::cerr << "GxsIdTreeWidget::MakeIdDesc() ID Ok. Comment: " << comment.toStdString() ;
 //	std::cerr << std::endl;
@@ -1081,20 +1139,20 @@ QIcon GxsIdDetails::getReputationIcon(
         RsReputationLevel icon_index, uint32_t min_reputation )
 {
 	if( static_cast<uint32_t>(icon_index) >= min_reputation )
-		return QIcon(REPUTATION_VOID);
+        return FilesDefs::getIconFromQtResourcePath(REPUTATION_VOID);
 
 	switch(icon_index)
 	{
 	case RsReputationLevel::LOCALLY_NEGATIVE:
-		return QIcon(REPUTATION_LOCALLY_NEGATIVE_ICON);
+        return FilesDefs::getIconFromQtResourcePath(REPUTATION_LOCALLY_NEGATIVE_ICON);
 	case RsReputationLevel::LOCALLY_POSITIVE:
-		return QIcon(REPUTATION_LOCALLY_POSITIVE_ICON);
+        return FilesDefs::getIconFromQtResourcePath(REPUTATION_LOCALLY_POSITIVE_ICON);
 	case RsReputationLevel::REMOTELY_POSITIVE:
-		return QIcon(REPUTATION_REMOTELY_POSITIVE_ICON);
+        return FilesDefs::getIconFromQtResourcePath(REPUTATION_REMOTELY_POSITIVE_ICON);
 	case RsReputationLevel::REMOTELY_NEGATIVE:
-		return QIcon(REPUTATION_REMOTELY_NEGATIVE_ICON);
+        return FilesDefs::getIconFromQtResourcePath(REPUTATION_REMOTELY_NEGATIVE_ICON);
 	case RsReputationLevel::NEUTRAL:
-		return QIcon(REPUTATION_NEUTRAL_ICON);
+        return FilesDefs::getIconFromQtResourcePath(REPUTATION_NEUTRAL_ICON);
 	default:
 		std::cerr << "Asked for unidentified icon index "
 		          << static_cast<uint32_t>(icon_index) << std::endl;
@@ -1110,7 +1168,7 @@ void GxsIdDetails::getIcons(const RsIdentityDetails &details, QList<QIcon> &icon
 	         RsReputationLevel::LOCALLY_NEGATIVE )
     {
         icons.clear() ;
-        icons.push_back(QIcon(IMAGE_BANNED)) ;
+        icons.push_back(FilesDefs::getIconFromQtResourcePath(IMAGE_BANNED)) ;
         return ;
     }
 
@@ -1139,12 +1197,12 @@ void GxsIdDetails::getIcons(const RsIdentityDetails &details, QList<QIcon> &icon
         if (details.mFlags & RS_IDENTITY_FLAGS_PGP_LINKED)
         {
 		if (details.mFlags & RS_IDENTITY_FLAGS_PGP_KNOWN)
-                baseIcon = QIcon(IMAGE_PGPKNOWN);
+                baseIcon = FilesDefs::getIconFromQtResourcePath(IMAGE_PGPKNOWN);
             else
-                baseIcon = QIcon(IMAGE_PGPUNKNOWN);
+                baseIcon = FilesDefs::getIconFromQtResourcePath(IMAGE_PGPUNKNOWN);
         }
         else
-            baseIcon = QIcon(IMAGE_ANON);
+            baseIcon = FilesDefs::getIconFromQtResourcePath(IMAGE_ANON);
 
         icons.push_back(baseIcon);
     }

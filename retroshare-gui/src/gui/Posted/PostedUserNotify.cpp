@@ -21,6 +21,7 @@
 #include "retroshare/rsposted.h"
 #include "PostedUserNotify.h"
 #include "gui/MainWindow.h"
+#include "gui/common/FilesDefs.h"
 
 PostedUserNotify::PostedUserNotify(RsGxsIfaceHelper *ifaceImpl, const GxsGroupFrameDialog *g, QObject *parent) :
     GxsUserNotify(ifaceImpl, g, parent)
@@ -37,12 +38,22 @@ bool PostedUserNotify::hasSetting(QString *name, QString *group)
 
 QIcon PostedUserNotify::getIcon()
 {
-    return QIcon(":/icons/png/posted.png");
+    return FilesDefs::getIconFromQtResourcePath(":/icons/png/posted.png");
 }
 
 QIcon PostedUserNotify::getMainIcon(bool hasNew)
 {
-    return hasNew ? QIcon(":/icons/png/posted-notify.png") : QIcon(":/icons/png/posted.png");
+    return hasNew ? FilesDefs::getIconFromQtResourcePath(":/icons/png/posted-notify.png") : FilesDefs::getIconFromQtResourcePath(":/icons/png/posted.png");
+}
+
+QString PostedUserNotify::getTrayMessage(bool plural)
+{
+	return plural ? tr("You have %1 new board posts") : tr("You have %1 new board post");
+}
+
+QString PostedUserNotify::getNotifyMessage(bool plural)
+{
+	return plural ? tr("%1 new board post") : tr("%1 new board post");
 }
 
 void PostedUserNotify::iconClicked()

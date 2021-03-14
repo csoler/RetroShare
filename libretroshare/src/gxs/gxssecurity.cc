@@ -289,7 +289,7 @@ bool GxsSecurity::generateKeyPair(RsTlvPublicRSAKey& public_key,RsTlvPrivateRSAK
     if(!(private_key.checkKey() && public_key.checkKey()))
     {
         std::cerr << "(EE) ERROR while generating keys. Something inconsistent in flags. This is probably a bad sign!" << std::endl;
-	return false ;
+		return false ;
     }
                      
     return true ;
@@ -417,14 +417,23 @@ bool GxsSecurity::validateNxsMsg(const RsNxsMsg& msg, const RsTlvKeySignature& s
     //        /********************* check signature *******************/
 
             /* check signature timeperiod */
-            if ((msgMeta.mPublishTs < key.startTS) || (key.endTS != 0 && msgMeta.mPublishTs > key.endTS))
+            if(msgMeta.mPublishTs < key.startTS)
             {
-    #ifdef GXS_SECURITY_DEBUG
-                    std::cerr << " GxsSecurity::validateNxsMsg() TS out of range";
-                    std::cerr << std::endl;
-    #endif
-                    return false;
+                RsWarn() << __PRETTY_FUNCTION__ << " GxsSecurity::validateNxsMsg() TS out of range for key " << msgMeta.mAuthorId
+                         << " The signed message has an inconsistent msg publish time of " << msgMeta.mPublishTs
+                         << " whereas the signing key was created later at TS " << key.startTS
+                         << ". Validation rejected for security. If you see this, something irregular is going on." << std::endl;
+                return false;
             }
+
+            if(key.endTS != 0 && msgMeta.mPublishTs > key.endTS)
+			{
+				RsWarn() << __PRETTY_FUNCTION__ << " GxsSecurity::validateNxsMsg() TS out of range for key " << msgMeta.mAuthorId
+                         << " usage is limited to TS=[" << key.startTS << "," << key.endTS << "] and msg publish time is " << msgMeta.mPublishTs
+                         << " The validation still passes, but that key should be renewed." << std::endl;
+
+                // no return here. We still proceed checking the signature.
+			}
 
             /* decode key */
             const unsigned char *keyptr = (const unsigned char *) key.keyData.bin_data;
@@ -653,6 +662,9 @@ bool GxsSecurity::encrypt(uint8_t *& out, uint32_t &outlen, const uint8_t *in, u
 
 	try
 	{
+        if(keys.empty())
+			throw std::runtime_error("EVP_SealInit will not be called with 0 keys. GxsSecurity::encrypt() was called with an empty set of destination keys!") ;
+
 		for(uint32_t i=0;i<keys.size();++i)
 		{
 			RSA *tmpkey = ::extractPublicKey(keys[i]) ;
@@ -1052,14 +1064,22 @@ bool GxsSecurity::validateNxsGrp(const RsNxsGrp& grp, const RsTlvKeySignature& s
 	/********************* check signature *******************/
 
 	/* check signature timeperiod */
-	if ((grpMeta.mPublishTs < key.startTS) || (key.endTS != 0 && grpMeta.mPublishTs > key.endTS))
+    if (grpMeta.mPublishTs < key.startTS)
 	{
-#ifdef GXS_SECURITY_DEBUG
-		std::cerr << " GxsSecurity::validateNxsMsg() TS out of range";
-		std::cerr << std::endl;
-#endif
-		return false;
+        RsWarn() << __PRETTY_FUNCTION__ << " GxsSecurity::validateNxsGrp() TS out of range for admin/publish key of group " << grpMeta.mGroupId
+                 << " The signed group has an inconsistent creation/modification time of " << grpMeta.mPublishTs
+                 << " whereas the key was created later at TS " << key.startTS
+                 << ". Validation rejected for security. If you see this, something irregular is going on." << std::endl;
+        return false;
 	}
+    if (key.endTS != 0 && grpMeta.mPublishTs > key.endTS)
+    {
+        RsWarn() << __PRETTY_FUNCTION__ << " GxsSecurity::validateNxsMsg() TS out of range for admin/publish key for group " << grpMeta.mGroupId
+                 << " usage is limited to TS=[" << key.startTS << "," << key.endTS << "] and msg publish time is " << grpMeta.mPublishTs
+                 << " The validation still passes, but that key should be renewed." << std::endl;
+
+        // no return. Still proceed checking signature.
+    }
 
 	/* decode key */
 	const unsigned char *keyptr = (const unsigned char *) key.keyData.bin_data;
@@ -1121,8 +1141,10 @@ bool GxsSecurity::validateNxsGrp(const RsNxsGrp& grp, const RsTlvKeySignature& s
 		signOk = EVP_VerifyFinal(mdctx, sigbuf, siglen, signKey);
 		EVP_MD_CTX_destroy(mdctx);
 
+#ifdef GXS_SECURITY_DEBUG
                 if(i>0)
 		std::cerr << "(WW) Checking group signature with old api version " << i+1 << " : tag " << std::hex << api_versions_to_check[i] << std::dec << " result: " << signOk << std::endl;
+#endif
 	}
 
 	/* clean up */

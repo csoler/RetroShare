@@ -115,6 +115,19 @@ RsServiceInfo p3MsgService::getServiceInfo()
 		MSG_MIN_MINOR_VERSION);
 }
 
+p3MsgService::~p3MsgService()
+{
+    RS_STACK_MUTEX(mMsgMtx); /********** STACK LOCKED MTX ******/
+
+    for(auto tag:mTags)          delete tag.second;
+    for(auto tag:mMsgTags)       delete tag.second;
+    for(auto msgid:mSrcIds)      delete msgid.second;
+    for(auto parentid:mParentId) delete parentid.second;
+    for(auto img:imsg)           delete img.second;
+    for(auto mout:msgOutgoing)   delete mout.second;
+
+    for(auto mpend:_pendingPartialMessages) delete mpend.second;
+}
 
 uint32_t p3MsgService::getNewUniqueMsgId()
 {
@@ -196,15 +209,17 @@ void p3MsgService::processIncomingMsg(RsMsgItem *mi)
 		/**** STACK UNLOCKED ***/
 	}
 
-		// If the peer is allowed to push files, then auto-download the recommended files.
-		if(rsPeers->servicePermissionFlags(mi->PeerId()) & RS_NODE_PERM_ALLOW_PUSH)
-		{
-			std::list<RsPeerId> srcIds;
-			srcIds.push_back(mi->PeerId());
+    // If the peer is allowed to push files, then auto-download the recommended files.
 
-			for(std::list<RsTlvFileItem>::const_iterator it(mi->attachment.items.begin());it!=mi->attachment.items.end();++it)
-				rsFiles->FileRequest((*it).name,(*it).hash,(*it).filesize,std::string(),RS_FILE_REQ_ANONYMOUS_ROUTING,srcIds) ;
-		}
+    RsIdentityDetails id_details;
+    if(rsIdentity->getIdDetails(RsGxsId(mi->PeerId()),id_details) && !id_details.mPgpId.isNull() && (rsPeers->servicePermissionFlags(id_details.mPgpId) & RS_NODE_PERM_ALLOW_PUSH))
+    {
+        std::list<RsPeerId> srcIds;
+        srcIds.push_back(mi->PeerId());
+
+        for(std::list<RsTlvFileItem>::const_iterator it(mi->attachment.items.begin());it!=mi->attachment.items.end();++it)
+            rsFiles->FileRequest((*it).name,(*it).hash,(*it).filesize,std::string(),RS_FILE_REQ_ANONYMOUS_ROUTING,srcIds) ;
+    }
 
 	RsServer::notify()->notifyListChange(NOTIFY_LIST_MESSAGELIST,NOTIFY_TYPE_ADD);
 }
@@ -1122,7 +1137,7 @@ uint32_t p3MsgService::sendMessage(RsMsgItem* item)
 
     IndicateConfigChanged(); /**** INDICATE MSG CONFIG CHANGED! *****/
 
-    RsServer::notify()->notifyListChange(NOTIFY_LIST_MESSAGELIST, NOTIFY_TYPE_ADD);
+    RsServer::notify()->notifyListChange(NOTIFY_LIST_MESSAGELIST, NOTIFY_TYPE_ADD);	// deprecated
 
     return item->msgId;
 }
@@ -1187,15 +1202,24 @@ bool 	p3MsgService::MessageSend(MessageInfo &info)
 		/* use processMsg to get the new msgId */
 		msg->recvTime = time(NULL);
 		msg->msgId = getNewUniqueMsgId();
-                
+
 		msg->msgFlags |= RS_MSG_OUTGOING;
 
 		imsg[msg->msgId] = msg;
 
-		RsServer::notify()->notifyListChange(NOTIFY_LIST_MESSAGELIST,NOTIFY_TYPE_ADD);
+		// Update info for caller
+		info.msgId = std::to_string(msg->msgId);
+		info .msgflags = msg->msgFlags;
+
+        RsServer::notify()->notifyListChange(NOTIFY_LIST_MESSAGELIST,NOTIFY_TYPE_ADD);// deprecated. Should be removed. Oct. 28, 2020
 	}
 
-	return true;
+    auto pEvent = std::make_shared<RsMailStatusEvent>();
+    pEvent->mMailStatusEventCode = RsMailStatusEventCode::MESSAGE_SENT;
+    pEvent->mChangedMsgIds.insert(std::to_string(msg->msgId));
+    rsEvents->postEvent(pEvent);
+
+    return true;
 }
 
 uint32_t p3MsgService::sendMail(
@@ -1320,11 +1344,10 @@ bool p3MsgService::SystemMessage(const std::string &title, const std::string &me
 		return false;
 	}
 
-    const RsPeerId& ownId = mServiceCtrl->getOwnId();
 
 	RsMsgItem *msg = new RsMsgItem();
 
-	msg->PeerId(ownId);
+	msg->PeerId();// Notification == null
 
 	msg->msgFlags = 0;
 
@@ -1345,7 +1368,7 @@ bool p3MsgService::SystemMessage(const std::string &title, const std::string &me
 	msg->subject = title;
 	msg->message = message;
 
-    msg->rspeerid_msgto.ids.insert(ownId);
+	msg->rspeerid_msgto.ids.insert(mServiceCtrl->getOwnId());
 
 	processIncomingMsg(msg);
 
@@ -1395,7 +1418,11 @@ bool p3MsgService::MessageToDraft(MessageInfo &info, const std::string &msgParen
 
         IndicateConfigChanged(); /**** INDICATE MSG CONFIG CHANGED! *****/
 
-		  RsServer::notify()->notifyListChange(NOTIFY_LIST_MESSAGELIST,NOTIFY_TYPE_MOD);
+    //	  RsServer::notify()->notifyListChange(NOTIFY_LIST_MESSAGELIST,NOTIFY_TYPE_MOD);
+
+    auto pEvent = std::make_shared<RsMailStatusEvent>();
+    pEvent->mMailStatusEventCode = RsMailStatusEventCode::MESSAGE_SENT;
+    rsEvents->postEvent(pEvent);
 
         return true;
     }
@@ -1737,6 +1764,7 @@ void p3MsgService::initRsMI(RsMsgItem *msg, MessageInfo &mi)
 	if (msg->msgFlags & RS_MSG_FLAGS_REPLIED)                 mi.msgflags |= RS_MSG_REPLIED;
 	if (msg->msgFlags & RS_MSG_FLAGS_FORWARDED)               mi.msgflags |= RS_MSG_FORWARDED;
 	if (msg->msgFlags & RS_MSG_FLAGS_STAR)                    mi.msgflags |= RS_MSG_STAR;
+	if (msg->msgFlags & RS_MSG_FLAGS_SPAM)                    mi.msgflags |= RS_MSG_SPAM;
 	if (msg->msgFlags & RS_MSG_FLAGS_USER_REQUEST)            mi.msgflags |= RS_MSG_USER_REQUEST;
 	if (msg->msgFlags & RS_MSG_FLAGS_FRIEND_RECOMMENDATION)   mi.msgflags |= RS_MSG_FRIEND_RECOMMENDATION;
 	if (msg->msgFlags & RS_MSG_FLAGS_PUBLISH_KEY)             mi.msgflags |= RS_MSG_PUBLISH_KEY;
@@ -1830,6 +1858,10 @@ void p3MsgService::initRsMIS(RsMsgItem *msg, MsgInfoSummary &mis)
 	if (msg->msgFlags & RS_MSG_FLAGS_STAR)
 	{
 		mis.msgflags |= RS_MSG_STAR;
+	}
+	if (msg->msgFlags & RS_MSG_FLAGS_SPAM)
+	{
+		mis.msgflags |= RS_MSG_SPAM;
 	}
 	if (msg->msgFlags & RS_MSG_FLAGS_USER_REQUEST)
 	{
@@ -2187,7 +2219,7 @@ bool p3MsgService::notifyGxsTransSendStatus( RsGxsTransId mailId,
 
 	if( status == GxsTransSendStatus::RECEIPT_RECEIVED )
 	{
-		pEvent->mMailStatusEventCode = RsMailStatusEventCode::NEW_MESSAGE;
+        pEvent->mMailStatusEventCode = RsMailStatusEventCode::MESSAGE_RECEIVED_ACK;
 		uint32_t msg_id;
 
 		{

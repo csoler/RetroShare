@@ -36,8 +36,11 @@
 #include <services/autoproxy/rsautoproxymonitor.h>
 #include <services/autoproxy/p3i2pbob.h>
 
-#include <retroshare-gui/configpage.h>
-#include <retroshare-gui/RsAutoUpdatePage.h>
+#include "retroshare-gui/configpage.h"
+#include "retroshare-gui/RsAutoUpdatePage.h"
+#include "gui/common/FilesDefs.h"
+
+#include "retroshare/rsevents.h"
 
 
 class QNetworkReply;
@@ -55,7 +58,7 @@ public:
     /** Loads the settings for this page */
     virtual void load();
 
-    virtual QPixmap iconPixmap() const { return QPixmap(":/icons/png/network.png") ; }
+    virtual QPixmap iconPixmap() const { return FilesDefs::getPixmapFromQtResourcePath(":/icons/png/network.png") ; }
     virtual QString pageName() const { return tr("Network") ; }
     virtual QString helpText() const { return ""; }
 
@@ -159,6 +162,9 @@ private:
 	uint32_t mHiddenType;
 	bobSettings mBobSettings;
 	bool mBobAccessible; // keeps track wether bob is accessable or not to en/disable the corresponding buttons
+
+	RsEventsHandlerId_t mEventHandlerId;
+	void handleEvent(std::shared_ptr<const RsEvent> event);
 };
 
 #endif // !SERVERPAGE_H

@@ -34,8 +34,6 @@
 #include "serialiser/rstypeserializer.h"
 #include "util/rstime.h"
 
-typedef Sha1CheckSum RsGxsMessageId;
-
 typedef std::map<RsGxsGroupId, std::set<RsGxsMessageId> > GxsMsgIdResult;
 typedef std::pair<RsGxsGroupId, RsGxsMessageId> RsGxsGrpMsgIdPair;
 typedef std::map<RsGxsGrpMsgIdPair, std::set<RsGxsMessageId> > MsgRelatedIdResult;
@@ -68,6 +66,7 @@ struct RsGroupMetaData : RsSerializable
     virtual ~RsGroupMetaData() {}
 
     void operator =(const RsGxsGrpMetaData& rGxsMeta);
+    RsGroupMetaData(const RsGxsGrpMetaData& rGxsMeta) { operator=(rGxsMeta); }
 
     RsGxsGroupId mGroupId;
     std::string mGroupName;
@@ -89,9 +88,10 @@ struct RsGroupMetaData : RsSerializable
 
     uint32_t    mSubscribeFlags;
 
-    uint32_t    mPop; 			// Popularity = number of friend subscribers
-    uint32_t    mVisibleMsgCount; 	// Max messages reported by friends
-    rstime_t      mLastPost; 		// Timestamp for last message. Not used yet.
+    uint32_t    mPop; 			   // Popularity = number of friend subscribers
+    uint32_t    mVisibleMsgCount;  // Max messages reported by friends
+    rstime_t    mLastPost; 		   // Timestamp for last message. Not used yet.
+    rstime_t    mLastSeen; 		   // Last time the group was advertised by friends.
 
     uint32_t    mGroupStatus;
 
@@ -140,7 +140,9 @@ struct RsMsgMetaData : RsSerializable
 	RsMsgMetaData() : mPublishTs(0), mMsgFlags(0), mMsgStatus(0), mChildTs(0) {}
 
     virtual ~RsMsgMetaData() {}
+
     void operator =(const RsGxsMsgMetaData& rGxsMeta);
+    RsMsgMetaData(const RsGxsMsgMetaData& rGxsMeta) { operator=(rGxsMeta); }
 
     RsGxsGroupId mGroupId;
     RsGxsMessageId mMsgId;

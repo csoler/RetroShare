@@ -30,14 +30,17 @@ class NewsFeedUserNotify : public UserNotify
 	Q_OBJECT
 
 public:
-	NewsFeedUserNotify(NewsFeed *newsFeed, QObject *parent = 0);
+	explicit NewsFeedUserNotify(NewsFeed *newsFeed, QObject *parent = 0);
 
 private slots:
 	void newsFeedChanged(int count);
 
 private:
-	virtual QIcon getMainIcon(bool hasNew);
-	virtual unsigned int getNewCount();
+	virtual QIcon getMainIcon(bool hasNew) override;
+	virtual unsigned int getNewCount() override;
+
+	virtual QString getTrayMessage(bool plural) override;
+	virtual QString getNotifyMessage(bool plural) override;
 
 private:
 	unsigned int mNewFeedCount;

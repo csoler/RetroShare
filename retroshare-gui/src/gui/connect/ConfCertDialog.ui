@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>658</width>
-    <height>584</height>
+    <height>419</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,7 +17,7 @@
    <iconset resource="../images.qrc">
     <normaloff>:/images/logo/logo_16.png</normaloff>:/images/logo/logo_16.png</iconset>
   </property>
-  <layout class="QGridLayout" name="gridLayout_5">
+  <layout class="QGridLayout" name="ConfCertDialog_GL">
    <property name="leftMargin">
     <number>0</number>
    </property>
@@ -54,9 +54,9 @@
      <property name="frameShadow">
       <enum>QFrame::Raised</enum>
      </property>
-     <layout class="QGridLayout" name="gridLayout_4">
+     <layout class="QGridLayout" name="frame_GL">
       <item row="1" column="0">
-       <layout class="QGridLayout" name="_12">
+       <layout class="QGridLayout" name="buttons_GL">
         <item row="0" column="0">
          <widget class="QDialogButtonBox" name="buttonBox">
           <property name="standardButtons">
@@ -68,10 +68,16 @@
       </item>
       <item row="0" column="0">
        <widget class="QTabWidget" name="stabWidget">
+        <property name="minimumSize">
+         <size>
+          <width>638</width>
+          <height>0</height>
+         </size>
+        </property>
         <property name="currentIndex">
          <number>0</number>
         </property>
-        <widget class="QWidget" name="tab">
+        <widget class="QWidget" name="detail_Tab">
          <attribute name="icon">
           <iconset resource="../images.qrc">
            <normaloff>:/images/info16.png</normaloff>:/images/info16.png</iconset>
@@ -79,15 +85,15 @@
          <attribute name="title">
           <string>Details</string>
          </attribute>
-         <layout class="QVBoxLayout" name="verticalLayout_3">
+         <layout class="QVBoxLayout" name="detail_Tab_VL">
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_2">
+           <layout class="QHBoxLayout" name="detail_Tab_Top_HL">
             <item>
-             <widget class="QGroupBox" name="groupBox_4">
+             <widget class="QGroupBox" name="detail_GBox">
               <property name="title">
                <string>Node info:</string>
               </property>
-              <layout class="QGridLayout" name="gridLayout_3">
+              <layout class="QGridLayout" name="detail_Tab_Left_GL">
                <item row="3" column="1">
                 <widget class="QLineEdit" name="statusline">
                  <property name="readOnly">
@@ -178,7 +184,7 @@
                 </widget>
                </item>
                <item row="4" column="0">
-                <widget class="QLabel" name="crypto_label">
+                <widget class="QLabel" name="label_crypto">
                  <property name="text">
                   <string>Encryption</string>
                  </property>
@@ -205,7 +211,7 @@
                 <widget class="QLineEdit" name="statusmessage"/>
                </item>
                <item row="7" column="0">
-                <widget class="QLabel" name="label_2">
+                <widget class="QLabel" name="label_status_message">
                  <property name="text">
                   <string>Status message:</string>
                  </property>
@@ -215,7 +221,7 @@
              </widget>
             </item>
             <item>
-             <layout class="QVBoxLayout" name="verticalLayout_2">
+             <layout class="QVBoxLayout" name="detail_Tab_Right_VL">
               <item>
                <widget class="AvatarWidget" name="avatar">
                 <property name="minimumSize">
@@ -233,7 +239,7 @@
                </widget>
               </item>
               <item>
-               <spacer name="verticalSpacer_5">
+               <spacer name="detail_Tab_Right_VL_Spacer">
                 <property name="orientation">
                  <enum>Qt::Vertical</enum>
                 </property>
@@ -250,13 +256,33 @@
            </layout>
           </item>
           <item>
-           <widget class="QGroupBox" name="groupBox">
+           <spacer name="detail_Tab_VSpacer">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="connectivity_Tab">
+         <attribute name="title">
+          <string>Connectivity</string>
+         </attribute>
+         <layout class="QVBoxLayout" name="connectivity_Tab_VL">
+          <item>
+           <widget class="QGroupBox" name="currentAdd_GBox">
             <property name="title">
              <string>Current address:</string>
             </property>
-            <layout class="QVBoxLayout" name="verticalLayout_4">
+            <layout class="QVBoxLayout" name="currentAdd_GBox_VL">
              <item>
-              <layout class="QGridLayout" name="gridLayout_12">
+              <layout class="QGridLayout" name="currentAdd_GL">
                <item row="1" column="3">
                 <widget class="QSpinBox" name="localPort">
                  <property name="minimum">
@@ -339,11 +365,11 @@
            </widget>
           </item>
           <item>
-           <widget class="QGroupBox" name="groupBox_2">
+           <widget class="QGroupBox" name="knownAdd_GBox">
             <property name="title">
              <string>List of known addresses:</string>
             </property>
-            <layout class="QVBoxLayout" name="verticalLayout_5">
+            <layout class="QVBoxLayout" name="knownAdd_GBox_VL">
              <item>
               <widget class="QListWidget" name="ipAddressList">
                <property name="contextMenuPolicy">
@@ -357,31 +383,18 @@
             </layout>
            </widget>
           </item>
-          <item>
-           <spacer name="verticalSpacer">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>40</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
          </layout>
         </widget>
-        <widget class="QWidget" name="tab_4">
+        <widget class="QWidget" name="rs_cert_Tab">
          <attribute name="title">
           <string>Retroshare Certificate</string>
          </attribute>
-         <layout class="QVBoxLayout" name="verticalLayout">
+         <layout class="QVBoxLayout" name="rs_cert_Tab_VL">
           <item>
            <widget class="QTextEdit" name="userCertificateText"/>
           </item>
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayout">
+           <layout class="QHBoxLayout" name="rs_cert_CB_HL">
             <item>
              <widget class="QCheckBox" name="_shouldAddSignatures_CB">
               <property name="text">
@@ -404,7 +417,7 @@
              </widget>
             </item>
             <item>
-             <spacer name="horizontalSpacer_2">
+             <spacer name="rs_cert_CB_HL_HSpacer">
               <property name="orientation">
                <enum>Qt::Horizontal</enum>
               </property>
@@ -434,18 +447,33 @@
    <header>gui/common/RSTextBrowser.h</header>
   </customwidget>
   <customwidget>
-   <class>AvatarWidget</class>
-   <extends>QLabel</extends>
-   <header>gui/common/AvatarWidget.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
    <class>HeaderFrame</class>
    <extends>QFrame</extends>
    <header>gui/common/HeaderFrame.h</header>
    <container>1</container>
   </customwidget>
+  <customwidget>
+   <class>AvatarWidget</class>
+   <extends>QLabel</extends>
+   <header>gui/common/AvatarWidget.h</header>
+   <container>1</container>
+  </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>stabWidget</tabstop>
+  <tabstop>pgpfingerprint</tabstop>
+  <tabstop>peerid</tabstop>
+  <tabstop>loc</tabstop>
+  <tabstop>statusline</tabstop>
+  <tabstop>crypto_info</tabstop>
+  <tabstop>lastcontact</tabstop>
+  <tabstop>version</tabstop>
+  <tabstop>statusmessage</tabstop>
+  <tabstop>userCertificateText</tabstop>
+  <tabstop>_shouldAddSignatures_CB</tabstop>
+  <tabstop>_shortFormat_CB</tabstop>
+  <tabstop>_includeIPHistory_CB</tabstop>
+ </tabstops>
  <resources>
   <include location="../images.qrc"/>
  </resources>

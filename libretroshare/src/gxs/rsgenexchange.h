@@ -33,6 +33,7 @@
 #include "rsnxsobserver.h"
 #include "retroshare/rsgxsservice.h"
 #include "rsitems/rsnxsitems.h"
+#include "gxs/rsgxsnotify.h"
 #include "rsgxsutil.h"
 
 template<class GxsItem, typename Identity = std::string>
@@ -132,28 +133,29 @@ public:
     /*!
      * @param messages messages are deleted after function returns
      */
-    virtual void receiveNewMessages(std::vector<RsNxsMsg*>& messages);
+    virtual void receiveNewMessages(const std::vector<RsNxsMsg *> &messages) override;
 
     /*!
      * @param groups groups are deleted after function returns
      */
-    virtual void receiveNewGroups(std::vector<RsNxsGrp*>& groups);
+    virtual void receiveNewGroups(const std::vector<RsNxsGrp *> &groups) override;
 
     /*!
      * @param grpId group id
      */
-    virtual void notifyReceivePublishKey(const RsGxsGroupId &grpId);
+    virtual void notifyReceivePublishKey(const RsGxsGroupId &grpId) override;
 
+    virtual void notifyChangedGroupSyncParams(const RsGxsGroupId &grpId) override;
     /*!
      * \brief notifyReceiveDistantSearchResults
      * 				Should be called when new search results arrive.
      * \param grpId
      */
-	virtual void receiveDistantSearchResults(TurtleRequestId id,const RsGxsGroupId &grpId);
+    virtual void receiveDistantSearchResults(TurtleRequestId id,const RsGxsGroupId &grpId) override;
     /*!
      * @param grpId group id
      */
-    virtual void notifyChangedGroupStats(const RsGxsGroupId &grpId);
+    virtual void notifyChangedGroupStats(const RsGxsGroupId &grpId) override;
 
     /** E: Observer implementation **/
 
@@ -220,7 +222,7 @@ public:
      * @param msgIds a map of RsGxsGrpMsgIdPair -> msgList (vector)
      * @return false if could not redeem token
      */
-    bool getMsgRelatedList(const uint32_t &token, MsgRelatedIdResult& msgIds);
+    bool getMsgRelatedList(const uint32_t &token, MsgRelatedIdResult& msgIds)override;
 
 
     /*!
@@ -229,14 +231,14 @@ public:
      * @param groupInfo
      * @return false if could not redeem token
      */
-    bool getGroupMeta(const uint32_t &token, std::list<RsGroupMetaData>& groupInfo);
+    bool getGroupMeta(const uint32_t &token, std::list<RsGroupMetaData>& groupInfo)override;
 
     /*!
      * retrieves message meta data associated to a request token
      * @param token token to be redeemed
      * @param msgInfo the meta data to be retrieved for token store here
      */
-    bool getMsgMeta(const uint32_t &token, GxsMsgMetaMap &msgInfo);
+    bool getMsgMeta(const uint32_t &token, GxsMsgMetaMap &msgInfo)override;
 
     /*!
      * Retrieve msg meta for a given token for message related info
@@ -244,7 +246,7 @@ public:
      * @param msgIds a map of RsGxsGrpMsgIdPair -> msgList (vector)
      * @return false if could not redeem token
      */
-    bool getMsgRelatedMeta(const uint32_t &token, GxsMsgRelatedMetaMap& msgMeta);
+    bool getMsgRelatedMeta(const uint32_t &token, GxsMsgRelatedMetaMap& msgMeta)override;
 
     /*!
      * Retrieves the meta data of a newly created group. The meta is kept in cache for the current session.
@@ -262,12 +264,14 @@ public:
      */
     bool getPublishedMsgMeta(const uint32_t& token,RsMsgMetaData& meta);
 
+#ifdef TO_REMOVE
     /*!
      * Gxs services should call this for automatic handling of
      * changes, send
      * @param changes
      */
     virtual void receiveChanges(std::vector<RsGxsNotify*>& changes);
+#endif
 
     /*!
      * \brief acceptNewGroup
@@ -290,7 +294,7 @@ public:
      */
 	virtual bool acceptNewMessage(const RsGxsMsgMetaData *msgMeta, uint32_t size) ;
 
-    bool subscribeToGroup(uint32_t& token, const RsGxsGroupId& grpId, bool subscribe);
+    bool subscribeToGroup(uint32_t& token, const RsGxsGroupId& grpId, bool subscribe) override;
 
 	/*!
 	 * Gets service statistic for a given services
@@ -298,7 +302,7 @@ public:
 	 * @param stats the status
 	 * @return true if token exists false otherwise
 	 */
-	bool getServiceStatistic(const uint32_t& token, GxsServiceStatistic& stats);
+    bool getServiceStatistic(const uint32_t& token, GxsServiceStatistic& stats) override;
 
 	/*!
 	 * Get group statistic
@@ -306,7 +310,7 @@ public:
 	 * @param stats the stats associated to token requ
 	 * @return true if token is false otherwise
 	 */
-	bool getGroupStatistic(const uint32_t& token, GxsGroupStatistic& stats);
+    bool getGroupStatistic(const uint32_t& token, GxsGroupStatistic& stats) override;
 
     /*!
      * \brief turtleGroupRequest
@@ -317,7 +321,14 @@ public:
     void turtleGroupRequest(const RsGxsGroupId& group_id);
     void turtleSearchRequest(const std::string& match_string);
 
-	/**
+    /*!
+     * \brief getDistantSearchStatus
+     * 			Returns the status of ongoing search: unknown (probably not even searched), known as a search result,
+     *          data request ongoing and data available
+     */
+    DistantSearchGroupStatus getDistantSearchStatus(const RsGxsGroupId& group_id) ;
+
+    /**
 	 * @brief Search local groups. Blocking API.
 	 * @param matchString string to look for in the search
 	 * @param results storage for results
@@ -364,6 +375,12 @@ protected:
 	                            unsigned char *& data, uint32_t& size);
 	bool deserializeGroupData(unsigned char *data, uint32_t size,
 	                          RsGxsGroupId* gId = nullptr);
+
+    /*!
+     * \brief retrieveNxsIdentity
+     * 			Sync version of the previous method. Might take some time, so should be used carefully.
+     */
+    bool retrieveNxsIdentity(const RsGxsGroupId& group_id,RsNxsGrp *& identity_grp);
 
     template<class GrpType>
     bool getGroupDataT(const uint32_t &token, std::vector<GrpType*>& grpItem)
@@ -637,6 +654,27 @@ protected:
      */
     virtual ServiceCreate_Return service_CreateGroup(RsGxsGrpItem* grpItem, RsTlvSecurityKeySet& keySet);
 
+    /*!
+     * \brief service_checkIfGroupIsStillUsed
+     * 			Re-implement this function to help GXS cleaning, by telling that some particular group
+     * 			is not used anymore. This usually depends on subscription, the fact that friend nodes send
+     * 			some info or not, and particular cleaning strategy of each service.
+     * 			Besides, groups in some services are used by other services (e.g. identities, circles, are used in
+     * 			forums and so on), so deciding on a group usage can only be left to the specific service it is used in.
+     * \return
+     * 			true if the group is still used, false otherwise, meaning that the group can be deleted. Default is
+     * 			that the group is always in use.
+     */
+    virtual bool service_checkIfGroupIsStillUsed(const RsGxsGrpMetaData& /* meta */) { return true; }	// see RsGenExchange
+
+    /*!
+     * \brief service_getLastGroupSeenTs
+     * \return
+     * 			returns the last time a friend sent information (statistics) about this group. That practically means when the
+     * 			group was still being subscribed by at least one friend. This is used by service_checkIfGroupIsStillUsed() to
+     * 			help getting rid of dead groups.
+     */
+    virtual rstime_t service_getLastGroupSeenTs(const RsGxsGroupId&) { return 0; }
 public:
 
     /*!
@@ -716,21 +754,21 @@ public:
      * \brief getDefaultStoragePeriod. All times in seconds.
      * \return
      */
-	virtual uint32_t getDefaultStoragePeriod() { return mNetService->getDefaultKeepAge() ; }
+    virtual uint32_t getDefaultStoragePeriod() override{ return mNetService->getDefaultKeepAge() ; }
 
-    virtual uint32_t getStoragePeriod(const RsGxsGroupId& grpId) ;
-    virtual void     setStoragePeriod(const RsGxsGroupId& grpId,uint32_t age_in_secs) ;
+    virtual uint32_t getStoragePeriod(const RsGxsGroupId& grpId) override;
+    virtual void     setStoragePeriod(const RsGxsGroupId& grpId,uint32_t age_in_secs) override;
 
-    virtual uint32_t getDefaultSyncPeriod();
-    virtual uint32_t getSyncPeriod(const RsGxsGroupId& grpId) ;
-    virtual void     setSyncPeriod(const RsGxsGroupId& grpId,uint32_t age_in_secs) ;
-	virtual bool     getGroupNetworkStats(const RsGxsGroupId& grpId,RsGroupNetworkStats& stats);
+    virtual uint32_t getDefaultSyncPeriod()override;
+    virtual uint32_t getSyncPeriod(const RsGxsGroupId& grpId) override;
+    virtual void     setSyncPeriod(const RsGxsGroupId& grpId,uint32_t age_in_secs) override;
+    virtual bool     getGroupNetworkStats(const RsGxsGroupId& grpId,RsGroupNetworkStats& stats);
 
     uint16_t serviceType() const override { return mServType ; }
     uint32_t serviceFullType() const { return RsServiceInfo::RsServiceInfoUIn16ToFullServiceId(mServType); }
 
 	virtual RsReputationLevel minReputationForForwardingMessages(
-	        uint32_t group_sign_flags, uint32_t identity_flags );
+            uint32_t group_sign_flags, uint32_t identity_flags )override;
 protected:
 
     /** Notifications **/
@@ -747,9 +785,6 @@ protected:
      * @param changes the changes that have occured to data held by this service
      */
     virtual void notifyChanges(std::vector<RsGxsNotify*>& changes) = 0;
-
-
-
 
 private:
 
@@ -951,12 +986,11 @@ private:
 
     bool mCleaning;
     rstime_t mLastClean;
-    RsGxsMessageCleanUp* mMsgCleanUp;
-
 
     bool mChecking, mCheckStarted;
     rstime_t mLastCheck;
     RsGxsIntegrityCheck* mIntegrityCheck;
+    RsGxsGroupId mNextGroupToCheck ;
 
 protected:
 	enum CreateStatus { CREATE_FAIL, CREATE_SUCCESS, CREATE_FAIL_TRY_LATER };
@@ -974,6 +1008,8 @@ private:
     std::vector<MsgDeletePublish>   mMsgDeletePublish;
 
     std::map<RsGxsId,std::set<RsPeerId> > mRoutingClues ;
+
+    friend class RsGxsCleanUp;
 };
 
 #endif // RSGENEXCHANGE_H

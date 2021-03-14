@@ -18,17 +18,23 @@
  *                                                                             *
  *******************************************************************************/
 
-#include <iostream>
-
-#include <QDesktopServices>
-#include <QDir>
-#include <QPainter>
-#include <QTextDocumentFragment>
-
 #include "RSTextBrowser.h"
+
 #include "RSImageBlockWidget.h"
+#include "gui/common/FilesDefs.h"
 
 #include <retroshare/rsinit.h> //To get RsAccounts
+
+#include <QDesktopServices>
+#include <QDialog>
+#include <QDir>
+#include <QGridLayout>
+#include <QMenu>
+#include <QPainter>
+#include <QPlainTextEdit>
+#include <QTextDocumentFragment>
+
+#include <iostream>
 
 RSTextBrowser::RSTextBrowser(QWidget *parent) :
 	QTextBrowser(parent)
@@ -43,6 +49,14 @@ RSTextBrowser::RSTextBrowser(QWidget *parent) :
 	highlighter = new RsSyntaxHighlighter(this);
 
 	connect(this, SIGNAL(anchorClicked(QUrl)), this, SLOT(linkClicked(QUrl)));
+}
+
+void RSTextBrowser::append(const QString &text)
+{
+	//In Win RSTextBrowser don't recognize file:///
+	QString fileText = text;
+	QTextBrowser::append(fileText.replace("file:///","file://"));
+
 }
 
 void RSTextBrowser::linkClicked(const QUrl &url)
@@ -122,14 +136,22 @@ QVariant RSTextBrowser::loadResource(int type, const QUrl &name)
 
 	// case 2: always trust the image if it comes from local Config or Data directories.
 
-	if(type == QTextDocument::ImageResource) {
+	if(type == QTextDocument::ImageResource)
+	{
 		QFileInfo fi = QFileInfo(name.path());
-		if(fi.exists() && fi.isFile()) {
+		if(fi.exists() && fi.isFile())
+		{
 			QString cpath = fi.canonicalFilePath();
-			if (cpath.startsWith(QDir(QString::fromUtf8(RsAccounts::ConfigDirectory().c_str())).canonicalPath(),Qt::CaseInsensitive)
-					|| cpath.startsWith(QDir(QString::fromUtf8(RsAccounts::systemDataDirectory().c_str())).canonicalPath(),Qt::CaseInsensitive))
-				return QTextBrowser::loadResource(type, name);
-		}}
+			QStringList autPath = { QDir(QString::fromUtf8(RsAccounts::ConfigDirectory().c_str())).canonicalPath()
+			                      , QDir(QString::fromUtf8(RsAccounts::systemDataDirectory().c_str())).canonicalPath()
+			                      , QDir(QString::fromUtf8(RsAccounts::ConfigDirectory().c_str())+"/stylesheets/").canonicalPath() //May be link
+			                      , QDir(QString::fromUtf8(RsAccounts::systemDataDirectory().c_str())+"/stylesheets/").canonicalPath() //May be link
+			                      };
+			for(auto& it : autPath)
+				if (!it.isEmpty() && cpath.startsWith(it, Qt::CaseInsensitive))
+					return QPixmap(fi.absoluteFilePath());
+		}
+	}
 
 	// case 3: only display if the user allows it. Data resources can be bad (svg bombs) but we filter them out globally at the network layer.
 	//         It would be good to add here a home-made resource loader that only loads images and not svg crap, just in case.
@@ -139,7 +161,11 @@ QVariant RSTextBrowser::loadResource(int type, const QUrl &name)
 
 	// case 4: otherwise, do not display
 
-	std::cerr << "TEXTBROWSER: refusing load ressource request: type=" << type << " scheme=" << name.scheme().toStdString() << ", url=" << name.toString().toStdString() << std::endl;
+    std::cerr << "TEXTBROWSER: refusing load ressource request: type=" << type << " scheme="
+              << name.scheme().toStdString() << ", url="
+              << name.toString().left(50).toStdString()
+              << ((name.toString().length()>50)?"...":"")
+              << std::endl;
 
 	if (mImageBlockWidget)
 		mImageBlockWidget->show();
@@ -149,7 +175,7 @@ QVariant RSTextBrowser::loadResource(int type, const QUrl &name)
 
 QPixmap RSTextBrowser::getBlockedImage()
 {
-	return QPixmap(":/images/imageblocked_24.png");
+    return FilesDefs::getPixmapFromQtResourcePath(":/images/imageblocked_24.png");
 }
 
 void RSTextBrowser::setImageBlockWidget(RSImageBlockWidget *widget)
@@ -279,14 +305,48 @@ QString RSTextBrowser::anchorForPosition(const QPoint &pos) const
 		rx.setMinimal(true);
 		QString sel = cursor.selection().toHtml();
 		QStringList anchors;
-		int pos=0;
-		while ((pos = rx.indexIn(sel,pos)) != -1) {
+		int posX=0;
+		while ((posX = rx.indexIn(sel,posX)) != -1) {
 			anchors << rx.cap(1);
-			pos += rx.matchedLength();
+			posX += rx.matchedLength();
 		}
 		if (!anchors.isEmpty()){
 			anchor = anchors.at(0);
 		}
 	}
 	return anchor;
+}
+
+QMenu *RSTextBrowser::createStandardContextMenu()
+{
+	return createStandardContextMenu(QPoint());
+}
+QMenu *RSTextBrowser::createStandardContextMenu(const QPoint &position)
+{
+	QMenu *menu = QTextBrowser::createStandardContextMenu(position);
+
+	menu->addSeparator();
+	QAction *a = menu->addAction(FilesDefs::getIconFromQtResourcePath("://icons/textedit/code.png"), tr("View &Source"), this, SLOT(viewSource()));
+	a->setEnabled(!this->document()->isEmpty());
+
+	return menu;
+}
+
+void RSTextBrowser::viewSource()
+{
+	QString text = this->textCursor().selection().toHtml();
+	if (text.isEmpty())
+		text = this->document()->toHtml();
+
+	QDialog *dialog = new QDialog(this);
+	QPlainTextEdit *pte = new QPlainTextEdit(dialog);
+	pte->setPlainText(text);
+	QGridLayout *gl = new QGridLayout(dialog);
+	gl->addWidget(pte,0,0,1,1);
+	dialog->setWindowTitle(tr("Document source"));
+	dialog->resize(500, 400);
+
+	dialog->exec();
+
+	delete dialog;
 }

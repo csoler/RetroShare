@@ -28,6 +28,8 @@
 #include <QFontDialog>
 
 #include "misc.h"
+#include "util/rsdebug.h"
+#include "gui/common/FilesDefs.h"
 
 // return best userfriendly storage unit (B, KiB, MiB, GiB, TiB)
 // use Binary prefix standards from IEC 60027-2
@@ -303,11 +305,13 @@ QPixmap misc::getOpenThumbnailedPicture(QWidget *parent, const QString &caption,
 {
 	// Let the user choose an picture file
 	QString fileName;
-	if (!getOpenFileName(parent, RshareSettings::LASTDIR_IMAGES, caption, tr("Pictures (*.png *.jpeg *.xpm *.jpg *.tiff *.gif)"), fileName))
+	if (!getOpenFileName(parent, RshareSettings::LASTDIR_IMAGES, caption, tr("Pictures (*.png *.jpeg *.xpm *.jpg *.tiff *.gif *.webp)"), fileName))
 		return QPixmap();
 
-    return QPixmap(fileName).scaledToHeight(height, Qt::SmoothTransformation).copy( 0, 0, width, height);
-	//return QPixmap(fileName).scaledToHeight(width, height, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+    if(width > 0 && height > 0)
+        return FilesDefs::getPixmapFromQtResourcePath(fileName).scaledToHeight(height, Qt::SmoothTransformation).copy( 0, 0, width, height);
+    else
+        return FilesDefs::getPixmapFromQtResourcePath(fileName);
 }
 
 bool misc::getOpenFileName(QWidget *parent, RshareSettings::enumLastDir type
@@ -416,12 +420,17 @@ void misc::clearLayout(QLayout * layout) {
 
 	while (auto item = layout->takeAt(0))
 	{
-		if (auto *widget = item->widget())
+		//First get all pointers, else item may be deleted when last object removed and get SIGSEGV
+		auto *widget = item->widget();
+		auto *spacer = item->spacerItem();
+		//Then Clear Layout
+		clearLayout(item->layout());
+		//Last clear objects
+		if (widget)
 			widget->deleteLater();
-		if (auto *spacer = item->spacerItem())
+		if (spacer)
 			delete spacer;
 
-		clearLayout(item->layout());
-		delete item;
+		//delete item;//Auto deleted by Qt.
 	}
 }

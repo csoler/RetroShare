@@ -146,8 +146,8 @@
 #define IMAGE_ADDSHARE          ":/images/directoryadd_24x24_shadow.png"
 #define IMAGE_OPTIONS           ":/images/settings.png"
 #define IMAGE_UNFINISHED        ":/images/underconstruction.png"
-#define IMAGE_MINIMIZE          ":/images/window_nofullscreen.png"
-#define IMAGE_MAXIMIZE          ":/images/window_fullscreen.png"
+#define IMAGE_MINIMIZE          ":/icons/fullscreen.png"
+#define IMAGE_MAXIMIZE          ":/icons/fullscreen-exit.png"
 
 #define IMAGE_PLUGINS           ":/images/extension_32.png"
 
@@ -375,6 +375,11 @@ MainWindow::~MainWindow()
     delete soundStatus;
     delete toasterDisable;
     delete sysTrayStatus;
+    delete trayIcon;
+    delete trayMenu;
+//  delete notifyMenu; // already deleted by the deletion of trayMenu
+    StatisticsWindow::releaseInstance();
+
 #ifdef MESSENGER_WINDOW
     MessengerWindow::releaseInstance();
 #endif
@@ -478,6 +483,9 @@ void MainWindow::initStackedPage()
   }
 #endif
 
+
+  addPage(newsFeed = new NewsFeed(ui->stackPages), grp, &notify);
+
   //List All notify before Setting was created
   QList<QPair<MainPage*, QPair<QAction*, QListWidgetItem*> > >::iterator notifyIt;
   for (notifyIt = notify.begin(); notifyIt != notify.end(); ++notifyIt) {
@@ -489,7 +497,6 @@ void MainWindow::initStackedPage()
       }
   }
 
-  addPage(newsFeed = new NewsFeed(ui->stackPages), grp, &notify);
   addPage(settingsDialog = new SettingsPage(ui->stackPages),grp,&notify);
 
   /* Create the toolbar */
@@ -600,7 +607,7 @@ void MainWindow::displayDiskSpaceWarning(int loc,int size_limit_mb)
 void MainWindow::createTrayIcon()
 {
     /** Tray icon Menu **/
-    QMenu *trayMenu = new QMenu(this);
+    trayMenu = new QMenu(this);
     if (sysTrayStatus) sysTrayStatus->trayMenu = trayMenu;
     QObject::connect(trayMenu, SIGNAL(aboutToShow()), this, SLOT(updateMenu()));
     toggleVisibilityAction = trayMenu->addAction(QIcon(IMAGE_RETROSHARE), tr("Show/Hide"), this, SLOT(toggleVisibilitycontextmenu()));
@@ -1225,6 +1232,8 @@ void MainWindow::toggleVisibility(QSystemTrayIcon::ActivationReason e)
             }
             raise();
             activateWindow();
+            if(torstatus)
+                torstatus->reset();
         } else {
             hide();
         }
@@ -1561,13 +1570,13 @@ void MainWindow::processLastArgs()
 	if (opModeStatus) {
 		QString opmode = Rshare::opmode().toLower();
 		if (opmode == "noturtle") {
-			opModeStatus->setCurrentIndex(RS_OPMODE_NOTURTLE - 1);
+			opModeStatus->setCurrentIndex(static_cast<typename std::underlying_type<RsOpMode>::type>(RsOpMode::NOTURTLE) - 1);
 		} else if (opmode == "gaming") {
-			opModeStatus->setCurrentIndex(RS_OPMODE_GAMING - 1);
+			opModeStatus->setCurrentIndex(static_cast<typename std::underlying_type<RsOpMode>::type>(RsOpMode::GAMING) - 1);
 		} else if (opmode == "minimal") {
-			opModeStatus->setCurrentIndex(RS_OPMODE_MINIMAL - 1);
+			opModeStatus->setCurrentIndex(static_cast<typename std::underlying_type<RsOpMode>::type>(RsOpMode::MINIMAL) - 1);
 		} else if (opmode != "") {
-			opModeStatus->setCurrentIndex(RS_OPMODE_FULL - 1);
+			opModeStatus->setCurrentIndex(static_cast<typename std::underlying_type<RsOpMode>::type>(RsOpMode::FULL) - 1);
 		}
 		opModeStatus->setOpMode();
 	} else {

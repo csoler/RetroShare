@@ -30,6 +30,7 @@
 #include "gui/settings/rsharesettings.h"
 #include "PostedItem.h"
 #include "PostedCardView.h"
+#include "gui/common/FilesDefs.h"
 #include "gui/common/UIStateHelper.h"
 #include "gui/RetroShareLink.h"
 #include "util/HandleRichText.h"
@@ -406,7 +407,7 @@ void PostedListWidget::insertPostedDetails(const RsPostedGroup &group)
 	if (group.mGroupImage.mData != NULL) {
 		GxsIdDetails::loadPixmapFromData(group.mGroupImage.mData, group.mGroupImage.mSize, boardImage,GxsIdDetails::ORIGINAL);
 	} else {
-		boardImage = QPixmap(BOARD_DEFAULT_IMAGE);
+        boardImage = FilesDefs::getPixmapFromQtResourcePath(BOARD_DEFAULT_IMAGE);
 	}
 	ui->logoLabel->setPixmap(boardImage);
 	ui->namelabel->setText(QString::fromUtf8(group.mMeta.mGroupName.c_str()));
@@ -481,26 +482,22 @@ void PostedListWidget::insertPostedDetails(const RsPostedGroup &group)
 /*********************** **** **** **** ***********************/
 /*********************** **** **** **** ***********************/
 
-void PostedListWidget::loadPost(const RsPostedPost &post)
+void PostedListWidget::loadPost(const RsPostedPost& post)
 {
 	/* Group is not always available because of the TokenQueue */
-	RsPostedGroup dummyGroup;
-	dummyGroup.mMeta.mGroupId = groupId();
 
-	PostedItem *item = new PostedItem(this, 0, dummyGroup, post, true, false);
+	PostedItem *item = new PostedItem(this, 0, mGroup.mMeta, post.mMeta.mMsgId, true, false);
 	connect(item, SIGNAL(vote(RsGxsGrpMsgIdPair,bool)), this, SLOT(submitVote(RsGxsGrpMsgIdPair,bool)));
 	mPosts.insert(post.mMeta.mMsgId, item);
 
 	mPostItems.push_back(item);
 }
 
-void PostedListWidget::loadPostCardView(const RsPostedPost &post)
+void PostedListWidget::loadPostCardView(const RsPostedPost& post)
 {
 	/* Group is not always available because of the TokenQueue */
-	RsPostedGroup dummyGroup;
-	dummyGroup.mMeta.mGroupId = groupId();
 
-	PostedCardView *cvitem = new PostedCardView(this, 0, dummyGroup, post, true, false);
+	PostedCardView *cvitem = new PostedCardView(this, 0, mGroup.mMeta, post.mMeta.mMsgId, true, false);
 	connect(cvitem, SIGNAL(vote(RsGxsGrpMsgIdPair,bool)), this, SLOT(submitVote(RsGxsGrpMsgIdPair,bool)));
 	mCVPosts.insert(post.mMeta.mMsgId, cvitem);
 
@@ -928,7 +925,7 @@ void PostedListWidget::insertPostedPosts(const std::vector<RsPostedPost>& posts)
 			std::cerr << std::endl;
 #endif
 			/* insert new entry */
-			loadPost(p);
+			//loadPost(p);
 			loadPostCardView(p);
 		}
 	}
@@ -937,7 +934,7 @@ void PostedListWidget::insertPostedPosts(const std::vector<RsPostedPost>& posts)
 	QMap<RsGxsMessageId, PostedItem*>::iterator pit;
 	for(pit = mPosts.begin(); pit != mPosts.end(); ++pit)
 	{
-		(*pit)->post().calculateScores(now);
+		(*pit)->getPost().calculateScores(now);
 	}
 
 	applyRanking();
@@ -1037,8 +1034,9 @@ void PostedListWidget::getMsgData(const std::set<RsGxsMessageId>& msgIds,std::ve
 {
     std::vector<RsPostedPost> posts;
     std::vector<RsGxsComment> comments;
+    std::vector<RsGxsVote> votes;
 
-    rsPosted->getBoardContent( groupId(),msgIds,posts,comments );
+    rsPosted->getBoardContent( groupId(),msgIds,posts,comments,votes );
 
     psts.clear();
 
@@ -1050,8 +1048,9 @@ void PostedListWidget::getAllMsgData(std::vector<RsGxsGenericMsgData*>& psts)
 {
     std::vector<RsPostedPost> posts;
     std::vector<RsGxsComment> comments;
+    std::vector<RsGxsVote> votes;
 
-    rsPosted->getBoardAllContent( groupId(),posts,comments );
+    rsPosted->getBoardAllContent( groupId(),posts,comments,votes );
 
     psts.clear();
 
@@ -1067,7 +1066,8 @@ bool PostedListWidget::getGroupData(RsGxsGenericGroupData*& data)
     if(! rsPosted->getBoardsInfo(std::list<RsGxsGroupId>({groupId()}),groupInfo) || groupInfo.size() != 1)
         return false;
 
-    data = new RsPostedGroup(groupInfo[0]);
+    mGroup = groupInfo[0];
+    data = new RsPostedGroup(mGroup);
     return true;
 }
 

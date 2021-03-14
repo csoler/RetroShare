@@ -4,7 +4,8 @@
  * libretroshare: retroshare core library                                      *
  *                                                                             *
  * Copyright (C) 2012-2014  Robert Fernie <retroshare@lunamutt.com>            *
- * Copyright (C) 2018-2019  Gioacchino Mazzurco <gio@eigenlab.org>             *
+ * Copyright (C) 2018-2020  Gioacchino Mazzurco <gio@eigenlab.org>             *
+ * Copyright (C) 2019-2020  Asociación Civil Altermundi <info@altermundi.net>  *
  *                                                                             *
  * This program is free software: you can redistribute it and/or modify        *
  * it under the terms of the GNU Lesser General Public License as              *
@@ -25,6 +26,7 @@
 #include <cstdint>
 #include <string>
 #include <list>
+#include <system_error>
 
 #include "retroshare/rstokenservice.h"
 #include "retroshare/rsgxsifacehelper.h"
@@ -36,7 +38,7 @@
 class RsGxsForums;
 
 /**
- * Pointer to global instance of RsGxsChannels service implementation
+ * Pointer to global instance of RsGxsForums service implementation
  * @jsonapi{development}
  */
 extern RsGxsForums* rsGxsForums;
@@ -112,6 +114,10 @@ enum class RsForumEventCode: uint8_t
 	SUBSCRIBE_STATUS_CHANGED = 0x05, /// forum was subscribed or unsubscribed
 	READ_STATUS_CHANGED      = 0x06, /// msg was read or marked unread
 	STATISTICS_CHANGED       = 0x07, /// suppliers and how many messages they have changed
+	MODERATOR_LIST_CHANGED   = 0x08, /// forum moderation list has changed.
+    SYNC_PARAMETERS_UPDATED  = 0x0a, /// sync and storage times have changed
+    PINNED_POSTS_CHANGED     = 0x0b, /// some posts where pinned or un-pinned
+    DELETED_FORUM            = 0x0c, /// forum was deleted by cleaning
 };
 
 struct RsGxsForumEvent: RsEvent
@@ -123,6 +129,8 @@ struct RsGxsForumEvent: RsEvent
 	RsForumEventCode mForumEventCode;
 	RsGxsGroupId mForumGroupId;
 	RsGxsMessageId mForumMsgId;
+    std::list<RsGxsId> mModeratorsAdded;
+    std::list<RsGxsId> mModeratorsRemoved;
 
 	///* @see RsEvent @see RsSerializable
 	void serial_process(
@@ -133,6 +141,9 @@ struct RsGxsForumEvent: RsEvent
 		RS_SERIAL_PROCESS(mForumEventCode);
 		RS_SERIAL_PROCESS(mForumGroupId);
 		RS_SERIAL_PROCESS(mForumMsgId);
+		RS_SERIAL_PROCESS(mForumMsgId);
+		RS_SERIAL_PROCESS(mModeratorsAdded);
+		RS_SERIAL_PROCESS(mModeratorsRemoved);
 	}
 
 	~RsGxsForumEvent() override;
@@ -347,6 +358,32 @@ public:
 	        RsGxsGroupId& forumId = RS_DEFAULT_STORAGE_PARAM(RsGxsGroupId),
 	        std::string& errMsg = RS_DEFAULT_STORAGE_PARAM(std::string) ) = 0;
 
+	/**
+	 * @brief Get posts related to the given post.
+	 * If the set is empty, nothing is returned.
+	 * @jsonapi{development}
+	 * @param[in] forumId id of the forum of which the content is requested
+	 * @param[in] parentId id of the post of which child posts (aka replies)
+	 *	are requested.
+	 * @param[out] childPosts storage for the child posts
+	 * @return Success or error details
+	 */
+	virtual std::error_condition getChildPosts(
+	        const RsGxsGroupId& forumId, const RsGxsMessageId& parentId,
+	        std::vector<RsGxsForumMsg>& childPosts ) = 0;
+
+	/**
+	 * @brief Set keep forever flag on a post so it is not deleted even if older
+	 * then group maximum storage time
+	 * @jsonapi{development}
+	 * @param[in] forumId id of the forum of which the post pertain
+	 * @param[in] postId id of the post on which to set the flag
+	 * @param[in] keepForever true to set the flag, false to unset it
+	 * @return Success or error details
+	 */
+	virtual std::error_condition setPostKeepForever(
+	        const RsGxsGroupId& forumId, const RsGxsMessageId& postId,
+	        bool keepForever ) = 0;
 
 	/**
 	 * @brief Create forum. Blocking API.

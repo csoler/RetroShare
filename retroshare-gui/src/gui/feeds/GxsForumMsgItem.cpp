@@ -28,6 +28,7 @@
 
 #include "FeedHolder.h"
 #include "gui/RetroShareLink.h"
+#include "gui/common/FilesDefs.h"
 #include "gui/gxs/GxsIdDetails.h"
 #include "util/HandleRichText.h"
 #include "util/qtthreadsutils.h"
@@ -98,7 +99,11 @@ void GxsForumMsgItem::setup()
 
 	/* clear ui */
 	ui->titleLabel->setText(tr("Loading..."));
+	ui->titleLabel->setOpenExternalLinks(false); //To get linkActivated working
+	connect(ui->titleLabel, SIGNAL(linkActivated(QString)), this, SLOT(on_linkActivated(QString)));
 	ui->subjectLabel->clear();
+	ui->subjectLabel->setOpenExternalLinks(false); //To get linkActivated working
+	connect(ui->subjectLabel, SIGNAL(linkActivated(QString)), this, SLOT(on_linkActivated(QString)));
 	ui->timestamplabel->clear();
 	ui->parentNameLabel->clear();
 	ui->nameLabel->clear();
@@ -113,18 +118,11 @@ void GxsForumMsgItem::setup()
 
 	ui->subjectLabel->setMinimumWidth(20);
 
+	// hide unsubscribe button not necessary
+	ui->unsubscribeButton->hide();
+
 	ui->expandFrame->hide();
 	ui->parentFrame->hide();
-}
-
-bool GxsForumMsgItem::isTop()
-{
-//	if (mMessage.mMeta.mMsgId == mMessage.mMeta.mThreadId || mMessage.mMeta.mThreadId.isNull()) {
-	if (mMessage.mMeta.mParentId.isNull()) {
-		return true;
-	}
-
-	return false;
 }
 
 bool GxsForumMsgItem::setGroup(const RsGxsForumGroup &group, bool doFill)
@@ -137,9 +135,8 @@ bool GxsForumMsgItem::setGroup(const RsGxsForumGroup &group, bool doFill)
 
 	mGroup = group;
 
-	if (doFill) {
-		fill();
-	}
+    if (doFill)
+        fillGroup();
 
 	return true;
 }
@@ -154,10 +151,11 @@ bool GxsForumMsgItem::setMessage(const RsGxsForumMsg &msg, bool doFill)
 
 	mMessage = msg;
 
-	if (!isTop())
-		loadParentMessage(mMessage.mMeta.mParentId);
-	 else if(doFill)
-		fill();
+    if(! mMessage.mMeta.mParentId.isNull())
+        loadParentMessage(mMessage.mMeta.mParentId);
+
+    if(doFill)
+        fillMessage();
 
 	return true;
 }
@@ -208,8 +206,8 @@ void GxsForumMsgItem::loadGroup()
 
 void GxsForumMsgItem::loadMessage()
 {
-#ifdef DEBUG_ITEM
-	std::cerr << "GxsForumMsgItem::loadMessage()";
+#ifndef DEBUG_ITEM
+    std::cerr << "GxsForumMsgItem::loadMessage(): messageId=" << messageId() << " groupId=" << groupId() ;
 	std::cerr << std::endl;
 #endif
 
@@ -291,112 +289,97 @@ void GxsForumMsgItem::loadParentMessage(const RsGxsMessageId& parent_msg)
 			 * after a blocking call to RetroShare API complete */
 
 			mParentMessage = msg;
-			fill();
+            fillParentMessage();
 
 		}, this );
 	});
 }
-
-void GxsForumMsgItem::fill()
+void GxsForumMsgItem::fillParentMessage()
 {
-	/* fill in */
+    mInFill = true;
 
-//	if (isLoading()) {
-//		/* Wait for all requests */
-//		return;
-//	}
+    ui->parentFrame->hide();
 
+    RetroShareLink linkParent = RetroShareLink::createGxsMessageLink(RetroShareLink::TYPE_FORUM, mParentMessage.mMeta.mGroupId, mParentMessage.mMeta.mMsgId, QString::fromUtf8(mParentMessage.mMeta.mMsgName.c_str()));
+    ui->parentSubLabel->setText(linkParent.toHtml());
+    ui->parentMsgLabel->setText(RsHtml().formatText(NULL, QString::fromUtf8(mParentMessage.mMsg.c_str()), RSHTML_FORMATTEXT_EMBED_SMILEYS | RSHTML_FORMATTEXT_EMBED_LINKS));
+    ui->parentNameLabel->setId(mParentMessage.mMeta.mAuthorId);
+
+    RsIdentityDetails idDetails ;
+    rsIdentity->getIdDetails(mParentMessage.mMeta.mAuthorId,idDetails);
+
+    QPixmap pixmap ;
+
+    if(idDetails.mAvatar.mSize == 0 || !GxsIdDetails::loadPixmapFromData(idDetails.mAvatar.mData, idDetails.mAvatar.mSize, pixmap,GxsIdDetails::SMALL))
+        pixmap = GxsIdDetails::makeDefaultIcon(mParentMessage.mMeta.mAuthorId,GxsIdDetails::SMALL);
+
+    ui->parentAvatar->setPixmap(pixmap);
+
+    mInFill = false;
+}
+void GxsForumMsgItem::fillMessage()
+{
 #ifdef DEBUG_ITEM
-	std::cerr << "GxsForumMsgItem::fill()";
-	std::cerr << std::endl;
+    std::cerr << "GxsForumMsgItem::fill()";
+    std::cerr << std::endl;
 #endif
 
+    mInFill = true;
+
+    if(!mIsHome && mCloseOnRead && !IS_MSG_NEW(mMessage.mMeta.mMsgStatus))
+        removeItem();
+
+    QString title = tr("Forum Feed") + ": ";
+    RetroShareLink link = RetroShareLink::createGxsGroupLink(RetroShareLink::TYPE_FORUM, mMessage.mMeta.mGroupId, groupName());
+    title += link.toHtml();
+    ui->titleLabel->setText(title);
+
+    setReadStatus(IS_MSG_NEW(mMessage.mMeta.mMsgStatus), IS_MSG_UNREAD(mMessage.mMeta.mMsgStatus) || IS_MSG_NEW(mMessage.mMeta.mMsgStatus));
+
+    if (!mIsHome && IS_MSG_NEW(mMessage.mMeta.mMsgStatus))
+        mCloseOnRead = true;
+
+    RsIdentityDetails idDetails ;
+    rsIdentity->getIdDetails(mMessage.mMeta.mAuthorId,idDetails);
+
+    QPixmap pixmap ;
+
+    if(idDetails.mAvatar.mSize == 0 || !GxsIdDetails::loadPixmapFromData(idDetails.mAvatar.mData, idDetails.mAvatar.mSize, pixmap,GxsIdDetails::SMALL))
+                pixmap = GxsIdDetails::makeDefaultIcon(mMessage.mMeta.mAuthorId,GxsIdDetails::SMALL);
+
+    ui->avatar->setPixmap(pixmap);
+
+    ui->nameLabel->setId(mMessage.mMeta.mAuthorId);
+
+    RetroShareLink msgLink = RetroShareLink::createGxsMessageLink(RetroShareLink::TYPE_FORUM, mMessage.mMeta.mGroupId, mMessage.mMeta.mMsgId, messageName());
+    ui->subLabel->setText(msgLink.toHtml());
+    if (wasExpanded() || ui->expandFrame->isVisible())
+        fillExpandFrame();
+
+    ui->timestamplabel->setText(DateTime::formatLongDateTime(mMessage.mMeta.mPublishTs));
+
+    /* header stuff */
+    ui->subjectLabel->setText(msgLink.toHtml());
+
+    if (mIsHome)
+    {
+        /* disable buttons */
+        ui->clearButton->setEnabled(false);
+        ui->clearButton->hide();
+    }
+
+    mInFill = false;
+}
+void GxsForumMsgItem::fillGroup()
+{
 	mInFill = true;
 
-	if (!mIsHome)
-	{
-		if (mCloseOnRead && !IS_MSG_NEW(mMessage.mMeta.mMsgStatus)) {
-			removeItem();
-		}
-	}
+    ui->unsubscribeButton->setEnabled(IS_GROUP_SUBSCRIBED(mGroup.mMeta.mSubscribeFlags) || IS_GROUP_ADMIN(mGroup.mMeta.mSubscribeFlags)) ;
 
-	QString title = tr("Forum Feed") + ": ";
-	RetroShareLink link = RetroShareLink::createGxsGroupLink(RetroShareLink::TYPE_FORUM, mMessage.mMeta.mGroupId, groupName());
-	title += link.toHtml();
-	ui->titleLabel->setText(title);
-
-	if (IS_GROUP_SUBSCRIBED(mGroup.mMeta.mSubscribeFlags) || IS_GROUP_ADMIN(mGroup.mMeta.mSubscribeFlags)) {
-		ui->unsubscribeButton->setEnabled(true);
-
-		setReadStatus(IS_MSG_NEW(mMessage.mMeta.mMsgStatus), IS_MSG_UNREAD(mMessage.mMeta.mMsgStatus) || IS_MSG_NEW(mMessage.mMeta.mMsgStatus));
-	} else {
-		ui->unsubscribeButton->setEnabled(false);
-	}
-
-	if (IS_GROUP_PUBLISHER(mGroup.mMeta.mSubscribeFlags)) {
-		ui->iconLabel->setPixmap(QPixmap(":/icons/png/forums.png"));
-	} else {
-		ui->iconLabel->setPixmap(QPixmap(":/icons/png/forums-default.png"));
-	}
-
-	if (!mIsHome) {
-		if (IS_MSG_NEW(mMessage.mMeta.mMsgStatus)) {
-			mCloseOnRead = true;
-		}
-	}
-	
-	RsIdentityDetails idDetails ;
-	rsIdentity->getIdDetails(mMessage.mMeta.mAuthorId,idDetails);
-		
-	QPixmap pixmap ;
-
-	if(idDetails.mAvatar.mSize == 0 || !GxsIdDetails::loadPixmapFromData(idDetails.mAvatar.mData, idDetails.mAvatar.mSize, pixmap,GxsIdDetails::SMALL))
-				pixmap = GxsIdDetails::makeDefaultIcon(mMessage.mMeta.mAuthorId,GxsIdDetails::SMALL);
-			
-	ui->avatar->setPixmap(pixmap);
-
-	ui->nameLabel->setId(mMessage.mMeta.mAuthorId);
-
-	RetroShareLink msgLink = RetroShareLink::createGxsMessageLink(RetroShareLink::TYPE_FORUM, mMessage.mMeta.mGroupId, mMessage.mMeta.mMsgId, messageName());
-	ui->subLabel->setText(msgLink.toHtml());
-	if (wasExpanded() || ui->expandFrame->isVisible()) {
-		fillExpandFrame();
-	}
-
-	ui->timestamplabel->setText(DateTime::formatLongDateTime(mMessage.mMeta.mPublishTs));
-
-	if (isTop()) {
-		ui->parentFrame->hide();
-	} else {
-
-		RetroShareLink linkParent = RetroShareLink::createGxsMessageLink(RetroShareLink::TYPE_FORUM, mParentMessage.mMeta.mGroupId, mParentMessage.mMeta.mMsgId, QString::fromUtf8(mParentMessage.mMeta.mMsgName.c_str()));
-		ui->parentSubLabel->setText(linkParent.toHtml());
-		ui->parentMsgLabel->setText(RsHtml().formatText(NULL, QString::fromUtf8(mParentMessage.mMsg.c_str()), RSHTML_FORMATTEXT_EMBED_SMILEYS | RSHTML_FORMATTEXT_EMBED_LINKS));
-
-		ui->parentNameLabel->setId(mParentMessage.mMeta.mAuthorId);
-
-		RsIdentityDetails idDetails ;
-		rsIdentity->getIdDetails(mParentMessage.mMeta.mAuthorId,idDetails);
-		
-		QPixmap pixmap ;
-
-		if(idDetails.mAvatar.mSize == 0 || !GxsIdDetails::loadPixmapFromData(idDetails.mAvatar.mData, idDetails.mAvatar.mSize, pixmap,GxsIdDetails::SMALL))
-				pixmap = GxsIdDetails::makeDefaultIcon(mParentMessage.mMeta.mAuthorId,GxsIdDetails::SMALL);
-			
-		ui->parentAvatar->setPixmap(pixmap);
-
-	}
-
-	/* header stuff */
-	ui->subjectLabel->setText(msgLink.toHtml());
-
-	if (mIsHome)
-	{
-		/* disable buttons */
-		ui->clearButton->setEnabled(false);
-
-		ui->clearButton->hide();
-	}
+    if (IS_GROUP_PUBLISHER(mGroup.mMeta.mSubscribeFlags))
+        ui->iconLabel->setPixmap(FilesDefs::getPixmapFromQtResourcePath(":/icons/png/forums.png"));
+    else
+        ui->iconLabel->setPixmap(FilesDefs::getPixmapFromQtResourcePath(":/icons/png/forums-default.png"));
 
 	mInFill = false;
 }
@@ -421,7 +404,7 @@ void GxsForumMsgItem::doExpand(bool open)
 	if (open)
 	{
 		ui->expandFrame->show();
-		ui->expandButton->setIcon(QIcon(QString(":/icons/png/up-arrow.png")));
+        ui->expandButton->setIcon(FilesDefs::getIconFromQtResourcePath(QString(":/icons/png/up-arrow.png")));
 		ui->expandButton->setToolTip(tr("Hide"));
 
 		if (!mParentMessage.mMeta.mMsgId.isNull()) {
@@ -434,7 +417,7 @@ void GxsForumMsgItem::doExpand(bool open)
 	{
 		ui->expandFrame->hide();
 		ui->parentFrame->hide();
-		ui->expandButton->setIcon(QIcon(QString(":/icons/png/down-arrow.png")));
+        ui->expandButton->setIcon(FilesDefs::getIconFromQtResourcePath(QString(":/icons/png/down-arrow.png")));
 		ui->expandButton->setToolTip(tr("Expand"));
 	}
 
@@ -462,9 +445,9 @@ void GxsForumMsgItem::toggle()
 
 void GxsForumMsgItem::setReadStatus(bool isNew, bool /*isUnread*/)
 {
-	ui->frame->setProperty("new", isNew);
-	ui->frame->style()->unpolish(ui->frame);
-	ui->frame->style()->polish(  ui->frame);
+	ui->mainFrame->setProperty("new", isNew);
+	ui->mainFrame->style()->unpolish(ui->mainFrame);
+	ui->mainFrame->style()->polish(  ui->mainFrame);
 }
 
 /*********** SPECIFIC FUNCTIONS ***********************/
@@ -504,4 +487,17 @@ void GxsForumMsgItem::setAsRead()
 	rsGxsForums->setMessageReadStatus(token, msgPair, true);
 
 	setReadStatus(false, false);
+}
+
+void GxsForumMsgItem::on_linkActivated(QString link)
+{
+	RetroShareLink rsLink(link);
+
+	if (rsLink.valid() ) {
+		QList<RetroShareLink> rsLinks;
+		rsLinks.append(rsLink);
+		RetroShareLink::process(rsLinks);
+		removeItem();
+		return;
+	}
 }

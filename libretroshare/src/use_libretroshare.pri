@@ -6,11 +6,17 @@ RS_BUILD_PATH=$$clean_path($${OUT_PWD}/../../)
 
 DEPENDPATH *= $$clean_path($${RS_SRC_PATH}/libretroshare/src/)
 INCLUDEPATH  *= $$clean_path($${RS_SRC_PATH}/libretroshare/src)
-LIBS *= -L$$clean_path($${RS_BUILD_PATH}/libretroshare/src/lib/) -lretroshare
 
 equals(TARGET, retroshare):equals(TEMPLATE, lib){
 } else {
-    PRE_TARGETDEPS *= $$clean_path($${RS_BUILD_PATH}/libretroshare/src/lib/libretroshare.a)
+	LIBS *= -L$$clean_path($${RS_BUILD_PATH}/libretroshare/src/lib/) -lretroshare
+	win32-g++|win32-clang-g++:!isEmpty(QMAKE_SH):libretroshare_shared {
+		# Windows msys2
+		LIBRETROSHARE_TARGET=libretroshare.dll.a
+	} else {
+		LIBRETROSHARE_TARGET=libretroshare.a
+	}
+    PRE_TARGETDEPS *= $$clean_path($${RS_BUILD_PATH}/libretroshare/src/lib/$${LIBRETROSHARE_TARGET})
 }
 
 !include("../../openpgpsdk/src/use_openpgpsdk.pri"):error("Including")
@@ -46,7 +52,7 @@ rs_jsonapi {
         LIBS *= -L$$clean_path($${RESTBED_BUILD_PATH}/) -lrestbed
     } else:sLibs *= restbed
 
-    win32-g++:dLibs *= wsock32
+    win32-g++|win32-clang-g++:dLibs *= wsock32
 }
 
 linux-* {
@@ -55,7 +61,7 @@ linux-* {
 
 rs_deep_channels_index | rs_deep_files_index {
     mLibs += xapian
-    win32-g++:mLibs += rpcrt4
+    win32-g++|win32-clang-g++:mLibs += rpcrt4
 }
 
 rs_deep_files_index_ogg {
@@ -81,7 +87,7 @@ rs_broadcast_discovery {
         LIBS *= -L$$clean_path($${UDP_DISCOVERY_BUILD_PATH}) -ludp-discovery
     } else:sLibs *= udp-discovery
 
-    win32-g++:dLibs *= wsock32
+    win32-g++|win32-clang-g++:dLibs *= wsock32
 }
 
 static {
@@ -101,4 +107,9 @@ android-* {
 ## because it crash, use QNetworkInterface from Qt instead
     CONFIG *= qt
     QT *= network
+}
+
+################################### Pkg-Config Stuff #############################
+!isEmpty(PKGCONFIG) {
+    LIBS *= $$system(pkg-config --libs $$PKGCONFIG)
 }

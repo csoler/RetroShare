@@ -21,7 +21,7 @@
 #include "PostedDialog.h"
 #include "PostedItem.h"
 #include "PostedGroupDialog.h"
-#include "PostedListWidget.h"
+#include "PostedListWidgetWithModel.h"
 #include "PostedUserNotify.h"
 #include "gui/gxs/GxsGroupShareKey.h"
 #include "gui/settings/rsharesettings.h"
@@ -62,12 +62,14 @@ void PostedDialog::handleEvent_main_thread(std::shared_ptr<const RsEvent> event)
 		{
 		case RsPostedEventCode::NEW_MESSAGE:
 		case RsPostedEventCode::UPDATED_MESSAGE:        // [[fallthrough]];
+		case RsPostedEventCode::NEW_COMMENT:            // [[fallthrough]];
 		case RsPostedEventCode::READ_STATUS_CHANGED:   // [[fallthrough]];
 			updateGroupStatisticsReal(e->mPostedGroupId); // update the list immediately
             break;
 
 		case RsPostedEventCode::NEW_POSTED_GROUP:       // [[fallthrough]];
-		case RsPostedEventCode::SUBSCRIBE_STATUS_CHANGED:   // [[fallthrough]];
+        case RsPostedEventCode::BOARD_DELETED:       // [[fallthrough]];
+        case RsPostedEventCode::SUBSCRIBE_STATUS_CHANGED:   // [[fallthrough]];
             updateDisplay(true);
             break;
 
@@ -162,8 +164,8 @@ bool PostedDialog::getGroupData(std::list<RsGxsGenericGroupData*>& groupInfo)
 
     // request all group infos at once
 
-    if(! rsPosted->getBoardsInfo(std::list<RsGxsGroupId>(),groups))
-        return false;
+	if(! rsPosted->getBoardsInfo(std::list<RsGxsGroupId>(),groups))
+		return false;
 
  	/* Save groups to fill icons and description */
 
@@ -190,12 +192,13 @@ GxsGroupDialog *PostedDialog::createGroupDialog(GxsGroupDialog::Mode mode, RsGxs
 
 int PostedDialog::shareKeyType()
 {
-    return POSTED_KEY_SHARE;
+    //return POSTED_KEY_SHARE;
+    return GroupShareKey::NO_KEY_SHARE; // Boards are public. By the time we offer the possibility to make them restricted, we need to not show the 'share publish permission' entry in the drop menu.
 }
 
 GxsMessageFrameWidget *PostedDialog::createMessageFrameWidget(const RsGxsGroupId &groupId)
 {
-	return new PostedListWidget(groupId);
+	return new PostedListWidgetWithModel(groupId);
 }
 
 RsGxsCommentService *PostedDialog::getCommentService()
@@ -255,7 +258,7 @@ void PostedDialog::groupInfoToGroupItemInfo(const RsGxsGenericGroupData *groupDa
 	groupItemInfo.icon        = image;
     }
     else
-	groupItemInfo.icon        = QIcon(":icons/png/postedlinks.png");
+    groupItemInfo.icon        = FilesDefs::getIconFromQtResourcePath(":icons/png/postedlinks.png");
 
 	groupItemInfo.description = QString::fromUtf8(postedGroupData->mDescription.c_str());
 }

@@ -19,6 +19,34 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.       *
  *                                                                             *
  *******************************************************************************/
+#include "ChatWidget.h"
+#include "ui_ChatWidget.h"
+
+#include "gui/MainWindow.h"
+#include "gui/notifyqt.h"
+#include "gui/RetroShareLink.h"
+#include "gui/settings/rsharesettings.h"
+#include "gui/settings/rsettingswin.h"
+#include "gui/settings/RsharePeerSettings.h"
+#include "gui/common/StatusDefs.h"
+#include "gui/common/FilesDefs.h"
+#include "gui/common/Emoticons.h"
+#include "gui/chat/ChatLobbyDialog.h"
+#include "gui/gxs/GxsIdDetails.h"
+#include "util/misc.h"
+#include "util/HandleRichText.h"
+#include "gui/chat/ChatUserNotify.h"//For BradCast
+#include "util/DateTime.h"
+#include "util/imageutil.h"
+#include "gui/im_history/ImHistoryBrowser.h"
+
+#include <retroshare/rsstatus.h>
+#include <retroshare/rsidentity.h>
+#include <retroshare/rspeers.h>
+#include <retroshare/rshistory.h>
+#include <retroshare/rsmsgs.h>
+#include <retroshare/rsplugin.h>
+
 #include <QApplication>
 #include <QBuffer>
 #include <QColorDialog>
@@ -33,33 +61,6 @@
 #include <QTimer>
 #include <QToolTip>
 #include <QInputDialog>
-
-#include "ChatWidget.h"
-#include "ui_ChatWidget.h"
-#include "gui/MainWindow.h"
-#include "gui/notifyqt.h"
-#include "gui/RetroShareLink.h"
-#include "gui/settings/rsharesettings.h"
-#include "gui/settings/rsettingswin.h"
-#include "gui/settings/RsharePeerSettings.h"
-#include "gui/im_history/ImHistoryBrowser.h"
-#include "gui/common/StatusDefs.h"
-#include "gui/common/FilesDefs.h"
-#include "gui/common/Emoticons.h"
-#include "gui/chat/ChatLobbyDialog.h"
-#include "gui/gxs/GxsIdDetails.h"
-#include "util/misc.h"
-#include "util/HandleRichText.h"
-#include "gui/chat/ChatUserNotify.h"//For BradCast
-#include "util/DateTime.h"
-#include "util/imageutil.h"
-
-#include <retroshare/rsstatus.h>
-#include <retroshare/rsidentity.h>
-#include <retroshare/rspeers.h>
-#include <retroshare/rshistory.h>
-#include <retroshare/rsmsgs.h>
-#include <retroshare/rsplugin.h>
 
 #include <time.h>
 
@@ -78,7 +79,7 @@ ChatWidget::ChatWidget(QWidget *parent)
   , lastStatusSendTime(0)
   , firstShow(true), inChatCharFormatChanged(false), firstSearch(true)
   , lastUpdateCursorPos(0), lastUpdateCursorEnd(0)
-  , completer(NULL), notify(NULL)
+  , completer(NULL), imBrowser(NULL), notify(NULL)
   , ui(new Ui::ChatWidget)
 {
 	ui->setupUi(this);
@@ -87,8 +88,8 @@ ChatWidget::ChatWidget(QWidget *parent)
 	double fmm = iconHeight > FMM_THRESHOLD ? FMM : FMM_SMALLER;
 	iconHeight *= fmm;
 	QSize iconSize = QSize(iconHeight, iconHeight);
-	int butt_size(iconSize.height() + fmm);
-	QSize buttonSize = QSize(butt_size, butt_size);
+	//int butt_size(iconSize.height() + fmm);
+	//QSize buttonSize = QSize(butt_size, butt_size);
 
 	lastMsgDate = QDate::currentDate();
 
@@ -115,6 +116,7 @@ ChatWidget::ChatWidget(QWidget *parent)
 	//ui->sendButton->setFixedHeight(iconHeight);
 	ui->sendButton->setIconSize(iconSize);
 	ui->typingLabel->setMaximumHeight(QFontMetricsF(font()).height()*1.2);
+	ui->fontcolorButton->setIconSize(iconSize);
 
 	//Initialize search
 	iCharToStartSearch=Settings->getChatSearchCharToStartSearch();
@@ -189,7 +191,7 @@ ChatWidget::ChatWidget(QWidget *parent)
 	ui->hashBox->setDropWidget(this);
 	ui->hashBox->setAutoHide(true);
 
-	QMenu *fontmenu = new QMenu(tr("Set text font & color"));
+	QMenu *fontmenu = new QMenu();
 	fontmenu->addAction(ui->actionChooseFont);
 	fontmenu->addAction(ui->actionChooseColor);
 	fontmenu->addAction(ui->actionResetFont);
@@ -198,14 +200,16 @@ ChatWidget::ChatWidget(QWidget *parent)
 	#ifdef USE_CMARK
 	fontmenu->addAction(ui->actionSend_as_CommonMark);
 	#endif
+	ui->fontcolorButton->setMenu(fontmenu);
 
 	QMenu *menu = new QMenu();
+	menu->addAction(ui->actionMessageHistory);
+	menu->addSeparator();
+	menu->addAction(ui->actionSaveChatHistory);
 	menu->addAction(ui->actionClearChatHistory);
 	menu->addAction(ui->actionDeleteChatHistory);
-	menu->addAction(ui->actionSaveChatHistory);
-	menu->addAction(ui->actionMessageHistory);
+
 	ui->pushtoolsButton->setMenu(menu);
-	menu->addMenu(fontmenu);
 
 	ui->actionSendAsPlainText->setChecked(Settings->getChatSendAsPlainTextByDef());
 	ui->chatTextEdit->setOnlyPlainText(ui->actionSendAsPlainText->isChecked());
@@ -242,7 +246,7 @@ ChatWidget::ChatWidget(QWidget *parent)
 
 //#ifdef ENABLE_DISTANT_CHAT_AND_MSGS
 //	contextMnu->addSeparator();
-//    QAction *action = new QAction(QIcon(":/images/pasterslink.png"), tr("Paste/Create private chat or Message link..."), this);
+//    QAction *action = new QAction(FilesDefs::getIconFromQtResourcePath(":/images/pasterslink.png"), tr("Paste/Create private chat or Message link..."), this);
 //    connect(action, SIGNAL(triggered()), this, SLOT(pasteCreateMsgLink()));
 //    ui->chatTextEdit->addContextMenuAction(action);
 //#endif
@@ -287,6 +291,11 @@ void ChatWidget::addChatBarWidget(QWidget *w)
 void ChatWidget::addTitleBarWidget(QWidget *w)
 {
 	ui->pluginTitleFrame->layout()->addWidget(w) ;
+}
+
+void ChatWidget::addTopBarWidget(QWidget *w)
+{
+	ui->pluginTopFrame->layout()->addWidget(w) ;
 }
 
 void ChatWidget::hideChatText(bool hidden)
@@ -394,29 +403,21 @@ void ChatWidget::init(const ChatId &chat_id, const QString &title)
 					continue;
 
 				QString name;
-				if (chatId.isLobbyId() || chatId.isDistantChatId())
+				if (chatId.isLobbyId() || chatId.isDistantChatId() || chatId.isPeerId())
 				{
 					RsIdentityDetails details;
-					time_t start = time(nullptr);
-					while (!rsIdentity->getIdDetails(RsGxsId(historyIt->peerName), details))
-					{
-						std::this_thread::sleep_for(std::chrono::milliseconds(10));
-						if (time(nullptr)>start+2)
-						{
-							std::cerr << "ChatWidget History haven't found Id Details and have wait 1 sec for it." << std::endl;
-							break;
-						}
-					}
 
-					if (rsIdentity->getIdDetails(RsGxsId(historyIt->peerName), details))
+					if (rsIdentity->getIdDetails(RsGxsId(historyIt->peerId), details))
 						name = QString::fromUtf8(details.mNickname.c_str());
-					else
+					else if(!historyIt->peerName.empty())
 						name = QString::fromUtf8(historyIt->peerName.c_str());
+					else
+						name = QString::fromUtf8(historyIt->peerId.toStdString().c_str());
 				} else {
-					name = QString::fromUtf8(historyIt->peerName.c_str());
+					name = QString::fromUtf8(historyIt->peerId.toStdString().c_str());
 				}
 
-				addChatMsg(historyIt->incoming, name, RsGxsId(historyIt->peerName.c_str()), QDateTime::fromTime_t(historyIt->sendTime), QDateTime::fromTime_t(historyIt->recvTime), QString::fromUtf8(historyIt->message.c_str()), MSGTYPE_HISTORY);
+				addChatMsg(historyIt->incoming, name, RsGxsId(historyIt->peerId.toStdString().c_str()), QDateTime::fromTime_t(historyIt->sendTime), QDateTime::fromTime_t(historyIt->recvTime), QString::fromUtf8(historyIt->message.c_str()), MSGTYPE_HISTORY);
 			}
 		}
 	}
@@ -910,13 +911,13 @@ void ChatWidget::showEvent(QShowEvent */*event*/)
 		// otherwise focus will be get even not chat itself
 		ui->textBrowser->setFocus();
 	}
-    ChatUserNotify::clearWaitingChat(chatId);
+	ChatUserNotify::clearWaitingChat(chatId);
 
 	if (firstShow) {
 		// Workaround: now the scroll position is correct calculated
 		firstShow = false;
-		QScrollBar *scrollbar = ui->textBrowser->verticalScrollBar();
-		scrollbar->setValue(scrollbar->maximum());
+		QScrollBar *scrollbar2 = ui->textBrowser->verticalScrollBar();
+		scrollbar2->setValue(scrollbar2->maximum());
 	}
 }
 
@@ -1064,7 +1065,7 @@ void ChatWidget::addChatMsg(bool incoming, const QString &name, const RsGxsId gx
 		rsIdentity->getIdDetails(gxsId, details);
 		bool isUnsigned = !(details.mFlags & RS_IDENTITY_FLAGS_PGP_LINKED);
 		if(isUnsigned && ui->textBrowser->getShowImages()) {
-			QIcon icon = QIcon(":/icons/anonymous_blue_128.png");
+            QIcon icon = FilesDefs::getIconFromQtResourcePath(":/icons/anonymous_blue_128.png");
 			int height = ui->textBrowser->fontMetrics().height()*0.8;
 			QImage image(icon.pixmap(height,height).toImage());
 			QByteArray byteArray;
@@ -1358,8 +1359,6 @@ bool ChatWidget::findText(const QString& qsStringToFind, bool bBackWard, bool bF
 {
 	QTextDocument *qtdDocument = ui->textBrowser->document();
 	bool bFound = false;
-	bool bFirstFound = true;
-	uint uiFoundCount = 0;
 
 	removeFoundText();
 
@@ -1369,6 +1368,9 @@ bool ChatWidget::findText(const QString& qsStringToFind, bool bBackWard, bool bF
 
 	if (!qsStringToFind.isEmpty())
 	{
+		bool bFirstFound = true;
+		uint uiFoundCount = 0;
+
 		QPalette qpBackGround=ui->leSearch->palette();
 
 		QTextCursor qtcHighLight(qtdDocument);
@@ -1487,10 +1489,10 @@ void ChatWidget::on_markButton_clicked(bool bValue)
 void ChatWidget::chooseColor()
 {
 	bool ok;
-	QRgb color = QColorDialog::getRgba(ui->chatTextEdit->textColor().rgba(), &ok, window());
+	QRgb color = QColorDialog::getRgba(currentColor.rgba(), &ok, window());
 	if (ok) {
 		currentColor = QColor(color);
-        PeerSettings->setPrivateChatColor(chatId, currentColor.name());
+		PeerSettings->setPrivateChatColor(chatId, currentColor.name());
 		colorChanged();
 		setColorAndFont(false);
 	}
@@ -1509,9 +1511,24 @@ void ChatWidget::chooseFont()
 	//Use NULL as parent as with this QFontDialog don't take care of title nether options.
 	QFont font = misc::getFont(&ok, currentFont, nullptr, tr("Choose your font."));
 
+	QTextCursor cursor = ui->chatTextEdit->textCursor();
 	if (ok) {
-		currentFont = font;
-		setFont();
+		if (cursor.selection().isEmpty()){
+			currentFont = font;
+			setFont();
+		} else {
+			//Merge Format doesn't works for only selection so add a new block.
+			QString text = "<p style=\"";
+			text += " color: " + currentColor.name() + ";";
+			text += " font-family:" + font.family() + ";";
+			text += font.bold() ? " font-weight: bold;" : "";
+			text += font.italic() ? " font-style: italic;" : "";
+			text += " font-size:" + QString::number(font.pointSize()) + "pt;";
+			text += font.strikeOut() ? " text-decoration: line-through;" : "";
+			text += font.underline() ? " text-decoration: underline;" : "";
+			text += "\">" + cursor.selectedText().toHtmlEscaped() + "</p>";
+ 			cursor.insertHtml(text);
+		}
 	}
 }
 
@@ -1530,16 +1547,20 @@ void ChatWidget::resetFonts()
 
 void ChatWidget::setColorAndFont(bool both)
 {
+	QTextCharFormat format;
+	format.setForeground(currentColor);
+	format.setFont(currentFont);
+	ui->chatTextEdit->mergeCurrentCharFormat(format);
 
-	ui->chatTextEdit->setFont(currentFont);
-	QStringList fontdata=currentFont.toString().split(",");
-	QString stylesheet="font-family: '"+fontdata[0]+"'; font-size: "+fontdata[1]+"pt;";
-	if (currentFont.bold()) stylesheet+=" font-weight: bold;";
-	if (currentFont.italic()) stylesheet+=" font-style: italic;";
-	if (currentFont.underline()) stylesheet+=" text-decoration: underline;";
-	if (both) ui->textBrowser->setStyleSheet(stylesheet);
-	ui->chatTextEdit->setStyleSheet(stylesheet);
-	ui->chatTextEdit->setTextColor(currentColor);
+	if (both)
+	{
+		QStringList fontdata=currentFont.toString().split(",");
+		QString stylesheet="font-family: '"+fontdata[0]+"'; font-size: "+fontdata[1]+"pt;";
+		if (currentFont.bold()) stylesheet+=" font-weight: bold;";
+		if (currentFont.italic()) stylesheet+=" font-style: italic;";
+		if (currentFont.underline()) stylesheet+=" text-decoration: underline;";
+		ui->textBrowser->setStyleSheet(stylesheet);
+	}
 
 	ui->chatTextEdit->setFocus();
 }
@@ -1547,7 +1568,7 @@ void ChatWidget::setColorAndFont(bool both)
 void ChatWidget::setFont()
 {
 	setColorAndFont(false);
-    PeerSettings->setPrivateChatFont(chatId, currentFont.toString());
+	PeerSettings->setPrivateChatFont(chatId, currentFont.toString());
 }
 
 void ChatWidget::smileyWidget()
@@ -1561,8 +1582,11 @@ void ChatWidget::addSmiley()
 	// add trailing space
 	smiley += QString(" ");
 	// add preceding space when needed (not at start of text or preceding space already exists)
-	if(!ui->chatTextEdit->textCursor().atStart() && ui->chatTextEdit->toPlainText()[ui->chatTextEdit->textCursor().position() - 1] != QChar(' '))
+	QString plainText = ui->chatTextEdit->toPlainText();
+	QChar start = plainText[ui->chatTextEdit->textCursor().position() - 1];
+	if(!ui->chatTextEdit->textCursor().atStart() && start != QChar(' '))
 		smiley = QString(" ") + smiley;
+
 	ui->chatTextEdit->textCursor().insertText(smiley);
 }
 
@@ -1604,8 +1628,9 @@ void ChatWidget::deleteChatHistory()
 
 void ChatWidget::messageHistory()
 {
-    ImHistoryBrowser imBrowser(chatId, ui->chatTextEdit, window());
-	imBrowser.exec();
+	if (!imBrowser)
+		imBrowser = new ImHistoryBrowser(chatId, ui->chatTextEdit, this->title, window());
+	imBrowser->show();
 }
 
 void ChatWidget::addExtraFile()
@@ -1833,13 +1858,16 @@ void ChatWidget::updateTitle()
 	ui->titleLabel->setText(RsHtml::plainText(name) + "@" + RsHtml::plainText(title));
 }
 
-void ChatWidget::updatePeersCustomStateString(const QString& /*peer_id*/, const QString& /*status_string*/)
+void ChatWidget::updatePeersCustomStateString(const QString& peer_id, const QString& status_string)
 {
+	if (chatType() != CHATTYPE_PRIVATE )
+	{
+		return;
+	}
+
 	QString status_text;
 
-    // TODO: fix peer_id and types and eveyrhing
-    /*
-    if (RsPeerId(peer_id.toStdString()) == peerId) {
+	if (RsPeerId(peer_id.toStdString()) == chatId.toPeerId()) {
 		// the peers status string has changed
 		if (status_string.isEmpty()) {
 			ui->statusMessageLabel->hide();
@@ -1854,13 +1882,12 @@ void ChatWidget::updatePeersCustomStateString(const QString& /*peer_id*/, const 
 			ui->statusLabel->setAlignment ( Qt::AlignVCenter );
 		}
 	}
-    */
 }
 
 void ChatWidget::updateStatusString(const QString &statusMask, const QString &statusString, bool permanent)
 {
 	ui->typingLabel->setText(QString(statusMask).arg(trUtf8(statusString.toUtf8()))); // displays info for 5 secs.
-	ui->typingPixmapLabel->setPixmap(QPixmap(":icons/png/typing.png") );
+    ui->typingPixmapLabel->setPixmap(FilesDefs::getPixmapFromQtResourcePath(":icons/png/typing.png") );
 
 	if (statusString == "is typing...") {
 		typing = true;
@@ -1906,11 +1933,8 @@ void ChatWidget::updateCMPreview()
 
 void ChatWidget::quote()
 {
-	QString text = ui->textBrowser->textCursor().selection().toPlainText();
-	QStringList sl = text.split(QRegExp("[\r\n]"), QString::SkipEmptyParts);
-	text = sl.join("\n> ");
-	text.replace(QChar(-4), " "); // Char used when image on text.
-	emit ui->chatTextEdit->append(QString("> ") + text);
+	QString text = RsHtml::makeQuotedText(ui->textBrowser);
+	ui->chatTextEdit->append(text);
 }
 
 void ChatWidget::dropPlacemark()

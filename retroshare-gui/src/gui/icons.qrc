@@ -1,9 +1,17 @@
 <RCC>
     <qresource prefix="/">
         <file>icons/onion.png</file>
+        <file>icons/svg/design.svg</file>
         <file>icons/svg/hidden.svg</file>
+        <file>icons/svg/ratio-auto.svg</file>
+        <file>icons/svg/ratio-1-1.svg</file>
+        <file>icons/svg/ratio-3-4.svg</file>
+        <file>icons/svg/ratio-16-9.svg</file>
         <file>icons/svg/randomness.svg</file>
         <file>icons/svg/password.svg</file>
+        <file>icons/svg/display_options.svg</file>
+        <file>icons/svg/listlayout.svg</file>
+        <file>icons/svg/gridlayout.svg</file>
         <file>icons/stars/star0.png</file>
         <file>icons/stars/star1.png</file>
         <file>icons/stars/star2.png</file>
@@ -45,6 +53,7 @@
         <file>icons/gmail.png</file>
         <file>icons/help_128.png</file>
         <file>icons/help_64.png</file>
+        <file>icons/identities.png</file>
         <file>icons/information_128.png</file>
         <file>icons/internet_128.png</file>
         <file>icons/invite64.png</file>
@@ -54,12 +63,14 @@
         <file>icons/logo_2_connected_128.png</file>
         <file>icons/outlook.png</file>
         <file>icons/question.png</file>
+        <file>icons/ssl.png</file>
         <file>icons/plugins_128.png</file>
         <file>icons/png/add.png</file>
         <file>icons/png/add-identity.png</file>
         <file>icons/png/anonymous.png</file>
         <file>icons/png/attach-image.png</file>
         <file>icons/png/attach.png</file>
+        <file>icons/png/arrow.png</file>
         <file>icons/png/cert.png</file>
         <file>icons/png/channels-notify.png</file>
         <file>icons/png/channels.png</file>
@@ -82,6 +93,7 @@
         <file>icons/png/forums.png</file>
         <file>icons/png/fullscreen_arrows.png</file>
         <file>icons/png/highlight.png</file>
+        <file>icons/png/history-clock-white.png</file>
         <file>icons/png/help.png</file>
         <file>icons/png/home.png</file>
         <file>icons/png/info.png</file>
@@ -91,6 +103,7 @@
         <file>icons/png/leave2.png</file>
         <file>icons/png/messages-notify.png</file>
         <file>icons/png/messages.png</file>
+        <file>icons/png/menu.png</file>
         <file>icons/png/microphone_mute.png</file>
         <file>icons/png/microphone.png</file>
         <file>icons/png/netgraph.png</file>
@@ -136,6 +149,7 @@
         <file>icons/settings/filesharing.svg</file>
         <file>icons/settings/forums.svg</file>
         <file>icons/settings/general.svg</file>
+        <file>icons/settings/jasonapi.svg</file>
         <file>icons/settings/messages.svg</file>
         <file>icons/settings/network.svg</file>
         <file>icons/settings/notify.svg</file>
@@ -231,6 +245,7 @@
         <file>icons/no-tor.png</file>
         <file>icons/tor-starting.png</file>
         <file>icons/tor-stopping.png</file>
+        <file>icons/i2p-128.png</file>
         <file>icons/user-away_64.png</file>
         <file>icons/user-away-extended_64.png</file>
         <file>icons/user-busy_64.png</file>
@@ -250,6 +265,7 @@
         <file>icons/png/circles-green.png</file>
         <file>icons/png/forums-default.png</file>
         <file>icons/png/forums-signed.png</file>
+        <file>icons/png/forums-red.png</file>
         <file>icons/png/flame.png</file>
         <file>icons/png/new.png</file>
         <file>icons/png/top.png</file>
@@ -300,6 +316,7 @@
         <file>icons/png/arrow-left.png</file>
         <file>icons/png/next-unread.png</file>
         <file>icons/mail/compose.png</file>
+        <file>icons/mail/downloadall.png</file>
         <file>icons/mail/delete.png</file>
         <file>icons/mail/tags.png</file>
         <file>icons/mail/quote.png</file>
@@ -310,6 +327,7 @@
         <file>icons/mail/foward.png</file>
         <file>icons/mail/reply.png</file>
         <file>icons/mail/reply-all.png</file>
+        <file>icons/mail/attach16.png</file>
         <file>icons/mail/attach24.png</file>
         <file>icons/mail/write-mail.png</file>
         <file>icons/textedit/align.png</file>

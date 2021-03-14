@@ -47,13 +47,18 @@
 #define POSTBASE_UNPROCESSED_MSGS	0x0012
 #define POSTBASE_ALL_MSGS 		0x0013
 #define POSTBASE_BG_POST_META		0x0014
+
+#define POSTED_UNUSED_BY_FRIENDS_DELAY (2*30*86400)  // delete unused posted groups after 2 months
+
 /********************************************************************************/
 /******************* Startup / Tick    ******************************************/
 /********************************************************************************/
 
 p3PostBase::p3PostBase(RsGeneralDataService *gds, RsNetworkExchangeService *nes, RsGixs* gixs,
 	RsSerialType* serviceSerialiser, uint16_t serviceType)
-    : RsGenExchange(gds, nes, serviceSerialiser, serviceType, gixs, postBaseAuthenPolicy()), GxsTokenQueue(this), RsTickEvent(), mPostBaseMtx("PostBaseMtx")
+    : RsGenExchange(gds, nes, serviceSerialiser, serviceType, gixs, postBaseAuthenPolicy()), GxsTokenQueue(this), RsTickEvent(),
+      mPostBaseMtx("PostBaseMutex"),
+      mKnownPostedMutex("PostBaseKnownPostedMutex")
 {
 	mBgProcessing = false;
 
@@ -88,121 +93,172 @@ void p3PostBase::notifyChanges(std::vector<RsGxsNotify *> &changes)
 #endif
 
 	for(auto it = changes.begin(); it != changes.end(); ++it)
-	{
-		RsGxsMsgChange *msgChange = dynamic_cast<RsGxsMsgChange *>(*it);
+    {
+        RsGxsMsgChange *msgChange = dynamic_cast<RsGxsMsgChange *>(*it);
 
-		if (msgChange)
-		{
+        if(msgChange)
+        {
+            // To start with we are just going to trigger updates on these groups.
+            // FUTURE OPTIMISATION.
+            // It could be taken a step further and directly request these msgs for an update.
+            addGroupForProcessing(msgChange->mGroupId);
+
+            if (rsEvents)
+            {
+                switch(msgChange->getType())
+                {
+                case RsGxsNotify::TYPE_RECEIVED_NEW:
+                case RsGxsNotify::TYPE_PUBLISHED:
+                {
+                    auto ev = std::make_shared<RsGxsPostedEvent>();
+                    ev->mPostedMsgId    = msgChange->mMsgId;
+                    ev->mPostedThreadId = msgChange->mNewMsgItem->meta.mThreadId;
+                    ev->mPostedGroupId  = msgChange->mGroupId;
+
+                    if(nullptr != dynamic_cast<RsGxsCommentItem*>(msgChange->mNewMsgItem))
+                        ev->mPostedEventCode = RsPostedEventCode::NEW_COMMENT;
+                    else
+                        if(nullptr != dynamic_cast<RsGxsVoteItem*>(msgChange->mNewMsgItem))
+                            ev->mPostedEventCode = RsPostedEventCode::NEW_VOTE;
+                        else
+                            ev->mPostedEventCode = RsPostedEventCode::NEW_MESSAGE;
+
+                    rsEvents->postEvent(ev);
 #ifdef POSTBASE_DEBUG
-			std::cerr << "p3PostBase::notifyChanges() Found Message Change Notification";
-			std::cerr << std::endl;
+                    std::cerr << "p3PostBase::notifyChanges() Found Message Change Notification: NEW/PUBLISHED ID=" << msgChange->mMsgId << " in group " << msgChange->mGroupId << ", thread ID = " << msgChange->mNewMsgItem->meta.mThreadId << std::endl;
 #endif
 
-			std::map<RsGxsGroupId, std::set<RsGxsMessageId> > &msgChangeMap = msgChange->msgChangeMap;
-			for(auto mit = msgChangeMap.begin(); mit != msgChangeMap.end(); ++mit)
-			{
+                }
+                    break;
+
+
+                case RsGxsNotify::TYPE_PROCESSED:
+                {
+                    auto ev = std::make_shared<RsGxsPostedEvent>();
+                    ev->mPostedMsgId = msgChange->mMsgId;
+                    ev->mPostedGroupId = msgChange->mGroupId;
+                    ev->mPostedEventCode = RsPostedEventCode::MESSAGE_VOTES_UPDATED;
+                    rsEvents->postEvent(ev);
 #ifdef POSTBASE_DEBUG
-				std::cerr << "p3PostBase::notifyChanges() Msgs for Group: " << mit->first;
-				std::cerr << std::endl;
+                    std::cerr << "p3PostBase::notifyChanges() Found Message Change Notification: PROCESSED ID=" << msgChange->mMsgId << " in group " << msgChange->mGroupId << std::endl;
 #endif
-				// To start with we are just going to trigger updates on these groups.
-				// FUTURE OPTIMISATION.
-				// It could be taken a step further and directly request these msgs for an update.
-				addGroupForProcessing(mit->first);
-
-				if (rsEvents && (msgChange->getType() == RsGxsNotify::TYPE_RECEIVED_NEW || msgChange->getType() == RsGxsNotify::TYPE_PUBLISHED))
-					for (auto mit1 = mit->second.begin(); mit1 != mit->second.end(); ++mit1)
-					{
-						auto ev = std::make_shared<RsGxsPostedEvent>();
-						ev->mPostedMsgId = *mit1;
-						ev->mPostedGroupId = mit->first;
-						ev->mPostedEventCode = RsPostedEventCode::NEW_MESSAGE;
-						rsEvents->postEvent(ev);
-					}
-			}
-		}
-
-		RsGxsGroupChange *grpChange = dynamic_cast<RsGxsGroupChange *>(*it);
-
-		/* pass on Group Changes to GUI */
-		if (grpChange && rsEvents)
-		{
+                }
+                    break;
+                default:
 #ifdef POSTBASE_DEBUG
-			std::cerr << "p3PostBase::notifyChanges() Found Group Change Notification";
-			std::cerr << std::endl;
+                    std::cerr << "p3PostBase::notifyChanges() Found Message Change Notification: type " << msgChange->getType() << " (ignored) " << msgChange->mMsgId << std::endl;
 #endif
+                    break;
+                }
+            }
+        }
+
+        RsGxsGroupChange *grpChange = dynamic_cast<RsGxsGroupChange *>(*it);
+
+        /* pass on Group Changes to GUI */
+        if (grpChange && rsEvents)
+        {
+#ifdef POSTBASE_DEBUG
+            std::cerr << "p3PostBase::notifyChanges() Found Group Change Notification";
+            std::cerr << std::endl;
+#endif
+            const RsGxsGroupId& group_id(grpChange->mGroupId);
 
             switch(grpChange->getType())
-			{
-			case RsGxsNotify::TYPE_PROCESSED:	// happens when the group is subscribed
-			{
-				std::list<RsGxsGroupId> &grpList = grpChange->mGrpIdList;
-				std::list<RsGxsGroupId>::iterator git;
-				for (git = grpList.begin(); git != grpList.end(); ++git)
-				{
-					auto ev = std::make_shared<RsGxsPostedEvent>();
-					ev->mPostedGroupId = *git;
-					ev->mPostedEventCode = RsPostedEventCode::SUBSCRIBE_STATUS_CHANGED;
-					rsEvents->postEvent(ev);
-				}
+            {
+            case RsGxsNotify::TYPE_PROCESSED:	// happens when the group is subscribed
+            {
+                auto ev = std::make_shared<RsGxsPostedEvent>();
+                ev->mPostedGroupId = group_id;
+                ev->mPostedEventCode = RsPostedEventCode::SUBSCRIBE_STATUS_CHANGED;
+                rsEvents->postEvent(ev);
+            }
+                break;
 
-			}
-				break;
+            case RsGxsNotify::TYPE_GROUP_SYNC_PARAMETERS_UPDATED:
+            {
+                auto ev = std::make_shared<RsGxsPostedEvent>();
+                ev->mPostedGroupId = group_id;
+                ev->mPostedEventCode = RsPostedEventCode::SYNC_PARAMETERS_UPDATED;
+                rsEvents->postEvent(ev);
+            }
+                break;
 
-			case RsGxsNotify::TYPE_STATISTICS_CHANGED:
-			{
-				std::list<RsGxsGroupId> &grpList = grpChange->mGrpIdList;
-				std::list<RsGxsGroupId>::iterator git;
+          case RsGxsNotify::TYPE_GROUP_DELETED:
+           {
+               auto ev = std::make_shared<RsGxsPostedEvent>();
+               ev->mPostedGroupId = group_id;
+               ev->mPostedEventCode = RsPostedEventCode::BOARD_DELETED;
 
-				for (git = grpList.begin(); git != grpList.end(); ++git)
-				{
-					auto ev = std::make_shared<RsGxsPostedEvent>();
-					ev->mPostedGroupId = *git;
-					ev->mPostedEventCode = RsPostedEventCode::STATISTICS_CHANGED;
-					rsEvents->postEvent(ev);
-				}
-			}
-				break;
+               rsEvents->postEvent(ev);
+           }
+               break;
 
-			case RsGxsNotify::TYPE_PUBLISHED:
-			case RsGxsNotify::TYPE_RECEIVED_NEW:
-			{
-				/* group received */
-				const std::list<RsGxsGroupId>& grpList = grpChange->mGrpIdList;
+            case RsGxsNotify::TYPE_STATISTICS_CHANGED:
+            {
+                auto ev = std::make_shared<RsGxsPostedEvent>();
+                ev->mPostedGroupId = group_id;
+                ev->mPostedEventCode = RsPostedEventCode::STATISTICS_CHANGED;
+                rsEvents->postEvent(ev);
 
-				for (auto git = grpList.begin(); git != grpList.end(); ++git)
-				{
-					if(mKnownPosted.find(*git) == mKnownPosted.end())
-					{
-						mKnownPosted.insert(std::make_pair(*git, time(nullptr)));
-						IndicateConfigChanged();
+                RS_STACK_MUTEX(mKnownPostedMutex);
+                mKnownPosted[group_id] = time(nullptr);
+                IndicateConfigChanged();
+            }
+                break;
 
-						auto ev = std::make_shared<RsGxsPostedEvent>();
-						ev->mPostedGroupId = *git;
-						ev->mPostedEventCode = RsPostedEventCode::NEW_POSTED_GROUP;
-						rsEvents->postEvent(ev);
+            case RsGxsNotify::TYPE_UPDATED:
+            {
+                // Happens when the group data has changed. In this case we need to analyse the old and new group in order to detect possible notifications for clients
+
+                auto ev = std::make_shared<RsGxsPostedEvent>();
+                ev->mPostedGroupId = grpChange->mGroupId;
+                ev->mPostedEventCode = RsPostedEventCode::UPDATED_POSTED_GROUP;
+                rsEvents->postEvent(ev);
+            }
+                break;
+
+
+            case RsGxsNotify::TYPE_PUBLISHED:
+            case RsGxsNotify::TYPE_RECEIVED_NEW:
+            {
+                /* group received */
+
+                bool unknown;
+                {
+                    RS_STACK_MUTEX(mKnownPostedMutex);
+
+                    unknown = (mKnownPosted.find(grpChange->mGroupId) == mKnownPosted.end());
+                    mKnownPosted[group_id] = time(nullptr);
+                    IndicateConfigChanged();
+                }
+                if(unknown)
+                {
+                    auto ev = std::make_shared<RsGxsPostedEvent>();
+                    ev->mPostedGroupId = group_id;
+                    ev->mPostedEventCode = RsPostedEventCode::NEW_POSTED_GROUP;
+                    rsEvents->postEvent(ev);
 
 #ifdef POSTBASE_DEBUG
-						std::cerr << "p3PostBase::notifyChanges() Incoming Group: " << *git;
-						std::cerr << std::endl;
+                    std::cerr << "p3PostBase::notifyChanges() Incoming Group: " << group_id;
+                    std::cerr << std::endl;
 #endif
-					}
-					else
-						RsInfo() << __PRETTY_FUNCTION__
-						         << " Not notifying already known forum "
-						         << *git << std::endl;
-				}
-			}
-				break;
+                }
+                else
+                    RsInfo() << __PRETTY_FUNCTION__
+                             << " Not notifying already known forum "
+                             << group_id << std::endl;
+            }
+                break;
 
-			default:
-				RsErr() << " Got a GXS event of type " << grpChange->getType() << " Currently not handled." << std::endl;
-				break;
-			}
-		}
+            default:
+                RsErr() << " Got a GXS event of type " << grpChange->getType() << " Currently not handled." << std::endl;
+                break;
+            }
+        }
 
         delete *it;
-	}
+    }
 }
 
 void	p3PostBase::service_tick()
@@ -351,11 +407,7 @@ void p3PostBase::addGroupForProcessing(RsGxsGroupId grpId)
 	{
 		RsStackMutex stack(mPostBaseMtx); /********** STACK LOCKED MTX ******/
 		// no point having multiple lookups queued.
-		if (mBgGroupList.end() == std::find(mBgGroupList.begin(), 
-						mBgGroupList.end(), grpId))
-		{
-			mBgGroupList.push_back(grpId);
-		}
+		mBgGroupList.insert(grpId);
 	}
 }
 
@@ -388,8 +440,8 @@ void p3PostBase::background_requestUnprocessedGroup()
 			return;
 		}
 
-		grpId = mBgGroupList.front();
-		mBgGroupList.pop_front();
+		grpId = *mBgGroupList.begin();
+		mBgGroupList.erase(grpId);
 		mBgProcessing = true;
 	}
 
@@ -483,8 +535,6 @@ void p3PostBase::background_loadMsgs(const uint32_t &token, bool unprocessed)
 
 	// generate vector of changes to push to the GUI.
 	std::vector<RsGxsNotify *> changes;
-	RsGxsMsgChange *msgChanges = new RsGxsMsgChange(RsGxsNotify::TYPE_PROCESSED, false);
-
 
 	RsGxsGroupId groupId;
 	std::map<RsGxsGroupId, std::vector<RsGxsMsgItem*> >::iterator mit;
@@ -535,7 +585,7 @@ void p3PostBase::background_loadMsgs(const uint32_t &token, bool unprocessed)
 #endif
 
 				/* but we need to notify GUI about them */	
-				msgChanges->msgChangeMap[mit->first].insert((*vit)->meta.mMsgId);
+				changes.push_back(new RsGxsMsgChange(RsGxsNotify::TYPE_PROCESSED, mit->first,(*vit)->meta.mMsgId, false));
 			}
 			else if (NULL != (commentItem = dynamic_cast<RsGxsCommentItem *>(*vit)))
 			{
@@ -579,8 +629,7 @@ void p3PostBase::background_loadMsgs(const uint32_t &token, bool unprocessed)
 			else
 			{
 				/* unknown! */
-				std::cerr << "p3PostBase::background_processNewMessages() ERROR Strange NEW Message:";
-				std::cerr << std::endl;
+                std::cerr << "p3PostBase::background_processNewMessages() ERROR Strange NEW Message:" << std::endl;
 				std::cerr << "\t" << (*vit)->meta;
 				std::cerr << std::endl;
 	
@@ -631,22 +680,7 @@ void p3PostBase::background_loadMsgs(const uint32_t &token, bool unprocessed)
 	}
 
 	/* push updates of new Posts */
-	if (msgChanges->msgChangeMap.size() > 0)
-	{
-#ifdef POSTBASE_DEBUG
-        std::cerr << "p3PostBase::background_processNewMessages() -> receiveChanges()";
-        std::cerr << std::endl;
-#endif
-
-		changes.push_back(msgChanges);
-	 	//receiveHelperChanges(changes);
-
-        notifyChanges(changes);
-	}
-	else
-	{
-		delete(msgChanges);
-	}
+	notifyChanges(changes);
 
 	/* request the summary info from the parents */
 	uint32_t token_b;
@@ -711,7 +745,6 @@ void p3PostBase::background_updateVoteCounts(const uint32_t &token)
 
 	// generate vector of changes to push to the GUI.
 	std::vector<RsGxsNotify *> changes;
-	RsGxsMsgChange *msgChanges = new RsGxsMsgChange(RsGxsNotify::TYPE_PROCESSED, false);
 
 	for(mit = parentMsgList.begin(); mit != parentMsgList.end(); ++mit)
 	{
@@ -754,7 +787,8 @@ void p3PostBase::background_updateVoteCounts(const uint32_t &token)
 #endif
 
 				stats.increment(it->second);
-				msgChanges->msgChangeMap[mit->first].insert(vit->mMsgId);
+
+	            changes.push_back(new RsGxsMsgChange(RsGxsNotify::TYPE_PROCESSED,mit->first,vit->mMsgId, false));
 			}
 			else
 			{
@@ -786,21 +820,7 @@ void p3PostBase::background_updateVoteCounts(const uint32_t &token)
 		}
 	}
 
-	if (msgChanges->msgChangeMap.size() > 0)
-	{
-#ifdef POSTBASE_DEBUG
-        std::cerr << "p3PostBase::background_updateVoteCounts() -> receiveChanges()";
-        std::cerr << std::endl;
-#endif
-
-		changes.push_back(msgChanges);
-	 	//receiveHelperChanges(changes);
-        notifyChanges(changes);
-	}
-	else
-	{
-		delete(msgChanges);
-	}
+	notifyChanges(changes);
 
 	// DONE!.
 	background_cleanup();
@@ -827,12 +847,14 @@ bool p3PostBase::background_cleanup()
 
 
 	// Overloaded from GxsTokenQueue for Request callbacks.
-void p3PostBase::handleResponse(uint32_t token, uint32_t req_type)
+void p3PostBase::handleResponse(uint32_t token, uint32_t req_type
+                                , RsTokenService::GxsRequestStatus status)
 {
 #ifdef POSTBASE_DEBUG
-    std::cerr << "p3PostBase::handleResponse(" << token << "," << req_type << ")";
-    std::cerr << std::endl;
+	std::cerr << "p3PostBase::handleResponse(" << token << "," << req_type << "," << status << ")" << std::endl;
 #endif
+	if (status != RsTokenService::COMPLETE)
+		return; //For now, only manage Complete request
 
 	// stuff.
 	switch(req_type)
@@ -898,13 +920,72 @@ public:
 	}
 };
 
-bool p3PostBase::saveList(bool &cleanup, std::list<RsItem *>&saveList)
+bool p3PostBase::service_checkIfGroupIsStillUsed(const RsGxsGrpMetaData& meta)
+{
+#ifdef GXSFORUMS_CHANNELS
+    std::cerr << "p3gxsChannels: Checking unused board: called by GxsCleaning." << std::endl;
+#endif
+
+    // request all group infos at once
+
+    rstime_t now = time(nullptr);
+
+    RS_STACK_MUTEX(mKnownPostedMutex);
+
+    auto it = mKnownPosted.find(meta.mGroupId);
+    bool unknown_posted = (it == mKnownPosted.end());
+
+#ifdef GXSFORUMS_CHANNELS
+    std::cerr << "  Board " << meta.mGroupId ;
+#endif
+
+    if(unknown_posted)
+    {
+        // This case should normally not happen. It does because this board was never registered since it may
+        // arrived before this code was here
+
+#ifdef GXSFORUMS_CHANNELS
+        std::cerr << ". Not known yet. Adding current time as new TS." << std::endl;
+#endif
+        mKnownPosted[meta.mGroupId] = now;
+        IndicateConfigChanged();
+
+        return true;
+    }
+    else
+    {
+        bool used_by_friends = (now < it->second + POSTED_UNUSED_BY_FRIENDS_DELAY);
+        bool subscribed = static_cast<bool>(meta.mSubscribeFlags & GXS_SERV::GROUP_SUBSCRIBE_SUBSCRIBED);
+
+        std::cerr << ". subscribed: " << subscribed << ", used_by_friends: " << used_by_friends << " last TS: " << now - it->second << " secs ago (" << (now-it->second)/86400 << " days)";
+
+        if(!subscribed && !used_by_friends)
+        {
+#ifdef GXSFORUMS_CHANNELS
+            std::cerr << ". Scheduling for deletion" << std::endl;
+#endif
+            return false;
+        }
+        else
+        {
+#ifdef GXSFORUMS_CHANNELS
+            std::cerr << ". Keeping!" << std::endl;
+#endif
+            return true;
+        }
+    }
+}
+
+bool p3PostBase::saveList(bool& cleanup, std::list<RsItem *>&saveList)
 {
 	cleanup = true ;
 
 	RsGxsPostedNotifyRecordsItem *item = new RsGxsPostedNotifyRecordsItem ;
 
-	item->records = mKnownPosted ;
+    {
+        RS_STACK_MUTEX(mKnownPostedMutex);
+        item->records = mKnownPosted ;
+    }
 
 	saveList.push_back(item) ;
 	return true;
@@ -923,6 +1004,8 @@ bool p3PostBase::loadList(std::list<RsItem *>& loadList)
 
 		if(fnr != NULL)
 		{
+            RS_STACK_MUTEX(mKnownPostedMutex);
+
 			mKnownPosted.clear();
 
 			for(auto it(fnr->records.begin());it!=fnr->records.end();++it)

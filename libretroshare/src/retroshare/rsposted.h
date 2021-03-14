@@ -115,6 +115,11 @@ enum class RsPostedEventCode: uint8_t
 	UPDATED_MESSAGE          = 0x05,
 	READ_STATUS_CHANGED      = 0x06,
 	STATISTICS_CHANGED       = 0x07,
+    MESSAGE_VOTES_UPDATED    = 0x08,
+    SYNC_PARAMETERS_UPDATED  = 0x09,
+    NEW_COMMENT              = 0x0a,
+    NEW_VOTE                 = 0x0b,
+    BOARD_DELETED            = 0x0c,
 };
 
 
@@ -127,6 +132,7 @@ struct RsGxsPostedEvent: RsEvent
 	RsPostedEventCode mPostedEventCode;
 	RsGxsGroupId mPostedGroupId;
 	RsGxsMessageId mPostedMsgId;
+    RsGxsMessageId mPostedThreadId;
 
 	///* @see RsEvent @see RsSerializable
 	void serial_process( RsGenericSerializer::SerializeJob j,RsGenericSerializer::SerializeContext& ctx) override
@@ -154,13 +160,15 @@ public:
 	virtual bool getBoardAllContent(
 	        const RsGxsGroupId& boardId,
 	        std::vector<RsPostedPost>& posts,
-	        std::vector<RsGxsComment>& comments ) = 0;
+	        std::vector<RsGxsComment>& comments,
+	        std::vector<RsGxsVote>& votes ) = 0;
 
 	virtual bool getBoardContent(
 	        const RsGxsGroupId& boardId,
 	        const std::set<RsGxsMessageId>& contentsIds,
 	        std::vector<RsPostedPost>& posts,
-	        std::vector<RsGxsComment>& comments ) = 0;
+	        std::vector<RsGxsComment>& comments,
+	        std::vector<RsGxsVote>& votes ) = 0;
 
 	virtual bool editBoard(RsPostedGroup& board) =0;
 
@@ -170,11 +178,20 @@ public:
 
 	virtual bool getBoardsServiceStatistics(GxsServiceStatistic& stat) =0;
 
-	enum RS_DEPRECATED RankType {TopRankType, HotRankType, NewRankType };
+    virtual bool voteForPost(bool up,const RsGxsGroupId& postGrpId,const RsGxsMessageId& postMsgId,const RsGxsId& voterId) =0;
+
+    virtual bool setPostReadStatus(const RsGxsGrpMsgIdPair& msgId, bool read) = 0;
+
+    enum RS_DEPRECATED RankType {TopRankType, HotRankType, NewRankType };
 
 	RS_DEPRECATED_FOR(getBoardsInfo)
 	virtual bool getGroupData( const uint32_t& token,
 	                           std::vector<RsPostedGroup> &groups ) = 0;
+
+	RS_DEPRECATED_FOR(getBoardsContent)
+	virtual bool getPostData(
+	        const uint32_t& token, std::vector<RsPostedPost>& posts,
+	        std::vector<RsGxsComment>& cmts, std::vector<RsGxsVote>& vots) = 0;
 
 	RS_DEPRECATED_FOR(getBoardsContent)
 	virtual bool getPostData(
@@ -185,7 +202,9 @@ public:
 	virtual bool getPostData(
 	        const uint32_t& token, std::vector<RsPostedPost>& posts) = 0;
 
-	//Not currently used
+    virtual bool setCommentAsRead(uint32_t& token,const RsGxsGroupId& gid,const RsGxsMessageId& comment_msg_id) =0;
+
+    //Not currently used
 //virtual bool getRelatedPosts(const uint32_t &token, std::vector<RsPostedPost> &posts) = 0;
 
 	    /* From RsGxsCommentService */
@@ -194,8 +213,9 @@ public:
 //virtual bool createNewComment(uint32_t &token, RsGxsComment &comment) = 0;
 //virtual bool createNewVote(uint32_t &token, RsGxsVote &vote) = 0;
 
+    RS_DEPRECATED_FOR(setPostReadStatus)
+    virtual void setMessageReadStatus(uint32_t& token, const RsGxsGrpMsgIdPair& msgId, bool read) = 0;
         //////////////////////////////////////////////////////////////////////////////
-virtual void setMessageReadStatus(uint32_t& token, const RsGxsGrpMsgIdPair& msgId, bool read) = 0;
 
 virtual bool createGroup(uint32_t &token, RsPostedGroup &group) = 0;
 virtual bool createPost(uint32_t &token, RsPostedPost &post) = 0;

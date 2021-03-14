@@ -70,23 +70,25 @@ public:
 	p3PostBase(RsGeneralDataService *gds, RsNetworkExchangeService *nes, RsGixs* gixs,
 	           RsSerialType* serviceSerialiser, uint16_t serviceType);
 
-	virtual void service_tick();
+	virtual void service_tick() override;
 
 protected:
 
-	virtual void notifyChanges(std::vector<RsGxsNotify*>& changes);
+	virtual void notifyChanges(std::vector<RsGxsNotify*>& changes) override;
 
 	// Overloaded from GxsTokenQueue for Request callbacks.
-	virtual void handleResponse(uint32_t token, uint32_t req_type);
+	virtual void handleResponse(uint32_t token, uint32_t req_type
+	                            , RsTokenService::GxsRequestStatus status) override;
 
 	// Overloaded from RsTickEvent.
-	virtual void handle_event(uint32_t event_type, const std::string &elabel);
+	virtual void handle_event(uint32_t event_type, const std::string &elabel) override;
 
 	// overloads p3Config
 	virtual RsSerialiser* setupSerialiser() override;                            // @see p3Config::setupSerialiser()
 	virtual bool saveList(bool &cleanup, std::list<RsItem *>&saveList) override; // @see p3Config::saveList(bool &cleanup, std::list<RsItem *>&)
 	virtual bool loadList(std::list<RsItem *>& loadList) override;               // @see p3Config::loadList(std::list<RsItem *>&)
 
+    virtual bool service_checkIfGroupIsStillUsed(const RsGxsGrpMetaData& meta) override;
 public:
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -122,10 +124,11 @@ private:
 
 
 	RsMutex mPostBaseMtx;
+    RsMutex mKnownPostedMutex;
 
 	bool mBgProcessing;
 	bool mBgIncremental;
-	std::list<RsGxsGroupId> mBgGroupList;
+	std::set<RsGxsGroupId> mBgGroupList;
 	std::map<RsGxsMessageId, PostStats> mBgStatsMap;
 
 	std::map<RsGxsGroupId,rstime_t> mKnownPosted;

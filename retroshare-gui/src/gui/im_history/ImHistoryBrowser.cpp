@@ -32,6 +32,7 @@
 #include "IMHistoryItemDelegate.h"
 #include "IMHistoryItemPainter.h"
 #include "util/HandleRichText.h"
+#include "gui/common/FilesDefs.h"
 
 #include "rshare.h"
 #include <retroshare/rshistory.h>
@@ -43,12 +44,8 @@
 #define ROLE_PLAINTEXT Qt::UserRole + 1
 
 ImHistoryBrowserCreateItemsThread::ImHistoryBrowserCreateItemsThread(ImHistoryBrowser *parent, const ChatId& peerId)
-    : QThread(parent)
-{
-    m_chatId = peerId;
-    m_historyBrowser = parent;
-    stopped = false;
-}
+    : QThread(parent), m_historyBrowser(parent), m_chatId(peerId), stopped(false)
+{}
 
 ImHistoryBrowserCreateItemsThread::~ImHistoryBrowserCreateItemsThread()
 {
@@ -90,14 +87,15 @@ void ImHistoryBrowserCreateItemsThread::run()
 }
 
 /** Default constructor */
-ImHistoryBrowser::ImHistoryBrowser(const ChatId &chatId, QTextEdit *edit, QWidget *parent)
-  : QDialog(parent, Qt::WindowSystemMenuHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint)
+ImHistoryBrowser::ImHistoryBrowser(const ChatId &chatId, QTextEdit *edit,const QString &chatTitle, QWidget *parent)
+  : QDialog(parent, Qt::WindowSystemMenuHint | Qt::WindowTitleHint | Qt::WindowMinMaxButtonsHint | Qt::WindowCloseButtonHint)
 {
     /* Invoke Qt Designer generated QObject setup routine */
     ui.setupUi(this);
 
-    ui.headerFrame->setHeaderImage(QPixmap(":/images/user/agt_forum64.png"));
-    ui.headerFrame->setHeaderText(tr("Message History"));
+    setWindowTitle(tr("%1 's Message History").arg(chatTitle));
+    ui.headerFrame->setHeaderImage(FilesDefs::getPixmapFromQtResourcePath(":/images/user/agt_forum64.png"));
+    ui.headerFrame->setHeaderText(windowTitle());
 
     m_chatId = chatId;
     textEdit = edit;
@@ -224,36 +222,43 @@ void ImHistoryBrowser::historyAdd(HistoryMsg& msg)
 
 void ImHistoryBrowser::historyChanged(uint msgId, int type)
 {
-    if (type == NOTIFY_TYPE_ADD) {
-        /* history message added */
-        HistoryMsg msg;
-        if (rsHistory->getMessage(msgId, msg) == false) {
-            return;
-        }
+	if (type == NOTIFY_TYPE_ADD) {
+		/* history message added */
+		HistoryMsg msg;
+		if (rsHistory->getMessage(msgId, msg) == false) {
+			return;
+		}
+		RsPeerId virtChatId;
+		if ( rsHistory->chatIdToVirtualPeerId(m_chatId ,virtChatId)
+		     && virtChatId == msg.chatPeerId)
+			historyAdd(msg);
 
-        historyAdd(msg);
+		return;
+	}
 
-        return;
-    }
+	if (type == NOTIFY_TYPE_DEL) {
+		/* history message removed */
+		int count = ui.listWidget->count();
+		for (int i = 0; i < count; ++i) {
+			QListWidgetItem *itemWidget = ui.listWidget->item(i);
+			if (itemWidget->data(ROLE_MSGID).toString().toUInt() == msgId) {
+				delete(ui.listWidget->takeItem(i));
+				break;
+			}
+		}
+		return;
+	}
 
-    if (type == NOTIFY_TYPE_DEL) {
-        /* history message removed */
-        int count = ui.listWidget->count();
-        for (int i = 0; i < count; ++i) {
-            QListWidgetItem *itemWidget = ui.listWidget->item(i);
-            if (itemWidget->data(ROLE_MSGID).toString().toUInt() == msgId) {
-                delete(ui.listWidget->takeItem(i));
-                break;
-            }
-        }
-        return;
-    }
-
-    if (type == NOTIFY_TYPE_MOD) {
-        /* clear history */
-        ui.listWidget->clear();
-        return;
-    }
+	if (type == NOTIFY_TYPE_MOD) {
+		/* clear history */
+		// As no ChatId nor msgId are send via Notify,
+		//  only check if history of this chat is empty before clear our list.
+		std::list<HistoryMsg> historyMsgs;
+		rsHistory->getMessages(m_chatId, historyMsgs, 1);
+		if (historyMsgs.empty())
+			ui.listWidget->clear();
+		return;
+	}
 }
 
 void ImHistoryBrowser::fillItem(QListWidgetItem *itemWidget, HistoryMsg& msg)
@@ -276,10 +281,12 @@ void ImHistoryBrowser::fillItem(QListWidgetItem *itemWidget, HistoryMsg& msg)
     QString name;
     if (m_chatId.isLobbyId() || m_chatId.isDistantChatId()) {
         RsIdentityDetails details;
-        if (rsIdentity->getIdDetails(RsGxsId(msg.peerName), details))
+        if (rsIdentity->getIdDetails(RsGxsId(msg.peerId), details))
             name = QString::fromUtf8(details.mNickname.c_str());
-        else
+        else if(!msg.peerName.empty())
             name = QString::fromUtf8(msg.peerName.c_str());
+        else
+            name = QString::fromUtf8(msg.peerId.toStdString().c_str());
     } else {
         name = QString::fromUtf8(msg.peerName.c_str());
     }
@@ -383,7 +390,7 @@ void ImHistoryBrowser::customContextMenuRequested(QPoint /*pos*/)
 
     QAction *sendItem = NULL;
     if (textEdit) {
-        sendItem = new QAction(tr("Send"), &contextMnu);
+        sendItem = new QAction(tr("Quote"), &contextMnu);
         if (currentItem) {
             connect(sendItem, SIGNAL(triggered()), this, SLOT(sendMessage()));
         } else {
@@ -418,16 +425,7 @@ void ImHistoryBrowser::customContextMenuRequested(QPoint /*pos*/)
 
 void ImHistoryBrowser::copyMessage()
 {
-    QListWidgetItem *currentItem = ui.listWidget->currentItem();
-    if (currentItem) {
-        uint32_t msgId = currentItem->data(ROLE_MSGID).toString().toInt();
-        HistoryMsg msg;
-        if (rsHistory->getMessage(msgId, msg)) {
-            QTextDocument doc;
-            doc.setHtml(QString::fromUtf8(msg.message.c_str()));
-            QApplication::clipboard()->setText(doc.toPlainText());
-        }
-    }
+	QApplication::clipboard()->setText(getCurrentItemsQuotedText());
 }
 
 void ImHistoryBrowser::removeMessages()
@@ -445,20 +443,37 @@ void ImHistoryBrowser::clearHistory()
 
 void ImHistoryBrowser::sendMessage()
 {
-    if (textEdit) {
-        QListWidgetItem *currentItem = ui.listWidget->currentItem();
-        if (currentItem) {
-            uint32_t msgId = currentItem->data(ROLE_MSGID).toString().toInt();
-            HistoryMsg msg;
-            if (rsHistory->getMessage(msgId, msg)) {
-                textEdit->clear();
-                textEdit->setText(QString::fromUtf8(msg.message.c_str()));
-                textEdit->setFocus();
-                QTextCursor cursor = textEdit->textCursor();
-                cursor.movePosition(QTextCursor::End);
-                textEdit->setTextCursor(cursor);
-                close();
-            }
-        }
-    }
+	if (textEdit) {
+		QString msg =getCurrentItemsQuotedText();
+		QTextCursor cursor = textEdit->textCursor();
+		cursor.movePosition(QTextCursor::End);
+		if (cursor.columnNumber()>0)
+			cursor.insertText("\n");
+		cursor.insertText(msg);
+		textEdit->setFocus();
+		close();
+	}
+}
+
+QString ImHistoryBrowser::getCurrentItemsQuotedText()
+{
+	QListWidgetItem *currentItem = ui.listWidget->currentItem();
+	if (currentItem) {
+		uint32_t msgId = currentItem->data(ROLE_MSGID).toString().toInt();
+		HistoryMsg msg;
+		if (rsHistory->getMessage(msgId, msg)) {
+			RsIdentityDetails details;
+			QString name = (rsIdentity->getIdDetails(RsGxsId(msg.peerName), details))
+			        ? QString::fromUtf8(details.mNickname.c_str())
+			        : QString::fromUtf8(msg.peerName.c_str());
+			QDateTime date = msg.incoming
+			        ? QDateTime::fromTime_t(msg.sendTime)
+			        : QDateTime::fromTime_t(msg.recvTime);
+			QTextDocument doc;
+			doc.setHtml(QString::fromUtf8(msg.message.c_str()));
+
+			return "> " + date.toString() + " " + name + ":" + doc.toPlainText().replace("\n","\n> ");
+		}
+	}
+	return  QString();
 }

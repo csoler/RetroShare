@@ -19,8 +19,8 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.       *
  *                                                                             *
  *******************************************************************************/
-#ifndef RSGDS_H
-#define RSGDS_H
+
+#pragma once
 
 #include <set>
 #include <map>
@@ -56,18 +56,16 @@ struct MsgLocMetaData {
 	ContentValue val;
 };
 
-typedef std::map<RsGxsGroupId,RsGxsGrpMetaData*> RsGxsGrpMetaTemporaryMap;
-
 /*!
  * This allows modification of local
  * meta data items of a group
  */
 struct GrpLocMetaData {
-	GrpLocMetaData() = default;
-	GrpLocMetaData(const GrpLocMetaData& meta): grpId(meta.grpId), val(meta.val) {}
+    GrpLocMetaData() = default;
+    GrpLocMetaData(const GrpLocMetaData& meta): grpId(meta.grpId), val(meta.val) {}
 
-	RsGxsGroupId grpId;
-	ContentValue val;
+    RsGxsGroupId grpId;
+    ContentValue val;
 };
 
 /*!
@@ -144,33 +142,32 @@ public:
 	 * @param strictFilter if true do not request any message if reqIds is empty
      * @return error code
 	 */
-	virtual int retrieveNxsMsgs(
-	        const GxsMsgReq& reqIds, GxsMsgResult& msg, bool cache,
-	        bool withMeta = false ) = 0;
+    virtual int retrieveNxsMsgs( const GxsMsgReq& reqIds, GxsMsgResult& msg, bool withMeta = false ) = 0;
 
     /*!
-     * Retrieves all groups stored
+     * Retrieves all groups stored. Caller owns the memory and is supposed to delete the RsNxsGrp pointers after use.
      * @param grp retrieved groups
      * @param withMeta if true the meta handle of nxs grps is intitialised
      * @param cache whether to store retrieval in mem for faster later retrieval
      * @return error code
      */
-    virtual int retrieveNxsGrps(std::map<RsGxsGroupId, RsNxsGrp*>& grp, bool withMeta, bool cache) = 0;
+    virtual int retrieveNxsGrps(std::map<RsGxsGroupId, RsNxsGrp*>& grp, bool withMeta) = 0;
 
     /*!
      * Retrieves meta data of all groups stored (most current versions only)
+     * Memory is owned by the service, not the caller. Therefore the pointers in the temporary map
+     * shouldn't be destroyed.
      *
      * @param grp if null grpIds entries are made, only meta for those grpId are retrieved \n
      *            , if grpId is failed to be retrieved it will be erased from map
      * @return error code
      */
-    virtual int retrieveGxsGrpMetaData(RsGxsGrpMetaTemporaryMap& grp) = 0;
+    virtual int retrieveGxsGrpMetaData(std::map<RsGxsGroupId,std::shared_ptr<RsGxsGrpMetaData> >& grp) = 0;
 
     /*!
      * Retrieves meta data of all groups stored (most current versions only)
      * @param grpIds grpIds for which to retrieve meta data
      * @param msgMeta meta data result as map of grpIds to array of metadata for that grpId
-     * @param cache whether to store retrieval in mem for faster later retrieval
      * @return error code
      */
     virtual int retrieveGxsMsgMetaData(const GxsMsgReq& msgIds, GxsMsgMetaResult& msgMeta) = 0;
@@ -210,6 +207,13 @@ public:
     virtual uint32_t cacheSize() const = 0;
 
     /*!
+     * \brief serviceType
+     * \return
+     *          The service type for the current data service.
+     */
+    virtual uint16_t serviceType() const = 0 ;
+
+    /*!
      * @param size size of cache to set in bytes
      */
     virtual int setCacheSize(uint32_t size) = 0;
@@ -239,12 +243,12 @@ public:
     /*!
      * @param metaData
      */
-    virtual int updateMessageMetaData(MsgLocMetaData& metaData) = 0;
+    virtual int updateMessageMetaData(const MsgLocMetaData& metaData) = 0;
 
     /*!
      * @param metaData
      */
-    virtual int updateGroupMetaData(GrpLocMetaData& meta) = 0;
+    virtual int updateGroupMetaData(const GrpLocMetaData& meta) = 0;
 
     virtual int updateGroupKeys(const RsGxsGroupId& grpId,const RsTlvSecurityKeySet& keys,uint32_t subscribed_flags) = 0 ;
 
@@ -272,8 +276,3 @@ public:
     virtual bool validSize(RsNxsGrp* grp) const = 0 ;
 
 };
-
-
-
-
-#endif // RSGDS_H

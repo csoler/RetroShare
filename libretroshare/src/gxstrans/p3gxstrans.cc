@@ -137,11 +137,15 @@ void p3GxsTrans::registerGxsTransClient(
 	mServClients[serviceType] = service;
 }
 
-void p3GxsTrans::handleResponse(uint32_t token, uint32_t req_type)
+void p3GxsTrans::handleResponse(uint32_t token, uint32_t req_type
+                                , RsTokenService::GxsRequestStatus status)
 {
 #ifdef DEBUG_GXSTRANS
-	std::cout << "p3GxsTrans::handleResponse(" << token << ", " << req_type << ")" << std::endl;
+	std::cout << "p3GxsTrans::handleResponse(" << token << ", " << req_type << ", " << status << ")" << std::endl;
 #endif
+	if (status != RsTokenService::COMPLETE)
+		return; //For now, only manage Complete request
+
 	bool changed = false ;
 
 	switch (req_type)
@@ -361,7 +365,7 @@ void p3GxsTrans::GxsTransIntegrityCleanupThread::run()
     // first take out all the groups
 
     std::map<RsGxsGroupId, RsNxsGrp*> grp;
-    mDs->retrieveNxsGrps(grp, true, true);
+    mDs->retrieveNxsGrps(grp, true);
 
 #ifdef DEBUG_GXSTRANS
     std::cerr << "GxsTransIntegrityCleanupThread::run()" << std::endl;
@@ -389,7 +393,7 @@ void p3GxsTrans::GxsTransIntegrityCleanupThread::run()
     std::list<RsGxsTransId> received_msgs ;
 
     GxsMsgResult msgs;
-    mDs->retrieveNxsMsgs(grps, msgs, false, true);
+    mDs->retrieveNxsMsgs(grps, msgs, true);
 
     for(GxsMsgResult::iterator mit = msgs.begin();mit != msgs.end(); ++mit)
     {
@@ -656,6 +660,9 @@ void p3GxsTrans::notifyChanges(std::vector<RsGxsNotify*>& changes)
 #ifdef DEBUG_GXSTRANS
 	std::cout << "p3GxsTrans::notifyChanges(...)" << std::endl;
 #endif
+	std::list<RsGxsGroupId> grps_to_request;
+    GxsMsgReq msgs_to_request;
+
 	for( auto it = changes.begin(); it != changes.end(); ++it )
 	{
 		RsGxsGroupChange* grpChange = dynamic_cast<RsGxsGroupChange *>(*it);
@@ -666,18 +673,15 @@ void p3GxsTrans::notifyChanges(std::vector<RsGxsNotify*>& changes)
 #ifdef DEBUG_GXSTRANS
 			std::cout << "p3GxsTrans::notifyChanges(...) grpChange" << std::endl;
 #endif
-			requestGroupsData(&(grpChange->mGrpIdList));
+            grps_to_request.push_back(grpChange->mGroupId);
 		}
 		else if(msgChange)
 		{
 #ifdef DEBUG_GXSTRANS
 			std::cout << "p3GxsTrans::notifyChanges(...) msgChange" << std::endl;
 #endif
-			uint32_t token;
-			RsTokReqOptions opts; opts.mReqType = GXS_REQUEST_TYPE_MSG_DATA;
-			RsGenExchange::getTokenService()->requestMsgInfo( token, 0xcaca,
-			                                   opts, msgChange->msgChangeMap );
-			GxsTokenQueue::queueRequest(token, MAILS_UPDATE);
+
+            msgs_to_request[msgChange->mGroupId].insert(msgChange->mMsgId);
 
 #ifdef DEBUG_GXSTRANS
 			for( GxsMsgReq::const_iterator it = msgChange->msgChangeMap.begin();
@@ -698,6 +702,20 @@ void p3GxsTrans::notifyChanges(std::vector<RsGxsNotify*>& changes)
 		}
         delete *it;
 	}
+
+    if(!msgs_to_request.empty())
+	{
+		uint32_t token;
+		RsTokReqOptions opts;
+        opts.mReqType = GXS_REQUEST_TYPE_MSG_DATA;
+		RsGenExchange::getTokenService()->requestMsgInfo( token, 0xcaca, opts, msgs_to_request);
+
+		GxsTokenQueue::queueRequest(token, MAILS_UPDATE);
+	}
+
+
+    if(!grps_to_request.empty())
+		requestGroupsData(&grps_to_request);
 }
 
 uint32_t p3GxsTrans::AuthenPolicy()

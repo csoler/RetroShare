@@ -26,17 +26,13 @@
 #include "rshare.h"
 #include "gui/settings/rsharesettings.h"
 
-UserNotify::UserNotify(QObject *parent) :
-	QObject(parent)
+UserNotify::UserNotify(QObject *parent)
+    : QObject(parent)
+    , mMainToolButton(nullptr), mMainAction(nullptr)
+    , mListItem(nullptr), mTrayIcon(nullptr)
+    , mNotifyIcon(nullptr), mNewCount(0)
+    , mLastBlinking(false)
 {
-	mMainToolButton = NULL;
-	mMainAction = NULL;
-	mListItem = NULL;
-	mTrayIcon = NULL;
-	mNotifyIcon = NULL;
-	mNewCount = 0;
-	mLastBlinking = false;
-
 	connect(rApp, SIGNAL(blink(bool)), this, SLOT(blink(bool)));
 }
 
@@ -105,14 +101,14 @@ void UserNotify::initialize(QToolBar *mainToolBar, QAction *mainAction, QListWid
 
 void UserNotify::createIcons(QMenu *notifyMenu)
 {
-#define DELETE_OBJECT(x) if (x) { delete(x); x = NULL; }
+#define DELETE_OBJECT(x) if (x) { delete(x); x = nullptr; }
 
 	/* Create systray icons or actions */
 	if (notifyEnabled()) {
 		if (notifyCombined()) {
 			DELETE_OBJECT(mTrayIcon);
 
-			if (mNotifyIcon == NULL) {
+			if (mNotifyIcon == nullptr) {
 				mNotifyIcon = notifyMenu->addAction(getIcon(), "", this, SLOT(trayIconClicked()));
 				mNotifyIcon->setVisible(false);
 				connect(mNotifyIcon, SIGNAL(hovered()), this, SLOT(trayIconHovered()));
@@ -165,7 +161,17 @@ void UserNotify::update()
 
 	if (mMainAction) {
 		mMainAction->setIcon(getMainIcon(count > 0));
-		mMainAction->setText((count > 0) ? QString("%1 (%2)").arg(mButtonText).arg(count) : mButtonText);
+
+		if(count > 0)
+		{
+			mMainAction->setText(QString("%1 (%2)").arg(mButtonText).arg(count));
+			mMainAction->setToolTip(QString("%1 (%2)").arg(mButtonText, getNotifyMessage(count > 1).arg(count) ));
+		}
+		else
+		{
+			mMainAction->setText(mButtonText);
+			mMainAction->setToolTip(mButtonText);
+		}
 
 		QFont font = mMainAction->font();
 		font.setBold(count > 0);

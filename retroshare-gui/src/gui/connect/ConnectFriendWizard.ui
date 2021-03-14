@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>600</width>
-    <height>400</height>
+    <width>654</width>
+    <height>500</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -284,7 +284,7 @@
          <string>Email</string>
         </property>
         <property name="icon">
-         <iconset resource="../icons.qrc">
+         <iconset>
           <normaloff>:/icons/mail_128.png</normaloff>:/icons/mail_128.png</iconset>
         </property>
         <property name="iconSize">
@@ -361,6 +361,12 @@
    <layout class="QVBoxLayout" name="ConclusionPageVLayout">
     <item>
      <widget class="StyledLabel" name="cp_Label">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="palette">
        <palette>
         <active>
@@ -443,6 +449,22 @@
      </widget>
     </item>
     <item>
+     <widget class="QLabel" name="alreadyRegisteredLabel">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="text">
+       <string>This peer is already on your friend list. Adding it might just set it's ip address.</string>
+      </property>
+      <property name="wordWrap">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="QGroupBox" name="peerDetailsFrame">
       <property name="title">
        <string>Peer details</string>
@@ -451,8 +473,17 @@
        <property name="fieldGrowthPolicy">
         <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
        </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
        <item row="0" column="0">
         <widget class="QLabel" name="trustLabel">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="text">
           <string>Key validity:</string>
          </property>
@@ -460,6 +491,12 @@
        </item>
        <item row="0" column="1">
         <widget class="QLabel" name="trustEdit">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="text">
           <string notr="true">Trust level</string>
          </property>
@@ -467,6 +504,12 @@
        </item>
        <item row="1" column="0">
         <widget class="QLabel" name="nameLabel">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="text">
           <string>Name:</string>
          </property>
@@ -474,6 +517,12 @@
        </item>
        <item row="1" column="1">
         <widget class="QLabel" name="nameEdit">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="text">
           <string notr="true">Name</string>
          </property>
@@ -481,6 +530,12 @@
        </item>
        <item row="3" column="0">
         <widget class="QLabel" name="profileIdLabel">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="text">
           <string>Profile ID:</string>
          </property>
@@ -488,6 +543,12 @@
        </item>
        <item row="3" column="1">
         <widget class="QLabel" name="profileIdEdit">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="text">
           <string notr="true">Email</string>
          </property>
@@ -495,6 +556,12 @@
        </item>
        <item row="4" column="0">
         <widget class="QLabel" name="nodeLabel">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="text">
           <string>Location:</string>
          </property>
@@ -502,6 +569,12 @@
        </item>
        <item row="4" column="1">
         <widget class="QLabel" name="nodeEdit">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="text">
           <string notr="true">Location</string>
          </property>
@@ -509,6 +582,12 @@
        </item>
        <item row="6" column="0">
         <widget class="QLabel" name="signersLabel">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="text">
           <string>Signers</string>
          </property>
@@ -516,6 +595,12 @@
        </item>
        <item row="6" column="1">
         <widget class="QPlainTextEdit" name="signersEdit">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="toolTip">
           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:10pt;&quot;&gt;Signing a friend's key is a way to express your trust into this friend, to your other friends. The signatures below cryptographically attest that owners of the listed keys recognise the current PGP key as authentic.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
          </property>
@@ -524,18 +609,14 @@
          </property>
         </widget>
        </item>
-       <item row="7" column="0" colspan="2">
-        <widget class="QLabel" name="alreadyRegisteredLabel">
-         <property name="text">
-          <string>This peer is already on your friend list. Adding it might just set it's ip address.</string>
-         </property>
-         <property name="wordWrap">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
        <item row="5" column="0">
         <widget class="QLabel" name="ipLabel">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="text">
           <string>IP-Addr:</string>
          </property>
@@ -543,6 +624,12 @@
        </item>
        <item row="5" column="1">
         <widget class="QLabel" name="ipEdit">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="text">
           <string>IP-Address</string>
          </property>

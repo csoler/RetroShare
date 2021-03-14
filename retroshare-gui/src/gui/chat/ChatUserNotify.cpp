@@ -20,6 +20,7 @@
  *                                                                             *
  *******************************************************************************/
 
+#include "gui/common/FilesDefs.h"
 #include "ChatUserNotify.h"
 #include "gui/notifyqt.h"
 #include "gui/MainWindow.h"
@@ -75,12 +76,12 @@ bool ChatUserNotify::hasSetting(QString *name, QString *group)
 
 QIcon ChatUserNotify::getIcon()
 {
-	return QIcon(":/images/chat.png");
+    return FilesDefs::getIconFromQtResourcePath(":/images/chat.png");
 }
 
 QIcon ChatUserNotify::getMainIcon(bool hasNew)
 {
-    return hasNew ? QIcon(":/icons/png/network-notify.png") : QIcon(":/icons/png/network.png");
+    return hasNew ? FilesDefs::getIconFromQtResourcePath(":/icons/png/network-notify.png") : FilesDefs::getIconFromQtResourcePath(":/icons/png/network.png");
 }
 
 unsigned int ChatUserNotify::getNewCount()
@@ -91,6 +92,16 @@ unsigned int ChatUserNotify::getNewCount()
         sum += mit->second;
     }
     return sum;
+}
+
+QString ChatUserNotify::getTrayMessage(bool plural)
+{
+	return plural ? tr("You have %1 mentions") : tr("You have %1 mention");
+}
+
+QString ChatUserNotify::getNotifyMessage(bool plural)
+{
+	return plural ? tr("%1 mentions") : tr("%1 mention");
 }
 
 void ChatUserNotify::iconClicked()

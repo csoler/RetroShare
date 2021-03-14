@@ -21,7 +21,7 @@
 #ifndef _NEWS_FEED_DIALOG_H
 #define _NEWS_FEED_DIALOG_H
 
-#include "mainpage.h"
+#include <retroshare-gui/mainpage.h>
 
 #include "gui/feeds/FeedHolder.h"
 #include "util/TokenQueue.h"
@@ -31,8 +31,10 @@
 
 const uint32_t NEWSFEED_PEERLIST =       0x0001;
 
-const uint32_t NEWSFEED_FORUMNEWLIST =   0x0002;
-const uint32_t NEWSFEED_FORUMMSGLIST =   0x0003;
+const uint32_t NEWSFEED_NEW_FORUM      =   0x0002;
+const uint32_t NEWSFEED_NEW_FORUM_MSG  =   0x0003;
+const uint32_t NEWSFEED_UPDATED_FORUM  =   0x000f;
+
 const uint32_t NEWSFEED_CHANNELNEWLIST = 0x0004;
 //const uint32_t NEWSFEED_CHANNELMSGLIST = 0x0005;
 #if 0
@@ -67,7 +69,7 @@ public:
 	virtual ~NewsFeed();
 
 	virtual QIcon iconPixmap() const { return QIcon(IMAGE_NEWSFEED) ; } //MainPage
-	virtual QString pageName() const { return tr("Log") ; } //MainPage
+	virtual QString pageName() const { return tr("Activity") ; } //MainPage
 	virtual QString helpText() const { return ""; } //MainPage
 
 	virtual UserNotify *createUserNotify(QObject *parent) override;

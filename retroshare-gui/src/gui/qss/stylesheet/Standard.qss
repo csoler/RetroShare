@@ -18,6 +18,14 @@ HeaderFrame > QFrame#frame > QLabel#headerLabel {
 	color: rgb(255, 255, 255);
 }
 
+AvatarDialog QFrame#infoframe
+{
+	border: 1px solid #DCDC41;
+	border-radius: 6px;
+	background: #FFFFD7;
+	background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFD7, stop:1 #FFFFB2);
+}
+
 /* GenCertDialog */
 
 GenCertDialog QLabel#genprofileinfo_label, QLabel#header_label, QLabel#entropy_label
@@ -40,7 +48,7 @@ GenCertDialog QLabel#no_node_label, GenCertDialog QLabel#no_gpg_key_label {
 	background: #FFEECC;
 	background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFEECC, stop:1 #FFE3AB);
 	padding: 4px;
-	font-size: 14px;
+	font-size: 14pt;
 }
 
 GenCertDialog > QFrame#headerFrame > QLabel#headerLabel {
@@ -101,7 +109,7 @@ GxsCreateCommentDialog QTextEdit#commentTextEdit {
 }
 
 GxsCreateCommentDialog QLabel#titleLabel {
-	font-size: 12px;
+	font-size: 12pt;
 	font-weight: 600;
 	color: black;
 }
@@ -115,13 +123,124 @@ GxsCreateCommentDialog QFrame#frame {
 	background: white;
 }
 
+CreateGxsChannelMsg QPushButton#postButton {
+	font: bold;
+	font-size: 12pt;
+	color: white;
+	background: #0099cc;
+	border-radius: 4px;
+	max-height: 27px;
+	min-width: 4em;
+	padding: 2px;
+}
 
+CreateGxsChannelMsg QPushButton#postButton:hover {
+	background: #03b1f3;
+	border-radius: 4px;
+	min-width: 4em;
+	padding: 2px;
+}
+
+CreateCircleDialog QPushButton#createButton, CreateLobbyDialog QPushButton#createButton,
+IdEditDialog QPushButton#createButton, CreateGxsForumMsg QPushButton#postButton,
+GxsCreateCommentDialog QPushButton#postButton, GxsGroupDialog QPushButton#createButton,
+PulseAddDialog QPushButton#pushButton_Post, PulseTopLevel QToolButton#toolButton_follow,
+PulseViewGroup QToolButton#toolButton_follow, WikiEditDialog QPushButton#pushButton_Submit{
+	font: bold;
+	font-size: 12pt;
+	color: white;
+	background: #0099cc;
+	border-radius: 4px;
+	max-height: 20px;
+	min-width: 4em;
+	padding: 2px;
+	padding-left: 6px;
+	padding-right: 6px;
+}
+
+CreateCircleDialog QPushButton#createButton:hover, CreateLobbyDialog QPushButton#createButton:hover,
+IdEditDialog QPushButton#createButton:hover, CreateGxsForumMsg QPushButton#postButton:hover,
+GxsCreateCommentDialog QPushButton#postButton:hover, GxsGroupDialog QPushButton#createButton:hover,
+ShareManager QPushButton#closeButton:hover, PulseAddDialog QPushButton#pushButton_Post:hover, 
+PulseTopLevel QToolButton#toolButton_follow:hover, PulseViewGroup QToolButton#toolButton_follow:hover,
+WikiEditDialog QPushButton#pushButton_Submit:hover{
+	background: #03b1f3;
+	border-radius: 4px;
+	min-width: 4em;
+	padding: 2px;
+	padding-left: 6px;
+	padding-right: 6px;
+}
+
+ShareManager QPushButton#closeButton {
+	font: bold;
+	font-size: 12pt;
+	color: white;
+	background: #0099cc;
+	border-radius: 4px;
+	max-height: 27px;
+	min-width: 4em;
+	padding: 2px;
+    padding-left: 6px;
+    padding-right: 6px;
+}
+
+ShareManager QPushButton#addButton{
+	font: bold;
+	font-size: 12pt;
+	color: white;
+	background: #32CD32;
+	border-radius: 4px;
+	max-height: 27px;
+	min-width: 4em;
+	padding: 4px;
+}
+
+ShareManager QPushButton#addButton:hover{
+	background: #5AD75A;
+	border-radius: 4px;
+	min-width: 4em;
+	padding: 4px;
+}
+
+SearchDialog QPushButton#pushButtonSearch {
+	font: bold;
+	font-size: 12pt;
+	color: white;
+	background: #32CD32;
+	border-radius: 4px;
+	max-height: 25px;
+	min-width: 4em;
+	padding: 4px;
+}
+
+SearchDialog QPushButton#pushButtonSearch:hover{
+	background: #5AD75A;
+	border-radius: 4px;
+	min-width: 4em;
+	padding: 4px;
+}
+
+CreateGxsForumMsg QPushButton#postButton:disabled, PostedCreatePostDialog QPushButton#submitButton:disabled,
+CreateGxsChannelMsg QPushButton#postButton:disabled, GxsCreateCommentDialog QPushButton#postButton:disabled,
+PulseAddDialog QPushButton#pushButton_Post:disabled, WikiEditDialog QPushButton#pushButton_Submit:disabled {
+	font: bold;
+	font-size: 12pt;
+	color: white;
+	background: #d40000;
+	border-radius: 4px;
+	max-height: 20px;
+	min-width: 4em;
+	padding-left: 6px;
+	padding-right: 6px;
+}
 
 /* Forums */
 
-GxsForumThreadWidget QLabel#forumName
+GxsForumThreadWidget QPushButton#forumName
 {
-  font: bold;
+	font: bold;
+	font-size: 12pt;
 }
 
 CreateForumMsg > QToolBar#toolBar, CreateForumV2Msg > QToolBar#toolBar {
@@ -160,6 +279,12 @@ ChatLobbyWidget QLabel#lobbyinfo_label
 	background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFD7, stop:1 #FFFFB2);
 }
 
+ChatLobbyWidget QLabel#lobbyname_lineEdit
+{
+	font: bold;
+	font-size: 16pt;
+}
+
 ChatLobbyWidget QGroupBox#lobbyinfo_groupBox
 { 
 
@@ -169,7 +294,7 @@ ChatLobbyWidget QGroupBox#lobbyinfo_groupBox
 	border: 1px solid #CCCCCC;
 
 	padding: 14 6px;
-	font-size: 12px;
+	font-size: 12pt;
 	font-weight: bold;
 
 }
@@ -344,20 +469,27 @@ ChanNewItem QLabel#logoLabel {
 }
 
 GxsChannelPostItem > QFrame#mainFrame[new=false] {
-	border: 3px solid #D3D3D3;
-	background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #F2F2F2);
-	border-radius: 10px;
+	background-color: white;
 }
 
 GxsChannelPostItem > QFrame#mainFrame[new=true] {
-	border: 3px solid #82B9F4;
 	background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #F0F8FD, stop:0.8 #E6F2FD, stop: 0.81 #E6F2FD, stop: 1 #D2E7FD);
-	border-radius: 10px;
 }
 
-GxsChannelPostItem QLabel#newLabel {
+GxsChannelPostItem QLabel#newLabel{
 	border: 1px solid #167BE7;
 	background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #2291E0, stop: 1 #3EB3FF);
+	border-radius: 3px;
+	color: white;
+}
+
+GxsChannelPostItem QLabel#subjectLabel, GxsChannelPostItem QLabel#titleLabel {
+	font: 11pt;
+	font: bold italic;
+}
+
+GxsChannelPostItem QFrame#msgFrame {
+	border: 2px solid #82B9F4;
 	border-radius: 3px;
 }
 
@@ -368,6 +500,16 @@ GxsChannelPostItem QLabel#logoLabel {
 GxsChannelPostItem QLabel#logoLabel {
   background-color: black;
 }
+
+GxsCircleItem QFrame#mainFrame {
+	background-color: white;
+}
+
+GxsCircleItem QLabel#gxsIdLabel, QLabel#nameLabel, QLabel#titleLabel {
+	font: 11pt;
+	font: bold italic;
+}
+
 
 ForumNewItem > QFrame#frame, ForumMsgItem > QFrame#frame {
 	border: 2px solid #CCCCCC;
@@ -571,54 +713,63 @@ IdEditDialog QLabel#info_label
 	background: #FFFFD7;
 	background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFD7, stop:1 #FFFFB2);
 }
+
 GenCertDialog QComboBox#genPGPuser { 
   border: 2px solid #0099cc;
   border-radius: 6px;
   background: white;
 	font: bold;
 }
+
 GenCertDialog QSpinBox#hiddenport_spinBox { 
   border: 2px solid #0099cc;
   border-radius: 6px;
   background: white;
 	font: bold;
 }
+
 GenCertDialog QLineEdit#hiddenaddr_input { 
   border: 2px solid #0099cc;
   border-radius: 6px;
   background: white;
 	font: bold;
 }
+
 GenCertDialog QLineEdit#password2_input {
   border: 2px solid #0099cc;
   border-radius: 6px;
   background: white;
 	font: bold;
 }
+
 GenCertDialog QLineEdit#password_input { 
   border: 2px solid #0099cc;
   border-radius: 6px;
   background: white;
 	font: bold;
 }
+
 GenCertDialog QLineEdit#nickname_input { 
   border: 2px solid #0099cc;
   border-radius: 6px;
   background: white;
 	font: bold;
 }
+
 GenCertDialog QLineEdit#node_input { 
   border: 2px solid #0099cc;
   border-radius: 6px;
   background: white;
 	font: bold;
 }
+
 GenCertDialog QLineEdit#name_input { 
   border: 2px solid #0099cc;
   border-radius: 6px;
   background: white;
 	font: bold;
 }
+
 GenCertDialog QPushButton#genButton { 
 	border-image: url(:/images/btn_blue.png) 4;
 	border-width: 4;
@@ -632,13 +783,13 @@ GenCertDialog QPushButton#genButton:hover {
 
 GenCertDialog QPushButton#genButton:disabled {
 	border-image: url(:/images/btn_27.png) 4;
-/*  font-size: 16px; */
+/*  font-size: 16pt; */
 	font: bold;
 	color: black;
 }
 
 ConnectFriendWizard QRadioButton {
-	font-size: 16px;
+	font-size: 16pt;
 }
 
 ConnectFriendWizard QPlainTextEdit#friendCertEdit {
@@ -646,25 +797,8 @@ ConnectFriendWizard QPlainTextEdit#friendCertEdit {
 	background: white;
 }
 
-HomePage QPlainTextEdit#userCertEdit {
-
-	background: transparent;
-}
-
-HomePage QFrame#addframe{
-	border: 2px solid #0099cc;
-	border-radius: 6px;
-	background: white;
-}
-
 ConnectFriendWizard QFrame#friendFrame {
 	border: 2px solid #0099cc;
-	border-radius: 6px;
-	background: white;
-}
-
-HomePage QFrame#helpframe{
-	border: 2px solid #009933;
 	border-radius: 6px;
 	background: white;
 }
@@ -690,37 +824,38 @@ GenCertDialog QFrame#profileframe{
   border-width: 0px;
 }
 
-PostedListWidget QComboBox#comboBox {
+PostedListWidgetWithModel QComboBox#sortStrategy_CB {
 	font: bold;
 	color: #0099cc;
 }
 
-PostedListWidget QToolButton#submitPostButton {
+PostedListWidgetWithModel QToolButton#submitPostButton, GxsChannelPostsWidgetWithModel QToolButton#postButton,
+GxsForumThreadWidget QToolButton#newthreadButton {
 	font: bold;
 }
 
-PostedListWidget QToolButton#subscribeToolButton {
+PostedListWidgetWithModel QToolButton#subscribeToolButton {
 	font: bold;
-	font-size: 15px;
+	font-size: 15pt;
 	color: white;
 	background: #0099cc;
 	border-radius: 4px;
 	max-height: 27px;
 }
 
-PostedListWidget QToolButton#subscribeToolButton:hover {
+PostedListWidgetWithModel QToolButton#subscribeToolButton:hover {
 	background: #03b1f3;
 	border-radius: 4px;
 }
 
-PostedListWidget QFrame#headerFrame {
+PostedListWidgetWithModel QFrame#headerFrame {
 	background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FEFEFE, stop:1 #E8E8E8);
 	border: 1px solid #CCCCCC;
 }
 
 GxsForumThreadWidget QToolButton#subscribeToolButton {
 	font: bold;
-	font-size: 14px;
+	font-size: 12pt;
 	color: white;
 	background: #0099cc;
 	border-radius: 4px;
@@ -732,32 +867,33 @@ GxsForumThreadWidget QToolButton#subscribeToolButton:hover {
 	border-radius: 4px;
 }
 
-GxsChannelPostsWidget QFrame#infoFrame
-{ 
-
+GxsForumMsgItem QFrame#mainFrame, PeerItem QFrame#mainFrame, GxsForumGroupItem QFrame#mainFrame,
+GxsChannelGroupItem QFrame#mainFrame, MsgItem QFrame#mainFrame, ChatMsgItem QFrame#mainFrame
+SecurityIpItem QFrame#mainFrame, MsgItem QFrame#msgFrame, SecurityItem QFrame#mainFrame{
+	background-color: white;
 }
 
-GxsChannelPostsWidget QToolButton#subscribeToolButton {
+GxsChannelPostsWidgetWithModel QToolButton#subscribeToolButton {
 	font: bold;
-	font-size: 14px;
+	font-size: 12pt;
 	color: white;
 	background: #0099cc;
 	border-radius: 4px;
 	max-height: 27px;
 }
 
-GxsChannelPostsWidget QToolButton#subscribeToolButton:hover {
+GxsChannelPostsWidgetWithModel QToolButton#subscribeToolButton:hover {
 	background: #03b1f3;
 	border-radius: 4px;
 }
 
-GxsChannelPostsWidget QToolButton#subscribeToolButton:pressed {
+GxsChannelPostsWidgetWithModel QToolButton#subscribeToolButton:pressed {
 	background: #03b1f3;
 	border-radius: 4px;
 	border: 1px solid gray;
 }
 
-GxsChannelPostsWidget QToolButton#subscribeToolButton:disabled {
+GxsChannelPostsWidgetWithModel QToolButton#subscribeToolButton:disabled {
 	background: gray;
 	border-radius: 4px;
 	border: 1px solid gray;
@@ -765,17 +901,36 @@ GxsChannelPostsWidget QToolButton#subscribeToolButton:disabled {
 }
 
 /* only for MenuButtonPopup */
-GxsChannelPostsWidget QToolButton#subscribeToolButton[popupMode="1"] { 
+
+GxsChannelPostsWidgetWithModel QToolButton#subscribeToolButton[popupMode="1"],
+PostedListWidgetWithModel QToolButton#subscribeToolButton[popupMode="1"]{ 
     padding-right: 0px; 
 }
 
-GxsChannelPostsWidget QToolButton#subscribeToolButton::menu-arrow {
+GxsChannelPostsWidgetWithModel QToolButton#subscribeToolButton::menu-arrow,
+PostedListWidgetWithModel QToolButton#subscribeToolButton::menu-arrow{
     image: none;
 }
 
-GxsChannelPostsWidget QToolButton#subscribeToolButton::menu-button {
+GxsChannelPostsWidgetWithModel QToolButton#subscribeToolButton::menu-button,
+PostedListWidgetWithModel QToolButton#subscribeToolButton::menu-button{
     image: none;
+}
 
+GxsChannelFilesStatusWidget QToolButton#openFolderToolButton::menu-indicator {
+    image: none;
+}
+
+GxsChannelFilesStatusWidget QToolButton#openFolderToolButton[popupMode="0"] { 
+    padding-right: 0px; 
+}
+
+GxsChannelFilesStatusWidget QToolButton#openFolderToolButton::menu-indicator {
+    image: none;
+}
+
+GxsChannelFilesStatusWidget QToolButton#openFolderToolButton[popupMode="0"] { 
+    padding-right: 0px; 
 }
 
 GxsGroupDialog QLabel#groupLogo{
@@ -783,46 +938,86 @@ GxsGroupDialog QLabel#groupLogo{
 	border-radius: 3px;
 }
 
-PostedItem QFrame#frame_notes {
-	background: white;
+GxsChannelGroupItem QFrame#frame, GxsForumGroupItem QFrame#frame,
+PostedGroupItem QFrame#frame {
+	background-color: white;
 }
 
-PostedItem QLabel#notes {
+HomePage QLabel#userCertLabel {
+	color: #0099cc;
+	font: bold;
+}
 
+HomePage QPlainTextEdit#userCertEdit {
+
+	background: transparent;
+}
+
+HomePage QToolButton#addButton {
+	font: bold;
+	font-size: 15pt;
+	color: white;
+	background: #0099cc;
+	border-radius: 4px;
+	max-height: 27px;
+	min-width: 4em;
+	padding: 2px;
+}
+
+HomePage QToolButton#addButton:hover {
+	background: #03b1f3;
+	border-radius: 4px;
+	min-width: 4em;
+	padding: 2px;
+}
+
+
+PostedItem QFrame#mainFrame {
+	background-color: white;
+}
+
+PostedItem > QFrame#mainFrame [new=false]{
+	background: white;
 }
 
 PostedItem QFrame#voteFrame {
 	background: #f8f9fa;
 }
 
-PostedItem QFrame#mainFrame [new=false]{
+BoardPostDisplayWidget_compact QFrame#mainFrame {
+	background-color: white;
+}
+
+BoardPostDisplayWidget_compact > QFrame#mainFrame [new=false]{
 	background: white;
 }
 
-PostedItem > QFrame#mainFrame[new=true] {
+BoardPostDisplayWidget_compact > QFrame#mainFrame[new=true] {
 	background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #F0F8FD, stop:0.8 #E6F2FD, stop: 0.81 #E6F2FD, stop: 1 #D2E7FD);
 }
 
-PostedItem QFrame#frame_picture{
-	background: white;
-}
-
-PostedItem QLabel#thumbnailLabel{
+BoardPostDisplayWidget_compact QLabel#pictureLabel{
 	border: 2px solid #CCCCCC;
 	border-radius: 3px;
 }
 
-PostedItem QLabel#fromBoldLabel, QLabel#fromLabel, QLabel#dateLabel, QLabel#siteBoldLabel {
+BoardPostDisplayWidget_compact QLabel#fromBoldLabel ,
+BoardPostDisplayWidget_card QLabel#fromBoldLabel {
+	font: bold;
+}
+
+BoardPostDisplayWidget_compact QLabel#fromBoldLabel, QLabel#fromLabel, QLabel#dateLabel, QLabel#siteBoldLabel ,
+BoardPostDisplayWidget_card QLabel#fromBoldLabel, QLabel#fromLabel, QLabel#dateLabel, QLabel#siteBoldLabel{
 	color: #787c7e;
 }
 
-PostedItem QLabel#newLabel {
+BoardPostDisplayWidget_compact QLabel#newLabel {
 	border: 1px solid #167BE7;
 	background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #2291E0, stop: 1 #3EB3FF);
 	border-radius: 3px;
 }
 
-PostedCardView QLabel#newLabel {
+BoardPostDisplayWidget_card QLabel#newLabel {
 	border: 1px solid #167BE7;
 	background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #2291E0, stop: 1 #3EB3FF);
 	border-radius: 3px;
@@ -832,19 +1027,37 @@ PostedCardView QFrame#voteFrame {
 	background: #f8f9fa;
 }
 
+BoardPostDisplayWidget_card QFrame#mainFrame{
+	background: white;
+}
+
+BoardPostDisplayWidget_card > QFrame#mainFrame [new=false]{
+	background: white;
+}
+
+BoardPostDisplayWidget_card > QFrame#mainFrame[new=true] {
+	background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #F0F8FD, stop:0.8 #E6F2FD, stop: 0.81 #E6F2FD, stop: 1 #D2E7FD);
+}
+
+BoardPostDisplayWidget_compact QLabel#titleLabel,
+BoardPostDisplayWidget_card QLabel#titleLabel{
+	font-size: 12pt;
+	font: bold;
+}
+
 GxsCommentDialog QComboBox#sortBox {
 	font: bold;
 	color: #0099cc;
 }
 
-PostedListWidget QTextBrowser#infoDescription {
+PostedListWidgetWithModel QTextBrowser#infoDescription {
 	background: transparent;
 	border: none;
 }
 
 PostedCreatePostDialog QPushButton#submitButton {
 	font: bold;
-	font-size: 15px;
+	font-size: 12pt;
 	color: white;
 	background: #0099cc;
 	border-radius: 4px;
@@ -863,4 +1076,156 @@ PostedCreatePostDialog QPushButton#submitButton:hover {
 MessageWidget QTextBrowser#toText , QTextBrowser#ccText , QTextBrowser#bccText {
 	background: transparent;
 	border: none;
+}
+
+WireGroupItem QWidget:hover{
+	background-color: #7ecbfb;
+}
+
+WireDialog QFrame#frame{
+	background-color: white;
+}
+
+WireDialog QWidget#scrollAreaWidgetContents_groups{
+	background-color: white;
+}
+
+MessagesDialog QWidget#messageTreeWidget::item {
+	padding: 2px;
+}
+
+MessagesDialog QWidget#messageTreeWidget::item:selected {
+	background-color: #cde8ff;
+	color: black;
+}
+
+MessagesDialog QWidget#messageTreeWidget::item:hover {
+	background-color: #e5f3ff;
+	color: black;
+}
+
+GxsForumThreadWidget QWidget#threadTreeWidget {
+	selection-background-color: #cde8ff;
+	show-decoration-selected: 1;
+}
+
+GxsForumThreadWidget QWidget#threadTreeWidget::item {
+	padding: 2px;
+}
+
+GxsForumThreadWidget QWidget#threadTreeWidget::item:selected:active ,
+GxsForumThreadWidget QWidget#threadTreeWidget::item:selected:!active {
+	background-color: #cde8ff;
+}
+
+GxsChannelDialog GroupTreeWidget QTreeWidget#treeWidget::item{
+	/*background-color: #F00000;*/
+	/*padding: 2px*/
+}
+
+MainWindow QListWidget {
+	font-size: 12pt;
+}
+
+PulseTopLevel QFrame#frame, PulseViewGroup QFrame#frame, PulseReply QFrame#frame {
+	border: 2px solid #c4cfd6;
+	background: white;
+}
+
+PulseAddDialog QTextEdit#textEdit_Pulse {
+	border: 2px solid #c4cfd6;
+	border-radius: 6px;
+	background: white;
+}
+
+PulseAddDialog QFrame#frame_input, QFrame#frame_reply, QFrame#frame {
+	border: 0px;
+}
+
+PulseAddDialog QLabel#label_groupName {
+	font-size: 12pt;
+}
+
+PulseReply #line_replyLine , PulseMessage #line{
+	color: #c4cfd6;
+}
+
+PulseReply QLabel#label_groupName{
+	color: #5b7083;
+}
+
+WireDialog QLabel#label_viewMode {
+	font-size: 12pt;
+}
+
+WireGroupDialog QFrame#frame {
+	background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #9BDBF9, stop:1 #1592CD);
+	border: 0px;
+}
+
+PhotoShare QPushButton#pushButton_YourAlbums, QPushButton#pushButton_SubscribedAlbums, 
+QPushButton#pushButton_SharedAlbums {
+	font-size: 12pt;
+}
+
+AlbumItem QFrame#albumFrame {
+	border: 2px solid #CCCCCC;
+	border-radius: 10px
+}
+
+PhotoItem QFrame#photoFrame {
+	border: 2px solid #CCCCCC;
+	border-radius: 10px
+}
+
+PhotoItem QWidget:hover {
+	background-color: #7ecbfb;
+}
+
+PhotoSlideShow QLabel#albumLabel {
+	font-size: 12pt;
+}
+
+ChannelsCommentsItem QFrame#mainFrame, BoardsCommentsItem QFrame#mainFrame {
+	background-color: white;
+}
+
+ChannelsCommentsItem QLabel#newCommentLabel, BoardsCommentsItem QLabel#newCommentLabel {
+	font-size: 12pt;
+	font: bold;
+}
+
+ChannelsCommentsItem QLabel#subjectLabel, ChannelsCommentsItem QLabel#titleLabel , QLabel#nameLabel {
+	font-size: 12pt;
+	font: bold;
+}
+
+BoardsCommentsItem QLabel#subjectLabel, QLabel#titleLabel , QLabel#nameLabel {
+	font-size: 12pt;
+	font: bold;
+}
+
+NewFriendList QTreeView#peerTreeWidget::item:selected, QTreeView#peerTreeWidget::branch:selected:active {
+	background: #cde8ff;
+}
+
+NewFriendList QTreeView#peerTreeWidget {
+	font-size: 12pt;
+}
+
+WikiEditDialog QPushButton#pushButton_History {
+	font: bold;
+	font-size: 15px;
+	color: white;
+	background: #5bb62b;
+	border-radius: 4px;
+	max-height: 20px;
+	min-width: 4em;
+	padding: 2px;
+	padding-left: 6px;
+	padding-right: 6px;
+}
+
+WikiEditDialog QPushButton#pushButton_History:hover {
+	background: #57af29;
 }

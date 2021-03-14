@@ -55,6 +55,7 @@ public:
 private slots:
 	void show();
 	void subscribe();
+	void editGroupDetails();
 
 protected:
 	void mousePressEvent(QMouseEvent *event);
@@ -62,7 +63,7 @@ protected:
 private:
 	void setup();
 	void setGroupSet();
-	void setBackground(QString color);
+	void setBackground(QColor color);
 
 	WireGroupHolder *mHolder;
 	RsWireGroup mGroup;

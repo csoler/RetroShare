@@ -58,11 +58,12 @@ public:
 		COLUMN_THREAD_SUBJECT      = 0x02,
 		COLUMN_THREAD_READ         = 0x03,
 		COLUMN_THREAD_AUTHOR       = 0x04,
-		COLUMN_THREAD_DATE         = 0x05,
-		COLUMN_THREAD_TAGS         = 0x06,
-		COLUMN_THREAD_MSGID        = 0x07,
-		COLUMN_THREAD_NB_COLUMNS   = 0x08,
-		COLUMN_THREAD_CONTENT      = 0x08,
+		COLUMN_THREAD_SPAM         = 0x05,
+		COLUMN_THREAD_DATE         = 0x06,
+		COLUMN_THREAD_TAGS         = 0x07,
+		COLUMN_THREAD_MSGID        = 0x08,
+		COLUMN_THREAD_NB_COLUMNS   = 0x09,
+		COLUMN_THREAD_CONTENT      = 0x09
 	};
 
     enum QuickViewFilter {
@@ -74,6 +75,8 @@ public:
         QUICK_VIEW_LATER           = 0x05,
         QUICK_VIEW_STARRED         = 0x06,
         QUICK_VIEW_SYSTEM          = 0x07,
+        QUICK_VIEW_SPAM            = 0x08,
+        QUICK_VIEW_ATTACHMENT      = 0x09,
         QUICK_VIEW_USER            = 100
     };
 
@@ -107,7 +110,6 @@ public:
     void setCurrentBox(BoxName bn) ;
     void setQuickViewFilter(QuickViewFilter fn) ;
 
-    const RsMessageId& currentMessageId() const;
     void setFilter(FilterType filter_type, const QStringList& strings) ;
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
@@ -138,15 +140,21 @@ public:
 	QVariant textColorRole (const Rs::Msgs::MsgInfoSummary& fmpe, int col) const;
 	QVariant backgroundRole(const Rs::Msgs::MsgInfoSummary& fmpe, int col) const;
 
-    /*!
-     * \brief debug_dump
-     * 			Dumps the hierarchy of posts in the terminal, to allow checking whether the internal representation is correct.
-     */
-    void debug_dump() const;
+#ifdef DEBUG_MESSAGE_MODEL
+	/*!
+	 * \brief debug_dump
+	 * Dumps the hierarchy of posts in the terminal, to allow checking whether the internal representation is correct.
+	 */
+	void debug_dump() const;
+#endif
 
-    // control over message flags and so on. This is handled by the model because it will allow it to update accordingly
+	// control over message flags and so on. This is handled by the model because it will allow it to update accordingly
 	void setMsgReadStatus(const QModelIndex& i, bool read_status);
-    void setMsgStar(const QModelIndex& index,bool star) ;
+	void setMsgsReadStatus(const QModelIndexList& mil, bool read_status);
+	void setMsgStar(const QModelIndex& i,bool star) ;
+	void setMsgsStar(const QModelIndexList& mil,bool star) ;
+	void setMsgJunk(const QModelIndex& i,bool junk) ;
+	void setMsgsJunk(const QModelIndexList& mil,bool junk) ;
 
 public slots:
 	void updateMessages();

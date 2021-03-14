@@ -24,7 +24,7 @@
     <number>1</number>
    </property>
    <item row="0" column="0">
-    <widget class="QFrame" name="frame">
+    <widget class="QFrame" name="msgFrame">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
        <horstretch>0</horstretch>
@@ -161,10 +161,6 @@
              <property name="text">
               <string>Reply Message</string>
              </property>
-             <property name="icon">
-              <iconset resource="../images.qrc">
-               <normaloff>:/images/mail_reply.png</normaloff>:/images/mail_reply.png</iconset>
-             </property>
             </widget>
            </item>
            <item>
@@ -196,7 +192,7 @@
              </property>
              <property name="icon">
               <iconset resource="../icons.qrc">
-               <normaloff>:/icons/png/cancel.png</normaloff>:/icons/png/cancel.png</iconset>
+               <normaloff>:/icons/mail/delete.png</normaloff>:/icons/mail/delete.png</iconset>
              </property>
             </widget>
            </item>

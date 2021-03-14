@@ -18,9 +18,11 @@
  *                                                                             *
  *******************************************************************************/
 
+#include "gui/common/FilesDefs.h"
 #include <QMessageBox>
 #include <QCloseEvent>
 #include <QClipboard>
+#include <QLabel>
 #include <QTextCodec>
 #include <QPrintDialog>
 #include <QPrinter>
@@ -93,6 +95,8 @@
 #define STYLE_NORMAL "QLineEdit#%1 { border : none; }"
 #define STYLE_FAIL   "QLineEdit#%1 { border : none; color : red; }"
 
+static const uint32_t MAX_ALLOWED_GXS_MESSAGE_SIZE = 199000;
+
 class MessageItemDelegate : public QItemDelegate
 {
 public:
@@ -133,6 +137,7 @@ MessageComposer::MessageComposer(QWidget *parent, Qt::WindowFlags flags)
     m_completer = NULL;
     
     ui.distantFrame->hide();
+    ui.sizeLimitFrame->hide();
     ui.respond_to_CB->hide();
     ui.fromLabel->hide();
 
@@ -211,13 +216,19 @@ MessageComposer::MessageComposer(QWidget *parent, Qt::WindowFlags flags)
     connect(ui.friendSelectionWidget, SIGNAL(doubleClicked(int,QString)), this, SLOT(addTo()));
     connect(ui.friendSelectionWidget, SIGNAL(itemSelectionChanged()), this, SLOT(friendSelectionChanged()));
 
+    connect(ui.msgText, SIGNAL(textChanged()), this, SLOT(checkLength()));
+
     /* hide the Tree +/- */
     ui.msgFileList -> setRootIsDecorated( false );
 
     /* initialize friends list */
     ui.friendSelectionWidget->setHeaderText(tr("Send To:"));
     ui.friendSelectionWidget->setModus(FriendSelectionWidget::MODUS_MULTI);
-	ui.friendSelectionWidget->setShowType(FriendSelectionWidget::SHOW_GXS);
+    ui.friendSelectionWidget->setShowType(FriendSelectionWidget::SHOW_GXS 
+#ifdef RS_DIRECT_CHAT
+		| FriendSelectionWidget::SHOW_SSL
+#endif // RS_DIRECT_CHAT
+		);
     ui.friendSelectionWidget->start();
 
     QActionGroup *grp = new QActionGroup(this);
@@ -263,6 +274,9 @@ MessageComposer::MessageComposer(QWidget *parent, Qt::WindowFlags flags)
     /* Add filter types */
     ui.filterComboBox->addItem(tr("All people"));
     ui.filterComboBox->addItem(tr("My contacts"));
+#ifdef RS_DIRECT_CHAT
+    ui.filterComboBox->addItem(tr("Friend Nodes"));
+#endif // RS_DIRECT_CHAT
 	ui.filterComboBox->setCurrentIndex(0);
 
     if(rsIdentity->nbRegularContacts() > 0)
@@ -343,6 +357,15 @@ MessageComposer::MessageComposer(QWidget *parent, Qt::WindowFlags flags)
     /* set focus to subject */
     ui.titleEdit->setFocus();
 
+	infoLabel = new QLabel( "", this );
+	statusBar()->addPermanentWidget(infoLabel);
+
+	lineLabel = new QLabel( "", this );
+	statusBar()->addPermanentWidget(lineLabel);
+
+	lengthLabel = new QLabel( "", this );
+	statusBar()->addPermanentWidget(lengthLabel);
+
     // create tag menu
     TagsMenu *menu = new TagsMenu (tr("Tags"), this);
     connect(menu, SIGNAL(aboutToShow()), this, SLOT(tagAboutToShow()));
@@ -370,7 +393,7 @@ void MessageComposer::updateCells(int,int)
 {
     int rowCount = ui.recipientWidget->rowCount();
     int row;
-    bool has_gxs = false ;
+    has_gxs = false ;
 
     for (row = 0; row < rowCount; ++row)
     {
@@ -387,6 +410,7 @@ void MessageComposer::updateCells(int,int)
         ui.respond_to_CB->show();
         ui.distantFrame->show();
         ui.fromLabel->show();
+        checkLength();
     }
     else
     {
@@ -394,6 +418,11 @@ void MessageComposer::updateCells(int,int)
         ui.distantFrame->hide() ;
         ui.fromLabel->hide();
     }
+
+    if(rowCount > 20)
+        ui.sizeLimitFrame->show();
+    else
+        ui.sizeLimitFrame->hide();
 }
 
 void MessageComposer::processSettings(bool bLoad)
@@ -590,7 +619,7 @@ void MessageComposer::addConnectAttemptMsg(const RsPgpId &gpgId, const RsPeerId 
     // PGPId+SslId are always here.  But if the peer is not a friend the SSL id cannot be used.
     // (todo) If the PGP id doesn't get us a PGP key from the keyring, we need to create a short invite
 
-	RetroShareLink link = RetroShareLink::createUnknownSslCertificate(sslId);
+	RetroShareLink link = RetroShareLink::createUnknownSslCertificate(sslId, gpgId);
 
     if (!link.valid())
         return;
@@ -696,7 +725,7 @@ void MessageComposer::contextMenuFileList(QPoint)
 {
     QMenu contextMnu(this);
 
-    QAction *action = contextMnu.addAction(QIcon(":/images/pasterslink.png"), tr("Paste RetroShare Link"), this, SLOT(pasteRecommended()));
+    QAction *action = contextMnu.addAction(FilesDefs::getIconFromQtResourcePath(":/images/pasterslink.png"), tr("Paste RetroShare Link"), this, SLOT(pasteRecommended()));
     action->setDisabled(RSLinkClipboard::empty(RetroShareLink::TYPE_FILE));
 
     contextMnu.exec(QCursor::pos());
@@ -805,7 +834,7 @@ void MessageComposer::peerStatusChanged(const QString& peer_id, int status)
             {
                 QTableWidgetItem *item = ui.recipientWidget->item(row, COLUMN_RECIPIENT_ICON);
                 if (item)
-                    item->setIcon(QIcon(StatusDefs::imageUser(status)));
+                    item->setIcon(FilesDefs::getIconFromQtResourcePath(StatusDefs::imageUser(status)));
             }
         }
     }
@@ -824,7 +853,7 @@ void MessageComposer::setFileList(const std::list<DirDetails>& dir_info)
         FileInfo info ;
         info.fname = it->name ;
         info.hash = it->hash ;
-        info.size = it->count ;
+        info.size = it->size ;
         files_info.push_back(info) ;
     }
 
@@ -1049,8 +1078,25 @@ MessageComposer *MessageComposer::newMsg(const std::string &msgId /* = ""*/)
 
 QString MessageComposer::buildReplyHeader(const MessageInfo &msgInfo)
 {
-    RetroShareLink link = RetroShareLink::createMessage(msgInfo.rspeerid_srcId, "");
-    QString from = link.toHtml();
+	RetroShareLink link;
+
+	QString from;
+	if(msgInfo.msgflags & RS_MSG_DISTANT)
+	{
+		link = RetroShareLink::createMessage(msgInfo.rsgxsid_srcId, "");
+		if (link.valid())
+		{
+			from += link.toHtml();
+		}
+	}
+	else
+	{
+		link = RetroShareLink::createMessage(msgInfo.rspeerid_srcId, "");
+		if (link.valid())
+		{
+			from += link.toHtml();
+		}
+	}
 
     QString to;
     for ( std::set<RsPeerId>::const_iterator  it = msgInfo.rspeerid_msgto.begin(); it != msgInfo.rspeerid_msgto.end(); ++it)
@@ -1205,6 +1251,12 @@ MessageComposer *MessageComposer::replyMsg(const std::string &msgId, bool all)
 
     // needed to send system flags with reply
     msgComposer->msgFlags = (msgInfo.msgflags & RS_MSG_SYSTEM);
+
+	MsgTagInfo tagInfo;
+	rsMail->getMessageTag(msgId, tagInfo);
+
+	msgComposer->m_tagIds = tagInfo.tagIds;
+	msgComposer->showTagLabels();
 
     msgComposer->calculateTitle();
 
@@ -1420,7 +1472,7 @@ bool MessageComposer::sendMessage_internal(bool bDraftbox)
             break ;
 
         default:
-            std::cerr << __PRETTY_FUNCTION__ << ": Unhandled desitnation type " << dtype << std::endl;
+            std::cerr << __PRETTY_FUNCTION__ << ": Unhandled destination type " << dtype << std::endl;
             break ;
         }
     }
@@ -1600,7 +1652,7 @@ void MessageComposer::setRecipientToRow(int row, enumType type, destinationType 
         switch(dest_type)
         {
         case PEER_TYPE_GROUP: {
-            icon = QIcon(IMAGE_GROUP16);
+            icon = FilesDefs::getIconFromQtResourcePath(IMAGE_GROUP16);
 
             RsGroupInfo groupInfo;
             if (rsPeers->getGroupInfo(RsNodeGroupId(id), groupInfo)) {
@@ -1646,7 +1698,7 @@ void MessageComposer::setRecipientToRow(int row, enumType type, destinationType 
             // No check of return value. Non existing status info is handled as offline.
             rsStatus->getStatus(RsPeerId(id), peerStatusInfo);
 
-            icon = QIcon(StatusDefs::imageUser(peerStatusInfo.status));
+            icon = FilesDefs::getIconFromQtResourcePath(StatusDefs::imageUser(peerStatusInfo.status));
         }
         break ;
         default:
@@ -1922,7 +1974,7 @@ void MessageComposer::setupFileActions()
     connect(a, SIGNAL(triggered()), this, SLOT(filePrint()));
     menu->addAction(a);
 
-    /*a = new QAction(QIcon(":/images/textedit/fileprint.png"), tr("Print Preview..."), this);
+    /*a = new QAction(FilesDefs::getIconFromQtResourcePath(":/images/textedit/fileprint.png"), tr("Print Preview..."), this);
     connect(a, SIGNAL(triggered()), this, SLOT(filePrintPreview()));
     menu->addAction(a);*/
 
@@ -2015,7 +2067,7 @@ void MessageComposer::setupContactActions()
     connect(mActionAddBCC, SIGNAL(triggered(bool)), this, SLOT(addBcc()));
     mActionAddRecommend = new QAction(tr("Add as Recommend"), this);
     connect(mActionAddRecommend, SIGNAL(triggered(bool)), this, SLOT(addRecommend()));
-    mActionContactDetails = new QAction(QIcon(IMAGE_FRIENDINFO), tr("Details"), this);
+    mActionContactDetails = new QAction(FilesDefs::getIconFromQtResourcePath(IMAGE_FRIENDINFO), tr("Details"), this);
     connect(mActionContactDetails, SIGNAL(triggered(bool)), this, SLOT(contactDetails()));
 
     ui.friendSelectionWidget->addContextMenuAction(mActionAddTo);
@@ -2429,9 +2481,9 @@ void MessageComposer::on_contactsdockWidget_visibilityChanged(bool visible)
 void MessageComposer::updatecontactsviewicons()
 {
     if(!ui.contactsdockWidget->isVisible()){
-      ui.actionContactsView->setIcon(QIcon(":/icons/mail/contacts.png"));
+      ui.actionContactsView->setIcon(FilesDefs::getIconFromQtResourcePath(":/icons/mail/contacts.png"));
     }else{
-      ui.actionContactsView->setIcon(QIcon(":/icons/mail/contacts.png"));
+      ui.actionContactsView->setIcon(FilesDefs::getIconFromQtResourcePath(":/icons/mail/contacts.png"));
     } 
 }
 
@@ -2595,6 +2647,11 @@ void MessageComposer::filterComboBoxChanged(int i)
 	case 1:
 		ui.friendSelectionWidget->setShowType(FriendSelectionWidget::SHOW_CONTACTS);
 		break;
+#ifdef RS_DIRECT_CHAT
+	case 2:
+		ui.friendSelectionWidget->setShowType(FriendSelectionWidget::SHOW_SSL);
+		break;
+#endif // RS_DIRECT_CHAT
 	}
 }
 
@@ -2763,7 +2820,10 @@ void MessageComposer::showTagLabels()
 		ui.tagLayout->addStretch();
 	}
 }
-
+void MessageComposer::on_closeSizeLimitFrameButton_clicked()
+{
+    ui.sizeLimitFrame->setVisible(false);
+}
 void MessageComposer::on_closeInfoFrameButton_clicked()
 {
 	ui.distantFrame->setVisible(false);
@@ -2808,3 +2868,30 @@ void MessageComposer::sendInvite(const RsGxsId &to, bool autoSend)
     /* window will destroy itself! */
 }
 
+void MessageComposer::checkLength()
+{
+	QString text;
+	RsHtml::optimizeHtml(ui.msgText, text);
+	std::wstring msg = text.toStdWString();
+	int charlength = msg.length();
+	int charRemains = MAX_ALLOWED_GXS_MESSAGE_SIZE - msg.length();
+
+	text = tr("Message Size: %1").arg(misc::friendlyUnit(charlength));
+	lengthLabel->setText(text);
+
+	lineLabel->setText("|");
+
+	if(has_gxs) {
+		if(charRemains >= 0) {
+			text = tr("It remains %1 characters after HTML conversion.").arg(charRemains);
+		}else{
+			text = tr("Warning: This message is too big of %1 characters after HTML conversion.").arg((0-charRemains));
+		}
+		ui.actionSend->setEnabled(charRemains>=0);
+		infoLabel->setText(text);
+	}
+	else {
+		infoLabel->setText("");
+		ui.actionSend->setEnabled(true);
+	}
+}

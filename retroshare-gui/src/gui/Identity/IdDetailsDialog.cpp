@@ -25,6 +25,7 @@
 #include "util/qtthreadsutils.h"
 #include "gui/settings/rsharesettings.h"
 #include "gui/common/UIStateHelper.h"
+#include "gui/common/FilesDefs.h"
 #include "gui/msgs/MessageComposer.h"
 #include "gui/RetroShareLink.h"
 
@@ -82,7 +83,7 @@ IdDetailsDialog::IdDetailsDialog(const RsGxsGroupId& id, QWidget *parent) :
 
 	Settings->loadWidgetInformation(this);
 
-	ui->headerFrame->setHeaderImage(QPixmap(":/icons/png/person.png"));
+    ui->headerFrame->setHeaderImage(FilesDefs::getPixmapFromQtResourcePath(":/icons/png/person.png"));
 	ui->headerFrame->setHeaderText(tr("Person Details"));
 
 	//connect(ui.buttonBox, SIGNAL(accepted()), this, SLOT(changeGroup()));
@@ -322,13 +323,13 @@ void IdDetailsDialog::modifyReputation()
 	case 2: op = RsOpinion::POSITIVE; break;
 	default:
 		std::cerr << "Wrong value from opinion combobox. Bug??" << std::endl;
-		break;
+		return;
 	}
 	rsReputations->setOwnOpinion(id,op);
 
 	// trigger refresh when finished.
 	// basic / anstype are not needed.
-    loadIdentity();
+	loadIdentity();
 
 	return;
 }

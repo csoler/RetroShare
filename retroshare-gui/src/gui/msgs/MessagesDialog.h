@@ -23,7 +23,9 @@
 
 #include <QSortFilterProxyModel>
 
-#include "mainpage.h"
+#include <retroshare/rsevents.h>
+#include <retroshare-gui/mainpage.h>
+
 #include "ui_MessagesDialog.h"
 
 #define IMAGE_MESSAGES          ":/icons/png/message.png"
@@ -46,9 +48,9 @@ public:
   /** Default Destructor */
   ~MessagesDialog();
 
-  virtual QIcon iconPixmap() const { return QIcon(IMAGE_MESSAGES) ; } //MainPage
-  virtual QString pageName() const { return tr("Mail") ; } //MainPage
-  virtual QString helpText() const { return ""; } //MainPage
+  virtual QIcon iconPixmap() const override { return QIcon(IMAGE_MESSAGES) ; } //MainPage
+  virtual QString pageName() const override { return tr("Mail") ; } //MainPage
+  virtual QString helpText() const override { return ""; } //MainPage
 
 // replaced by shortcut
 //  virtual void keyPressEvent(QKeyEvent *) ;
@@ -58,8 +60,8 @@ public:
   void setTextColorInbox(QColor color) { mTextColorInbox = color; }
 
 protected:
-  virtual UserNotify *createUserNotify(QObject *parent) override;
-  bool eventFilter(QObject *obj, QEvent *ev);
+  virtual UserNotify *createUserNotify(QObject *parent) override; //MainPage
+  bool eventFilter(QObject *obj, QEvent *ev) override; //MainPage
   int getSelectedMessages(QList<QString>& mid);
 
 public slots:
@@ -94,6 +96,7 @@ private slots:
   void markAsRead();
   void markAsUnread();
   void markWithStar(bool checked);
+  void markWithJunk(bool checked);
 
   void emptyTrash();
 
@@ -108,6 +111,8 @@ private slots:
   void tabCloseRequested(int tab);
 
 private:
+    void handleEvent_main_thread(std::shared_ptr<const RsEvent> event);
+
   void updateInterface();
 
   void connectActions();
@@ -118,9 +123,10 @@ private:
   bool getCurrentMsg(std::string &cid, std::string &mid);
   void setMsgAsReadUnread(const QList<QTreeWidgetItem *> &items, bool read);
 
-  int getSelectedMsgCount (QList<QModelIndex> *items, QList<QModelIndex> *itemsRead, QList<QModelIndex> *itemsUnread, QList<QModelIndex> *itemsStar);
+  int getSelectedMsgCount (QList<QModelIndex> *items, QList<QModelIndex> *itemsRead, QList<QModelIndex> *itemsUnread, QList<QModelIndex> *itemsStar, QList<QModelIndex> *itemsJunk);
   bool isMessageRead(const QModelIndex &real_index);
   bool hasMessageStar(const QModelIndex &index);
+  bool hasMessageSpam(const QModelIndex &index);
 
   void processSettings(bool load);
 
@@ -154,6 +160,8 @@ private:
 
   QList<QString> mTmpSavedSelectedIds;
   QModelIndex lastSelectedIndex;
+
+  RsEventsHandlerId_t mEventHandlerId;
 };
 
 #endif

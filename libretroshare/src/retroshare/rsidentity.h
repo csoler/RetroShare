@@ -143,6 +143,7 @@ struct RsGxsIdGroup : RsSerializable
     rstime_t mLastUsageTS ;
 
     // Not Serialised - for GUI's benefit.
+    bool mPgpLinked;
     bool mPgpKnown;
     bool mIsAContact;	// change that into flags one day
     RsPgpId mPgpId;
@@ -234,31 +235,30 @@ struct RsIdentityUsage : RsSerializable
 		GXS_TUNNEL_DH_SIGNATURE_CHECK        = 0x0c,
 		GXS_TUNNEL_DH_SIGNATURE_CREATION     = 0x0d,
 
+		/// Identity received through GXS sync
+		IDENTITY_NEW_FROM_GXS_SYNC           = 0x0e,
 		/// Group update on that identity data. Can be avatar, name, etc.
-		IDENTITY_DATA_UPDATE                 = 0x0e,
+		IDENTITY_NEW_FROM_DISCOVERY          = 0x0f,
+		/// Explicit request to friend
+		IDENTITY_NEW_FROM_EXPLICIT_REQUEST   = 0x10,
 
 		/// Any signature verified for that identity
-		IDENTITY_GENERIC_SIGNATURE_CHECK     = 0x0f,
+		IDENTITY_GENERIC_SIGNATURE_CHECK     = 0x11,
 
 		/// Any signature made by that identity
-		IDENTITY_GENERIC_SIGNATURE_CREATION  = 0x10,
+		IDENTITY_GENERIC_SIGNATURE_CREATION  = 0x12,
 
-		IDENTITY_GENERIC_ENCRYPTION          = 0x11,
-		IDENTITY_GENERIC_DECRYPTION          = 0x12,
-		CIRCLE_MEMBERSHIP_CHECK              = 0x13
+		IDENTITY_GENERIC_ENCRYPTION          = 0x13,
+		IDENTITY_GENERIC_DECRYPTION          = 0x14,
+		CIRCLE_MEMBERSHIP_CHECK              = 0x15
 	} ;
-
-	RS_DEPRECATED
-	RsIdentityUsage( uint16_t service, const RsIdentityUsage::UsageCode& code,
-	                 const RsGxsGroupId& gid = RsGxsGroupId(),
-	                 const RsGxsMessageId& mid = RsGxsMessageId(),
-	                 uint64_t additional_id=0,
-	                 const std::string& comment = std::string() );
 
 	RsIdentityUsage( RsServiceType service,
 	                 RsIdentityUsage::UsageCode code,
 	                 const RsGxsGroupId& gid = RsGxsGroupId(),
-	                 const RsGxsMessageId& mid = RsGxsMessageId(),
+	                 const RsGxsMessageId& message_id = RsGxsMessageId(),
+                     const RsGxsMessageId& parent_id = RsGxsMessageId(),
+                     const RsGxsMessageId& thread_id = RsGxsMessageId(),
 	                 uint64_t additional_id=0,
 	                 const std::string& comment = std::string() );
 
@@ -274,6 +274,12 @@ struct RsIdentityUsage : RsSerializable
 
 	/// Message ID using the identity
 	RsGxsMessageId mMsgId;
+
+	/// Reference message ID. Useful for votes/comments
+	RsGxsMessageId mParentId;
+
+	/// Reference message ID. Useful for votes/comments
+	RsGxsMessageId mThreadId;
 
 	/// Some additional ID. Can be used for e.g. chat lobbies.
 	uint64_t mAdditionalId;
@@ -415,10 +421,14 @@ public:
 	/**
 	 * @brief Update identity data (name, avatar...)
 	 * @jsonapi{development}
-	 * @param[in] identityData updated identiy data
-	 * @return false on error, true otherwise
+     * @param[in] id Id of the identity
+     * @param[in] name New name of the identity
+     * @param[in] avatar New avatar for the identity
+     * @param[in] pseudonimous Set to true to make the identity anonymous. If set to false, updating will require the profile passphrase.
+     * @param[in] pgpPassword Profile passphrase, if non pseudonymous.
+     * @return false on error, true otherwise
 	 */
-	virtual bool updateIdentity(RsGxsIdGroup& identityData) = 0;
+    virtual bool updateIdentity( const RsGxsId& id, const std::string& name, const RsGxsImage& avatar, bool pseudonimous, const std::string& pgpPassword) =0;
 
 	/**
 	 * @brief Get identity details, from the cache
@@ -631,9 +641,6 @@ public:
 	RS_DEPRECATED_FOR(RsReputations)
 	virtual bool submitOpinion(uint32_t& token, const RsGxsId &id,
 	                           bool absOpinion, int score) = 0;
-
-	RS_DEPRECATED
-	virtual bool updateIdentity(uint32_t& token, RsGxsIdGroup &group) = 0;
 
 	RS_DEPRECATED
 	virtual bool deleteIdentity(uint32_t& token, RsGxsIdGroup &group) = 0;

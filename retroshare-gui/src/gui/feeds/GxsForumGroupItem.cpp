@@ -20,7 +20,9 @@
 
 #include "GxsForumGroupItem.h"
 #include "ui_GxsForumGroupItem.h"
+#include "gui/NewsFeed.h"
 
+#include "gui/common/FilesDefs.h"
 #include "FeedHolder.h"
 #include "gui/RetroShareLink.h"
 #include "util/qtthreadsutils.h"
@@ -31,6 +33,16 @@
 
 GxsForumGroupItem::GxsForumGroupItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, bool isHome, bool autoUpdate) :
     GxsGroupFeedItem(feedHolder, feedId, groupId, isHome, rsGxsForums, autoUpdate)
+{
+	setup();
+
+	requestGroup();
+}
+
+GxsForumGroupItem::GxsForumGroupItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, const std::list<RsGxsId>& added_moderators,const std::list<RsGxsId>& removed_moderators,bool isHome, bool autoUpdate):
+    GxsGroupFeedItem(feedHolder, feedId, groupId, isHome, rsGxsForums, autoUpdate),
+    mAddedModerators(added_moderators),
+    mRemovedModerators(removed_moderators)
 {
 	setup();
 
@@ -147,9 +159,9 @@ void GxsForumGroupItem::fill()
 	ui->descLabel->setText(QString::fromUtf8(mGroup.mDescription.c_str()));
 
 	if (IS_GROUP_PUBLISHER(mGroup.mMeta.mSubscribeFlags)) {
-		ui->forumlogo_label->setPixmap(QPixmap(":/icons/png/forums.png"));
+        ui->forumlogo_label->setPixmap(FilesDefs::getPixmapFromQtResourcePath(":/icons/png/forums.png"));
 	} else {
-		ui->forumlogo_label->setPixmap(QPixmap(":/icons/png/forums-default.png"));
+        ui->forumlogo_label->setPixmap(FilesDefs::getPixmapFromQtResourcePath(":/icons/png/forums-default.png"));
 	}
 
 	if (IS_GROUP_SUBSCRIBED(mGroup.mMeta.mSubscribeFlags)) {
@@ -158,10 +170,62 @@ void GxsForumGroupItem::fill()
 		ui->subscribeButton->setEnabled(true);
 	}
 
-//	if (mIsNew)
-//	{
+    if(feedId() == NEWSFEED_UPDATED_FORUM)
+    {
+        if(!mAddedModerators.empty() || !mRemovedModerators.empty())
+        {
+			ui->titleLabel->setText(tr("Moderator list changed"));
+            ui->moderatorList_GB->show();
+
+            QString msg;
+
+            if(!mAddedModerators.empty())
+            {
+                msg += "<b>Added moderators:</b>" ;
+                msg += "<p>";
+                for(auto& gxsid: mAddedModerators)
+                {
+                    RsIdentityDetails det;
+                    if(rsIdentity->getIdDetails(gxsid,det))
+						msg += QString::fromUtf8(det.mNickname.c_str())+" ("+QString::fromStdString(gxsid.toStdString())+"), ";
+					else
+						msg += QString("[Unknown name]") + " ("+QString::fromStdString(gxsid.toStdString())+"), ";
+                }
+                msg.resize(msg.size()-2);
+                msg += "</p>";
+            }
+			if(!mRemovedModerators.empty())
+            {
+                msg += "<b>Removed moderators:</b>" ;
+                msg += "<p>";
+                for(auto& gxsid: mRemovedModerators)
+                {
+					RsIdentityDetails det;
+
+                    if( rsIdentity->getIdDetails(gxsid,det))
+						msg += QString::fromUtf8(det.mNickname.c_str())+" ("+QString::fromStdString(gxsid.toStdString())+"), ";
+					else
+						msg += QString("[Unknown name]") + " ("+QString::fromStdString(gxsid.toStdString())+"), ";
+                }
+                msg.resize(msg.size()-2);
+                msg += "</p>";
+            }
+            ui->moderatorList_TE->setText(msg);
+        }
+		else
+        {
+            ui->moderatorList_GB->hide();
+
+			ui->titleLabel->setText(tr("Forum updated"));
+            ui->moderatorList_GB->hide();
+		}
+    }
+	else
+    {
 		ui->titleLabel->setText(tr("New Forum"));
-//	}
+		ui->moderatorList_GB->hide();
+    }
+
 //	else
 //	{
 //		ui->titleLabel->setText(tr("Updated Forum"));
@@ -188,13 +252,13 @@ void GxsForumGroupItem::doExpand(bool open)
 	if (open)
 	{
 		ui->expandFrame->show();
-		ui->expandButton->setIcon(QIcon(QString(":/icons/png/up-arrow.png")));
+        ui->expandButton->setIcon(FilesDefs::getIconFromQtResourcePath(QString(":/icons/png/up-arrow.png")));
 		ui->expandButton->setToolTip(tr("Hide"));
 	}
 	else
 	{
 		ui->expandFrame->hide();
-		ui->expandButton->setIcon(QIcon(QString(":/icons/png/down-arrow.png")));
+        ui->expandButton->setIcon(FilesDefs::getIconFromQtResourcePath(QString(":/icons/png/down-arrow.png")));
 		ui->expandButton->setToolTip(tr("Expand"));
 	}
 

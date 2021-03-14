@@ -41,9 +41,13 @@ public:
 	/** Default Destructor */
 	~CreateGxsChannelMsg();
 
-	void addHtmlText(const QString& text) ;
-	void addSubject(const QString& text) ;
-	void addAttachment(const std::string &path);
+    void reject() override;
+
+    void addHtmlText(const QString& text) ;
+    void addSubject(const QString& text) ;
+
+    // adds a file to be hashed and shared. Returns false if something goes wrong.
+    bool addAttachment(const std::string &path);
     void addAttachment(const RsFileHash &hash, const std::string &fname, uint64_t size, bool local, const RsPeerId &srcId,bool assume_file_ready = false);
 
 	void newChannelMsg();
@@ -55,24 +59,31 @@ protected:
 	virtual void dropEvent(QDropEvent *event);
 
 private slots:
+	void toggle() ;
 	void addExtraFile();
 	void checkAttachmentReady();
 	void deleteAttachment();
+	void updatePreviewText(const QString &);
+    void clearAllAttachments();
 
 	void cancelMsg();
 	void sendMsg();
 	void pasteLink() ;
 	void contextMenu(QPoint) ;
+    void changeAspectRatio(int s);
 
 	void addThumbnail();
 	void allowAutoMediaThumbNail(bool);
 
 	void on_channelpostButton_clicked();
 	void on_attachmentsButton_clicked();
+	void on_removeButton_clicked();
 private:
+	void processSettings(bool load);
 	void loadChannelInfo();
 	void loadOriginalChannelPostInfo();
 	void saveChannelInfo(const RsGroupMetaData &group);
+    void updateAttachmentCount();
 
 	void parseRsFileListAttachments(const std::string &attachList);
 	void sendMessage(const std::string &subject, const std::string &msg, const std::list<RsGxsFile> &files);

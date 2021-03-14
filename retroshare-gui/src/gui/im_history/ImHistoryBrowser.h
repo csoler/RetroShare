@@ -41,7 +41,7 @@ class ImHistoryBrowser : public QDialog
 
 public:
     /** Default constructor */
-    ImHistoryBrowser(const ChatId &chatId, QTextEdit *edit, QWidget *parent = 0);
+    ImHistoryBrowser(const ChatId &chatId, QTextEdit *edit,const QString &chatTitle, QWidget *parent = 0);
     /** Default destructor */
     virtual ~ImHistoryBrowser();
 
@@ -73,6 +73,7 @@ private:
     void filterItems(const QString &text, QListWidgetItem *item = NULL);
 
     void getSelectedItems(std::list<uint32_t> &items);
+    QString getCurrentItemsQuotedText();
 
     ImHistoryBrowserCreateItemsThread *m_createThread;
 

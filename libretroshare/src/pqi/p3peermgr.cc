@@ -317,7 +317,7 @@ void p3PeerMgrIMPL::tick()
 
 const RsPeerId& p3PeerMgrIMPL::getOwnId()
 {
-                return AuthSSL::getAuthSSL()->OwnId();
+    return AuthSSL::getAuthSSL()->OwnId();
 }
 
 
@@ -1066,8 +1066,7 @@ bool p3PeerMgrIMPL::addFriend(const RsPeerId& input_id, const RsPgpId& input_gpg
 }
 
 
-bool p3PeerMgrIMPL::addSslOnlyFriend(
-        const RsPeerId& sslId, const RsPgpId& pgp_id, const RsPeerDetails& dt )
+bool p3PeerMgrIMPL::addSslOnlyFriend( const RsPeerId& sslId, const RsPgpId& pgp_id, const RsPeerDetails& dt )
 {
 	constexpr auto fname = __PRETTY_FUNCTION__;
 	const auto failure = [&](const std::string& err)
@@ -1471,7 +1470,7 @@ bool p3PeerMgrIMPL::UpdateOwnAddress( const sockaddr_storage& pLocalAddr,
 		}
 
 		sockaddr_storage_copy(localAddr, mOwnState.localaddr);
-	}
+    }
 
 
 	{
@@ -1598,9 +1597,7 @@ bool p3PeerMgrIMPL::setLocalAddress( const RsPeerId &id,
 	std::map<RsPeerId, peerState>::iterator it;
 	if (mFriendList.end() == (it = mFriendList.find(id)))
 	{
-#ifdef PEER_DEBUG
-			std::cerr << "p3PeerMgrIMPL::setLocalAddress() cannot add addres " << "info : peer id not found in friend list  id: " << id << std::endl;
-#endif
+            std::cerr << "(EE) p3PeerMgrIMPL::setLocalAddress() cannot add addres " << "info : peer id not found in friend list  id: " << id << std::endl;
 			return false;
 	}
 
@@ -1646,7 +1643,7 @@ bool p3PeerMgrIMPL::setExtAddress( const RsPeerId &id,
 			{
 				mOwnState.serveraddr = addr;
 				changed = true;
-			}
+            }
 		}
 
 		mNetMgr->setExtAddress(addr);
@@ -1659,9 +1656,7 @@ bool p3PeerMgrIMPL::setExtAddress( const RsPeerId &id,
 	std::map<RsPeerId, peerState>::iterator it;
 	if (mFriendList.end() == (it = mFriendList.find(id)))
 	{
-#ifdef PEER_DEBUG
-			std::cerr << "p3PeerMgrIMPL::setLocalAddress() cannot add addres " << "info : peer id not found in friend list  id: " << id << std::endl;
-#endif
+            std::cerr << "(EE) p3PeerMgrIMPL::setExtAddress() cannot add addres " << "info : peer id not found in friend list  id: " << id << std::endl;
 			return false;
 	}
 
@@ -1876,7 +1871,9 @@ bool p3PeerMgrIMPL::getExtAddressReportedByFriends(sockaddr_storage &addr, uint8
 static bool cleanIpList(std::list<pqiIpAddress>& lst,const RsPeerId& pid,p3LinkMgr *link_mgr)
 {
     bool changed = false ;
+#ifdef PEER_DEBUG
     rstime_t now = time(NULL) ;
+#endif
 
     for(std::list<pqiIpAddress>::iterator it2(lst.begin());it2 != lst.end();)
     {
@@ -2433,7 +2430,6 @@ void    p3PeerMgrIMPL::saveDone()
 
 bool  p3PeerMgrIMPL::loadList(std::list<RsItem *>& load)
 {
-
     // DEFAULTS.
     bool useExtAddrFinder = true;
     std::string proxyIpAddressTor = kConfigDefaultProxyServerIpAddr;
@@ -2682,13 +2678,31 @@ bool  p3PeerMgrIMPL::loadList(std::list<RsItem *>& load)
 
                 groupList[info.id] = info;
 		    }
+
+        // Also filter out profiles in groups that are not friends. Normally this shouldn't be needed, but it's a precaution
+
+        for(auto group_pair:groupList)
+        {
+            for(auto profileIdIt(group_pair.second.peerIds.begin());profileIdIt!=group_pair.second.peerIds.end();)
+                if(AuthGPG::getAuthGPG()->isGPGAccepted(*profileIdIt) || *profileIdIt == AuthGPG::getAuthGPG()->getGPGOwnId())
+                    ++profileIdIt;
+                else
+                {
+                    std::cerr << "(WW) filtering out profile " << profileIdIt->toStdString() << " from group " << group_pair.first.toStdString() << " because it is not a friend anymore" << std::endl;
+
+                    auto tmp = profileIdIt;
+                    ++tmp;
+                    group_pair.second.peerIds.erase(profileIdIt);
+                    profileIdIt=tmp;
+
+                    IndicateConfigChanged();
+                }
+        }
     }
 
     // If we are hidden - don't want ExtAddrFinder - ever!
     if (isHidden())
-    {
 	    useExtAddrFinder = false;
-    }
 
     mNetMgr->setIPServersEnabled(useExtAddrFinder);
 

@@ -22,20 +22,20 @@
  *                                                                             *
  *******************************************************************************/
 
-#include <iostream>
-#include <ctime>
-#include <thread>
-#include <chrono>
-
-#ifdef RSMUTEX_DEBUG
-#include <cstdio>
-#include <sys/time.h>
-#endif
-
 #include "rsthreads.h"
+
 #include "util/rsdebug.h"
 #include "util/rserrno.h"
 
+#include <chrono>
+#include <ctime>
+#include <iostream>
+#include <thread>
+
+#ifdef RS_MUTEX_DEBUG
+#include <cstdio>
+#include <sys/time.h>
+#endif
 
 #ifdef __APPLE__
 int __attribute__((weak)) pthread_setname_np(const char *__buf) ;
@@ -43,11 +43,13 @@ int RS_pthread_setname_np(pthread_t /*__target_thread*/, const char *__buf) {
 	return pthread_setname_np(__buf);
 }
 #else
+#ifndef __WIN64__
 int __attribute__((weak)) pthread_setname_np(pthread_t __target_thread, const char *__buf) ;
+#endif //__WIN64__
 int RS_pthread_setname_np(pthread_t __target_thread, const char *__buf) {
 	return pthread_setname_np(__target_thread, __buf);
 }
-#endif
+#endif //__APPLE__
 
 
 /*******
@@ -194,6 +196,15 @@ bool RsThread::start(const std::string& threadName)
 			print_stacktrace();
 			return false;
 		}
+		if(!mTid)
+		{
+			RsErr() << __PRETTY_FUNCTION__ << " pthread_create could not create"
+			        << " new thread: " << threadName << " mTid: " << mTid
+			        << std::endl;
+			mHasStopped = true;
+			print_stacktrace();
+			return false;
+		}
 
 		/* Store an extra copy of thread id for debugging */
 		mLastTid = mTid;
@@ -271,8 +282,8 @@ void RsMutex::lock()
 	{
 		RsErr() << __PRETTY_FUNCTION__ << "pthread_mutex_lock returned: "
 		        << rsErrnoName(err)
-#ifdef RSMUTEX_DEBUG
-		        << " name: " << name
+#ifdef RS_MUTEX_DEBUG
+		        << " name: " << name()
 #endif
 		       << std::endl;
 
@@ -286,7 +297,7 @@ void RsMutex::lock()
 	_thread_id = pthread_self();
 }
 
-#ifdef RSMUTEX_DEBUG
+#ifdef RS_MUTEX_DEBUG
 double RsStackMutex::getCurrentTS()
 {
 

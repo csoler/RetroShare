@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>987</width>
+    <width>800</width>
     <height>584</height>
    </rect>
   </property>
@@ -120,7 +120,7 @@
          <enum>Qt::NoFocus</enum>
         </property>
         <property name="icon">
-         <iconset resource="../images.qrc">
+         <iconset resource="../icons.qrc">
           <normaloff>:/icons/help_64.png</normaloff>:/icons/help_64.png</iconset>
         </property>
         <property name="checkable">
@@ -287,7 +287,7 @@
           <widget class="QWidget" name="scrollAreaWidgetContents">
            <property name="geometry">
             <rect>
-             <x>0</x>
+             <x>-155</x>
              <y>0</y>
              <width>634</width>
              <height>523</height>
@@ -606,6 +606,13 @@ border-image: url(:/images/closepressed.png)
                   <widget class="QPushButton" name="inviteButton">
                    <property name="text">
                     <string>Send Invite</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="editButton">
+                   <property name="text">
+                    <string>Edit Identity</string>
                    </property>
                   </widget>
                  </item>
@@ -1031,7 +1038,7 @@ border-image: url(:/images/closepressed.png)
   </layout>
   <action name="editIdentity">
    <property name="icon">
-    <iconset resource="../images.qrc">
+    <iconset>
      <normaloff>:/images/edit_16.png</normaloff>:/images/edit_16.png</iconset>
    </property>
    <property name="text">
@@ -1052,7 +1059,7 @@ border-image: url(:/images/closepressed.png)
   </action>
   <action name="chatIdentity">
    <property name="icon">
-    <iconset resource="../images.qrc">
+    <iconset>
      <normaloff>:/images/toaster/chat.png</normaloff>:/images/toaster/chat.png</iconset>
    </property>
    <property name="text">
@@ -1094,8 +1101,8 @@ border-image: url(:/images/closepressed.png)
   <tabstop>idTreeWidget</tabstop>
  </tabstops>
  <resources>
-  <include location="../images.qrc"/>
   <include location="../icons.qrc"/>
+  <include location="../images.qrc"/>
  </resources>
  <connections/>
 </ui>

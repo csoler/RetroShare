@@ -43,8 +43,9 @@
 #include <retroshare/rsexpr.h>
 
 /* Images for context menu icons */
-#define IMAGE_START  		    ":/images/download.png"
-#define IMAGE_REMOVE  		  ":/images/delete.png"
+#define IMAGE_START                ":/icons/png/download.png"
+#define IMAGE_SEARCHAGAIN          ":/images/update.png"
+#define IMAGE_REMOVE               ":/images/delete.png"
 #define IMAGE_REMOVEALL            ":/images/deleteall.png"
 #define IMAGE_DIRECTORY            ":/images/folder16.png"
 #define IMAGE_OPENFOLDER           ":/images/folderopen.png"
@@ -153,8 +154,8 @@ SearchDialog::SearchDialog(QWidget *parent)
     //  To allow a proper sorting, be careful to pad at right with spaces. This
     //  is achieved by using QString("%1").arg(number,15,10).
     //
-    ui.searchResultWidget->setItemDelegateForColumn(SR_SIZE_COL, new RSHumanReadableSizeDelegate()) ;
-    ui.searchResultWidget->setItemDelegateForColumn(SR_AGE_COL, new RSHumanReadableAgeDelegate()) ;
+    ui.searchResultWidget->setItemDelegateForColumn(SR_SIZE_COL, mSizeColumnDelegate=new RSHumanReadableSizeDelegate()) ;
+    ui.searchResultWidget->setItemDelegateForColumn(SR_AGE_COL, mAgeColumnDelegate=new RSHumanReadableAgeDelegate()) ;
 
     /* make it extended selection */
     ui.searchResultWidget -> setSelectionMode(QAbstractItemView::ExtendedSelection);
@@ -224,12 +225,17 @@ SearchDialog::~SearchDialog()
     // save settings
     processSettings(false);
 
-    if (compareSummaryRole) {
+    if (compareSummaryRole)
         delete(compareSummaryRole);
-    }
-    if (compareResultRole) {
+
+    if (compareResultRole)
         delete(compareResultRole);
-    }
+
+    delete mSizeColumnDelegate;
+    delete mAgeColumnDelegate;
+
+    ui.searchResultWidget->setItemDelegateForColumn(SR_SIZE_COL, nullptr);
+    ui.searchResultWidget->setItemDelegateForColumn(SR_AGE_COL, nullptr);
 }
 
 void SearchDialog::processSettings(bool bLoad)
@@ -415,9 +421,8 @@ void SearchDialog::download()
 					std::cout << *it << "-" << std::endl;
 
 				QColor foreground = textColorDownloading();
-				QBrush brush(foreground);
 				for (int i = 0; i < item->columnCount(); ++i)
-					item->setForeground(i, brush);
+					item->setData(i, Qt::ForegroundRole, foreground );
 			}
 		}
 	}
@@ -479,7 +484,7 @@ void SearchDialog::collCreate()
 			DirDetails details;
 			details.name = name;
 			details.hash = hash;
-			details.count = count;
+            details.size = count;
 			details.type = DIR_TYPE_FILE;
 
 			dirVec.push_back(details);
@@ -671,14 +676,14 @@ void SearchDialog::searchSummaryWidgetCustomPopupMenu( QPoint /*point*/ )
     QMenu contextMnu(this);
 
     QTreeWidgetItem* ci = ui.searchSummaryWidget->currentItem();
-    QAction* action = contextMnu.addAction(tr("Search again"), this, SLOT(searchAgain()));
+    QAction* action = contextMnu.addAction(FilesDefs::getIconFromQtResourcePath(IMAGE_SEARCHAGAIN),tr("Search again"), this, SLOT(searchAgain()));
     if (!ci || ci->data(SS_DATA_COL, ROLE_KEYWORDS).toString().isEmpty()) {
         action->setDisabled(true);
     }
-    contextMnu.addAction(QIcon(IMAGE_REMOVE), tr("Remove"), this, SLOT(searchRemove()));
-    contextMnu.addAction(QIcon(IMAGE_REMOVE), tr("Remove All"), this, SLOT(searchRemoveAll()));
+    contextMnu.addAction(FilesDefs::getIconFromQtResourcePath(IMAGE_REMOVE), tr("Remove"), this, SLOT(searchRemove()));
+    contextMnu.addAction(FilesDefs::getIconFromQtResourcePath(IMAGE_REMOVEALL), tr("Remove All"), this, SLOT(searchRemoveAll()));
     contextMnu.addSeparator();
-    action = contextMnu.addAction(QIcon(IMAGE_COPYLINK), tr("Copy RetroShare Link"), this, SLOT(copySearchLink()));
+    action = contextMnu.addAction(FilesDefs::getIconFromQtResourcePath(IMAGE_COPYLINK), tr("Copy RetroShare Link"), this, SLOT(copySearchLink()));
     if (!ci || ci->data(SS_DATA_COL, ROLE_KEYWORDS).toString().isEmpty()) {
         action->setDisabled(true);
     }
@@ -1010,8 +1015,8 @@ void SearchDialog::insertDirectory(const QString &txt, qulonglong searchId, cons
 		
 		child->setText(SR_NAME_COL, QString::fromUtf8(dir.name.c_str()));
         child->setText(SR_HASH_COL, QString::fromStdString(dir.hash.toStdString()));
-		child->setText(SR_SIZE_COL, QString::number(dir.count));
-		child->setData(SR_SIZE_COL, ROLE_SORT, (qulonglong) dir.count);
+        child->setText(SR_SIZE_COL, QString::number(dir.size));
+        child->setData(SR_SIZE_COL, ROLE_SORT, (qulonglong) dir.size);
 		child->setText(SR_AGE_COL, QString::number(dir.mtime));
 		child->setData(SR_AGE_COL, ROLE_SORT, dir.mtime);
 		child->setTextAlignment( SR_SIZE_COL, Qt::AlignRight );
@@ -1036,8 +1041,8 @@ void SearchDialog::insertDirectory(const QString &txt, qulonglong searchId, cons
 		child->setIcon(SR_NAME_COL, QIcon(IMAGE_DIRECTORY));
 		child->setText(SR_NAME_COL, QString::fromUtf8(dir.name.c_str()));
         child->setText(SR_HASH_COL, QString::fromStdString(dir.hash.toStdString()));
-		child->setText(SR_SIZE_COL, QString::number(dir.count));
-		child->setData(SR_SIZE_COL, ROLE_SORT, (qulonglong) dir.count);
+        child->setText(SR_SIZE_COL, QString::number(dir.size));
+        child->setData(SR_SIZE_COL, ROLE_SORT, (qulonglong) dir.size);
 		child->setText(SR_AGE_COL, QString::number(dir.mtime));
 		child->setData(SR_AGE_COL, ROLE_SORT, dir.mtime);
 		child->setTextAlignment( SR_SIZE_COL, Qt::AlignRight );
@@ -1105,8 +1110,8 @@ void SearchDialog::insertDirectory(const QString &txt, qulonglong searchId, cons
     child->setIcon(SR_NAME_COL, QIcon(IMAGE_DIRECTORY));
     child->setText(SR_NAME_COL, QString::fromUtf8(dir.name.c_str()));
     child->setText(SR_HASH_COL, QString::fromStdString(dir.hash.toStdString()));
-    child->setText(SR_SIZE_COL, QString::number(dir.count));
-    child->setData(SR_SIZE_COL, ROLE_SORT, (qulonglong) dir.count);
+    child->setText(SR_SIZE_COL, QString::number(dir.size));
+    child->setData(SR_SIZE_COL, ROLE_SORT, (qulonglong) dir.size);
     child->setText(SR_AGE_COL, QString::number(dir.max_mtime));
     child->setData(SR_AGE_COL, ROLE_SORT, dir.max_mtime);
     child->setTextAlignment( SR_SIZE_COL, Qt::AlignRight );
@@ -1269,10 +1274,9 @@ void SearchDialog::insertFile(qulonglong searchId, const FileDetail& file, int s
 					foreground = textColorHighSources();
 				}
 
-				QBrush brush(foreground);
 				for (int i = 0; i < item->columnCount(); ++i)
 				{
-					item->setForeground(i, brush);
+					item->setData(i, Qt::ForegroundRole, foreground);
 				}
 			}
 
@@ -1355,10 +1359,9 @@ void SearchDialog::insertFile(qulonglong searchId, const FileDetail& file, int s
 		}
 
 		if (setForeground) {
-			QBrush brush(foreground);
 			for (int i = 0; i < item->columnCount(); ++i)
 			{
-				item->setForeground(i, brush);
+				item->setData(i, Qt::ForegroundRole, foreground);
 			}
 		}
 
@@ -1391,7 +1394,7 @@ void SearchDialog::resultsToTree(const QString& txt,qulonglong searchId, const s
 			fd.name = it->name;
 			fd.hash = it->hash;
 			fd.path = it->path;
-			fd.size = it->count;
+            fd.size = it->size;
 			fd.age 	= it->mtime;
 			fd.rank = 0;
 
@@ -1470,7 +1473,7 @@ void SearchDialog::hideOrShowSearchResult(QTreeWidgetItem* resultItem, QString c
 
 void SearchDialog::setIconAndType(QTreeWidgetItem *item, const QString& filename)
 {
-	item->setIcon(SR_NAME_COL, FilesDefs::getIconFromFilename(filename));
+	item->setIcon(SR_NAME_COL, FilesDefs::getIconFromFileType(filename));
 	item->setText(SR_TYPE_COL, FilesDefs::getNameFromFilename(filename));
 }
 

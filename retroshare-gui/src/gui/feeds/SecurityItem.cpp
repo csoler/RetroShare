@@ -29,6 +29,7 @@
 #include "gui/common/StatusDefs.h"
 #include "gui/connect/ConfCertDialog.h"
 #include "gui/connect/PGPKeyDialog.h"
+#include "gui/common/FilesDefs.h"
 #include "gui/connect/ConnectFriendWizard.h"
 #include "gui/common/AvatarDefs.h"
 #include "util/DateTime.h"
@@ -137,6 +138,7 @@ void SecurityItem::updateItemStatic()
 				title = tr("Missing/Damaged certificate. Not a real Retroshare user.");
 			requestLabel->hide();
 			}
+			avatar->setDefaultAvatar(":icons/ssl.png");
 			break;
 		case RS_FEED_ITEM_SEC_INTERNAL_ERROR:
 			title = tr("Certificate caused an internal error.");
@@ -185,7 +187,7 @@ void SecurityItem::updateItem()
 				 */
 
 			/* set peer name */
-			peerNameLabel->setText(tr("A unknown peer"));
+			//peerNameLabel->setText(tr("A unknown peer"));
 
 			nameLabel->setText(tr("Unknown") + " (" + tr("Profile ID: ") + QString::fromStdString(mGpgId.toStdString()) + ")");
 			idLabel->setText(QString::fromStdString(mSslId.toStdString()));
@@ -204,15 +206,25 @@ void SecurityItem::updateItem()
 			connLeftLabel->hide();
 
 			chatButton->hide();
-			//quickmsgButton->hide();
-			requestLabel->hide();
 
 			removeFriendButton->setEnabled(false);
 			removeFriendButton->hide();
 			peerDetailsButton->setEnabled(false);
-
-			friendRequesttoolButton->show();
-			requestLabel->show();
+			
+			if(mType == RS_FEED_ITEM_SEC_BAD_CERTIFICATE)
+			{
+				peerNameLabel->setText(tr("SSL request"));
+				friendRequesttoolButton->hide();
+				requestLabel->hide();
+				peerDetailsButton->hide();
+			}
+			else 
+			{
+				peerNameLabel->setText(tr("An unknown peer"));
+				friendRequesttoolButton->show();
+				requestLabel->show();
+				peerDetailsButton->show();
+			}
 
 			return;
 		}
@@ -295,13 +307,13 @@ void SecurityItem::doExpand(bool open)
 	if (open)
 	{
 		expandFrame->show();
-		expandButton->setIcon(QIcon(QString(":/icons/png/up-arrow.png")));
+        expandButton->setIcon(FilesDefs::getIconFromQtResourcePath(QString(":/icons/png/up-arrow.png")));
 		expandButton->setToolTip(tr("Hide"));
 	}
 	else
 	{
 		expandFrame->hide();
-		expandButton->setIcon(QIcon(QString(":/icons/png/down-arrow.png")));
+        expandButton->setIcon(FilesDefs::getIconFromQtResourcePath(QString(":/icons/png/down-arrow.png")));
 		expandButton->setToolTip(tr("Expand"));
 	}
 

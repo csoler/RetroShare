@@ -22,6 +22,7 @@
 #define _GXS_COMMENT_TREE_WIDGET_H
 
 #include <QTreeWidget>
+#include <QMutex>
 
 #include "util/TokenQueue.h"
 #include <retroshare/rsgxscommon.h>
@@ -45,11 +46,18 @@ public:
     void loadRequest(const TokenQueue *queue, const TokenRequest &req);
     void setVoteId(const RsGxsId &voterId);
 
+    void setUseCache(bool b) { mUseCache = b ;}
+
+protected slots:
+    void updateContent();
+
 protected:
+    void mouseMoveEvent(QMouseEvent *e) override;
 
     /* to be overloaded */
     virtual void service_requestComments(const RsGxsGroupId &group_id, const std::set<RsGxsMessageId> &msgIds);
     virtual void service_loadThread(const uint32_t &token);
+
     virtual QTreeWidgetItem *service_createMissingItem(const RsGxsMessageId& parent);
 
     void clearItems();
@@ -60,8 +68,8 @@ protected:
 
     void loadThread(const uint32_t &token);
 
+    void insertComments(const std::vector<RsGxsComment>& comments);
     void addItem(RsGxsMessageId itemId, RsGxsMessageId parentId, QTreeWidgetItem *item);
-
 public slots:
     void customPopUpMenu(const QPoint& point);
     void setCurrentCommentMsgId(QTreeWidgetItem* current, QTreeWidgetItem* previous);
@@ -79,6 +87,9 @@ public slots:
     void markInteresting();
     void markSpammer();
     void banUser();
+
+signals:
+    void commentsLoaded(int);
 
 protected:
 
@@ -105,6 +116,9 @@ protected:
     RsTokenService *mRsTokenService;
     RsGxsCommentService *mCommentService;
 
+    bool mUseCache;
+    static std::map<RsGxsMessageId, std::vector<RsGxsComment> > mCommentsCache;
+    static QMutex mCacheMutex;
 };
 
 

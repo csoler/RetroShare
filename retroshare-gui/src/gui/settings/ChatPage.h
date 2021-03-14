@@ -21,9 +21,11 @@
 #ifndef _CHATPAGE_H
 #define _CHATPAGE_H
 
-#include <retroshare-gui/configpage.h>
+#include "retroshare-gui/configpage.h"
 #include "gui/chat/ChatStyle.h"
+#include "gui/chat/ChatLobbyUserNotify.h"
 #include "ui_ChatPage.h"
+#include "gui/common/FilesDefs.h"
 
 class ChatPage : public ConfigPage
 {
@@ -31,18 +33,19 @@ class ChatPage : public ConfigPage
 
   public:
       /** Default Constructor */
-      ChatPage(QWidget * parent = 0, Qt::WindowFlags flags = 0);
+      ChatPage(QWidget * parent = 0, Qt::WindowFlags flags = Qt::WindowFlags());
       /** Default Destructor */
       ~ChatPage() {}
 
       /** Loads the settings for this page */
       virtual void load();
 
-		virtual QPixmap iconPixmap() const { return QPixmap(":/icons/settings/chat.svg") ; }
+        virtual QPixmap iconPixmap() const { return FilesDefs::getPixmapFromQtResourcePath(":/icons/settings/chat.svg") ; }
 		virtual QString pageName() const { return tr("Chats") ; }
 		virtual QString helpText() const { return ""; }
 
   private slots:
+      void updateChatLobbyUserNotify();
       void on_historyComboBoxVariant_currentIndexChanged(int index);
       void on_privateComboBoxVariant_currentIndexChanged(int index);
       void on_publicComboBoxVariant_currentIndexChanged(int index);
@@ -71,7 +74,7 @@ class ChatPage : public ConfigPage
   private:
       void setPreviewMessages(QString &stylePath, QString styleVariant, QTextBrowser *textBrowser);
       void fillPreview(QComboBox *listWidget, QComboBox *comboBox, QTextBrowser *textBrowser);
-	  QString loadStyleInfo(ChatStyle::enumStyleType type, QComboBox *style_CB, QComboBox *comboBox, QString &styleVariant);
+	  QString loadStyleInfo(ChatStyle::enumStyleType type, QComboBox *style_CB, QComboBox *var_CB, QString &styleVariant);
 
       QFont fontTempChat;
 
@@ -86,6 +89,8 @@ class ChatPage : public ConfigPage
 
       /** Qt Designer generated object */
       Ui::ChatPage ui;
+
+      ChatLobbyUserNotify* mChatLobbyUserNotify;
 };
 
 #endif

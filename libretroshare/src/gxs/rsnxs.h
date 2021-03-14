@@ -82,6 +82,9 @@ public:
     virtual uint32_t getDefaultSyncAge() =0;
     virtual uint32_t getDefaultKeepAge() =0;
 
+    virtual bool msgAutoSync() const =0;
+    virtual bool grpAutoSync() const =0;
+
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     ///                                          DISTANT SEARCH FUNCTIONS                                           ///
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -128,7 +131,7 @@ public:
      * \return
      * 			false when the request is unknown.
      */
-	virtual bool retrieveDistantSearchResults(TurtleRequestId req, std::map<RsGxsGroupId, RsGxsGroupSummary> &group_infos)=0;
+	virtual bool retrieveDistantSearchResults(TurtleRequestId req, std::map<RsGxsGroupId, RsGxsGroupSearchResults> &group_infos)=0;
     /*!
      * \brief getDistantSearchResults
      * \param id
@@ -136,10 +139,18 @@ public:
      * \return
      */
     virtual bool clearDistantSearchResults(const TurtleRequestId& id)=0;
-    virtual bool retrieveDistantGroupSummary(const RsGxsGroupId&,RsGxsGroupSummary&)=0;
+    virtual bool retrieveDistantGroupSummary(const RsGxsGroupId&,RsGxsGroupSearchResults&)=0;
 
     virtual bool search(const std::string& substring,std::list<RsGxsGroupSummary>& group_infos) =0;
 	virtual bool search(const Sha1CheckSum& hashed_group_id,unsigned char *& encrypted_group_data,uint32_t& encrypted_group_data_len)=0;
+
+    /*!
+     * \brief getDistantSearchStatus
+     * 			Request status of a possibly ongoing/finished search. If UNKNOWN is returned, it means that no
+     * 			such group is under request
+     * \return
+     */
+    virtual DistantSearchGroupStatus getDistantSearchStatus(const RsGxsGroupId&) =0;
 
     /*!
      * Initiates a search through the network

@@ -372,9 +372,11 @@ int 	pqissl::status()
 	// tick......
 int	pqissl::tick()
 {
-	RsStackMutex stack(mSslMtx); /**** LOCKED MUTEX ****/
+	// there is no reason to lock pqissl mutex now 
+	// we will lock the mutex later if we actually need to call to ConnectAttempt
+	// RsStackMutex stack(mSslMtx); /**** LOCKED MUTEX ****/
 
-	//pqistreamer::tick();
+	// pqistreamer::tick();
 
 	// continue existing connection attempt.
 	if (!active)
@@ -385,7 +387,8 @@ int	pqissl::tick()
 #ifdef PQISSL_LOG_DEBUG 
 			rslog(RSL_DEBUG_BASIC, pqisslzone, "pqissl::tick() Continuing Connection Attempt!");
 #endif
-
+			// now lock pqissl mutex, that will take up to 10 ms
+			RsStackMutex stack(mSslMtx); /**** LOCKED MUTEX ****/
 			ConnectAttempt();
 			return 1;
 		}
@@ -860,10 +863,10 @@ int 	pqissl::Basic_Connection_Complete()
 	{
 		// error - reset socket.
 		// this is a definite bad socket!.
-		
+#ifdef PQISSL_LOG_DEBUG2
   		rslog(RSL_WARNING, pqisslzone, 
 	  	  "pqissl::Basic_Connection_Complete() Select ERROR(2)");
-		
+#endif
 		net_internal_close(sockfd);
 		sockfd=-1;
 		//reset();
@@ -1110,10 +1113,16 @@ int pqissl::SSL_Connection_Complete()
 		if(rsEvents)
 		{
 			X509 *x509 = SSL_get_peer_certificate(ssl_connection);
-			auto ev = std::make_shared<RsAuthSslConnectionAutenticationEvent>();
-			ev->mSslId = RsX509Cert::getCertSslId(*x509);
-			ev->mErrorCode = RsAuthSslError::PEER_REFUSED_CONNECTION;
-			rsEvents->postEvent(ev);
+
+            if(x509)
+			{
+				auto ev = std::make_shared<RsAuthSslConnectionAutenticationEvent>();
+				ev->mSslId = RsX509Cert::getCertSslId(*x509);
+				ev->mErrorCode = RsAuthSslError::PEER_REFUSED_CONNECTION;
+
+				if(!ev->mSslId.isNull())
+					rsEvents->postEvent(ev);
+			}
 		}
 
 		std::string out;
@@ -1589,7 +1598,9 @@ int pqissl::readdata(void *data, int len)
 					reset_locked();
 				}
 
+#ifdef PQISSL_LOG_DEBUG2
 				rslog(RSL_ALERT, pqisslzone, out);
+#endif
 				//std::cerr << out << std::endl ;
 				return -1;
 			}

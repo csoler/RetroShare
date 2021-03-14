@@ -164,8 +164,11 @@ private slots:
     void tagRemoveAll();
     
     void on_closeInfoFrameButton_clicked();
-    
+    void on_closeSizeLimitFrameButton_clicked();
+
     static QString inviteMessage();
+
+	void checkLength();
 
 private:
     static QString buildReplyHeader(const MessageInfo &msgInfo);
@@ -255,6 +258,12 @@ private:
 
     RSTreeWidgetItemCompareRole *m_compareRole;
     QCompleter *m_completer;
+
+	QLabel *infoLabel;
+	QLabel *lengthLabel;
+	QLabel *lineLabel;
+
+	bool has_gxs;
 
     /** Qt Designer generated object */
     Ui::MessageComposer ui;

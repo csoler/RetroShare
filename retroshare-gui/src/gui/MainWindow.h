@@ -186,6 +186,11 @@ public:
     ToasterDisable *toasterDisableInstance();
     SysTrayStatus *sysTrayStatusInstance();
 
+    QString get_nameAndLocation()
+    {
+        return nameAndLocation;
+    }
+
     static bool hiddenmode;
 	
 public slots:
@@ -284,6 +289,7 @@ private:
 
     QSystemTrayIcon *trayIcon;
     QMenu *notifyMenu;
+    QMenu *trayMenu;
     QString notifyToolTip;
     QAction *toggleVisibilityAction, *toolAct;
     QList<UserNotify*> userNotifyList;

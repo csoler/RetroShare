@@ -59,12 +59,14 @@
 #define ROLE_SORT            Qt::UserRole + 1
 
 const static uint32_t timeToInactivity = 60 * 10;   // in seconds
+const static uint32_t timeToInactivity2 = 60 * 5;   // in seconds
 
 /** Default constructor */
 ChatLobbyDialog::ChatLobbyDialog(const ChatLobbyId& lid, QWidget *parent, Qt::WindowFlags flags)
         : ChatDialog(parent, flags), lobbyId(lid), mWindowedSetted(false), mPCWindow(nullptr),
           bullet_red_128(":/icons/bullet_red_128.png"), bullet_grey_128(":/icons/bullet_grey_128.png"),
-          bullet_green_128(":/icons/bullet_green_128.png"), bullet_yellow_128(":/icons/bullet_yellow_128.png")
+          bullet_green_128(":/icons/bullet_green_128.png"), bullet_yellow_128(":/icons/bullet_yellow_128.png"),
+          bullet_blue_128(":/icons/bullet_blue_128.png")
 {
 	/* Invoke Qt Designer generated QObject setup routine */
 	ui.setupUi(this);
@@ -90,11 +92,11 @@ ChatLobbyDialog::ChatLobbyDialog(const ChatLobbyId& lid, QWidget *parent, Qt::Wi
 	QHeaderView_setSectionResizeModeColumn(header, COLUMN_NAME, QHeaderView::Stretch);
 
     muteAct = new QAction(QIcon(), tr("Mute participant"), this);
-    voteNegativeAct = new QAction(QIcon(":/icons/png/thumbs-down.png"), tr("Ban this person (Sets negative opinion)"), this);
-    voteNeutralAct = new QAction(QIcon(":/icons/png/thumbs-neutral.png"), tr("Give neutral opinion"), this);
-    votePositiveAct = new QAction(QIcon(":/icons/png/thumbs-up.png"), tr("Give positive opinion"), this);
-    distantChatAct = new QAction(QIcon(":/icons/png/chats.png"), tr("Start private chat"), this);
-    sendMessageAct = new QAction(QIcon(":/icons/mail/write-mail.png"), tr("Send Message"), this);
+    voteNegativeAct = new QAction(FilesDefs::getIconFromQtResourcePath(":/icons/png/thumbs-down.png"), tr("Ban this person (Sets negative opinion)"), this);
+    voteNeutralAct = new QAction(FilesDefs::getIconFromQtResourcePath(":/icons/png/thumbs-neutral.png"), tr("Give neutral opinion"), this);
+    votePositiveAct = new QAction(FilesDefs::getIconFromQtResourcePath(":/icons/png/thumbs-up.png"), tr("Give positive opinion"), this);
+    distantChatAct = new QAction(FilesDefs::getIconFromQtResourcePath(":/icons/png/chats.png"), tr("Start private chat"), this);
+    sendMessageAct = new QAction(FilesDefs::getIconFromQtResourcePath(":/icons/mail/write-mail.png"), tr("Send Message"), this);
     showInPeopleAct = new QAction(QIcon(), tr("Show author in people tab"), this);
 
     QActionGroup *sortgrp = new QActionGroup(this);
@@ -152,7 +154,7 @@ ChatLobbyDialog::ChatLobbyDialog(const ChatLobbyId& lid, QWidget *parent, Qt::Wi
 
 	{
 	QIcon icon ;
-	icon.addPixmap(QPixmap(":/icons/png/invite.png")) ;
+    icon.addPixmap(FilesDefs::getPixmapFromQtResourcePath(":/icons/png/invite.png")) ;
 	inviteFriendsButton->setIcon(icon) ;
 	inviteFriendsButton->setIconSize(icon_size);
 	}
@@ -194,7 +196,7 @@ ChatLobbyDialog::ChatLobbyDialog(const ChatLobbyId& lid, QWidget *parent, Qt::Wi
 
 	{
 	QIcon icon ;
-	icon.addPixmap(QPixmap(":/icons/png/leave.png")) ;
+    icon.addPixmap(FilesDefs::getPixmapFromQtResourcePath(":/icons/png/leave.png")) ;
 	unsubscribeButton->setIcon(icon) ;
 	unsubscribeButton->setIconSize(icon_size);
 	}
@@ -614,10 +616,12 @@ void ChatLobbyDialog::updateParticipantsList()
             else
                 widgetitem = dynamic_cast<GxsIdRSTreeWidgetItem*>(qlFoundParticipants.at(0));
 
+            //TODO (Phenom): Add qproperty for these text colors in stylesheets
+            // As palette is not updated by stylesheet
             if (isParticipantMuted(it2->first)) {
-                widgetitem->setTextColor(COLUMN_NAME,QColor(255,0,0));
+                widgetitem->setData(COLUMN_NAME, Qt::ForegroundRole, QColor(255,0,0));
             } else {
-                widgetitem->setTextColor(COLUMN_NAME,ui.participantsList->palette().color(QPalette::Active, QPalette::Text));
+                widgetitem->setData(COLUMN_NAME, Qt::ForegroundRole, QVariant());
             }
 
             time_t tLastAct=widgetitem->text(COLUMN_ACTIVITY).toInt();
@@ -630,13 +634,15 @@ void ChatLobbyDialog::updateParticipantsList()
                 widgetitem->setIcon(COLUMN_ICON, bullet_red_128);
             else if (tLastAct + timeToInactivity < now)
                 widgetitem->setIcon(COLUMN_ICON, bullet_grey_128);
+            else if (tLastAct + timeToInactivity2 < now)
+                widgetitem->setIcon(COLUMN_ICON, bullet_yellow_128);
             else
                 widgetitem->setIcon(COLUMN_ICON, bullet_green_128);
 
             RsGxsId gxs_id;
             rsMsgs->getIdentityForChatLobby(lobbyId, gxs_id);
 
-            if (RsGxsId(participant.toStdString()) == gxs_id) widgetitem->setIcon(COLUMN_ICON, bullet_yellow_128);
+            if (RsGxsId(participant.toStdString()) == gxs_id) widgetitem->setIcon(COLUMN_ICON, bullet_blue_128);
 
 	    widgetitem->updateBannedState();
 
@@ -690,7 +696,7 @@ void ChatLobbyDialog::participantsTreeWidgetDoubleClicked(QTreeWidgetItem *item,
 
 	if(column == COLUMN_NAME)
 	{
-		getChatWidget()->pasteText("@" + RsHtml::plainText(item->text(COLUMN_NAME))) ;
+		getChatWidget()->pasteText("@" + RsHtml::plainText(item->text(COLUMN_NAME)) + " ") ;
 		return ;
 	}
 
@@ -988,7 +994,7 @@ void ChatLobbyDialog::setWindowed(bool windowed)
 			mPCWindow->addDialog(this);
 
 		undockButton->setToolTip(tr("Redock to Main window"));
-		icon.addPixmap(QPixmap(":/icons/png/dock.png")) ;
+        icon.addPixmap(FilesDefs::getPixmapFromQtResourcePath(":/icons/png/dock.png")) ;
 		undockButton->setIcon(icon) ;
 		undockButton->setIconSize(icon_size);
 	}
@@ -1003,7 +1009,7 @@ void ChatLobbyDialog::setWindowed(bool windowed)
 			chatLobbyPage->addChatPage(this);
 
 		undockButton->setToolTip(tr("Undock to a new window"));
-		icon.addPixmap(QPixmap(":/icons/png/undock.png")) ;
+        icon.addPixmap(FilesDefs::getPixmapFromQtResourcePath(":/icons/png/undock.png")) ;
 		undockButton->setIcon(icon) ;
 		undockButton->setIconSize(icon_size);
 	}

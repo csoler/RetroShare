@@ -22,6 +22,8 @@
 
 #include <algorithm>
 #include <iostream>
+#include <limits>
+#include <system_error>
 
 #include "crypto/chacha20.h"
 //const int ftserverzone = 29539;
@@ -293,7 +295,8 @@ bool ftServer::getFileData(const RsFileHash& hash, uint64_t offset, uint32_t& re
 
 bool ftServer::alreadyHaveFile(const RsFileHash& hash, FileInfo &info)
 {
-	return mFileDatabase->search(hash, RS_FILE_HINTS_LOCAL, info);
+	return mFileDatabase->search(
+	            hash, RS_FILE_HINTS_EXTRA | RS_FILE_HINTS_LOCAL, info );
 }
 
 bool ftServer::FileRequest(
@@ -757,7 +760,7 @@ bool ftServer::handleTunnelRequest(const RsFileHash& hash,const RsPeerId& peer_i
 			// share the file!
 
 			FileChunksInfo info2 ;
-			if(rsFiles->FileDownloadChunksDetails(hash, info2))
+			if(rsFiles->FileDownloadChunksDetails(real_hash, info2))
 				for(uint32_t i=0;i<info2.chunks.size();++i)
 					if(info2.chunks[i] == FileChunksInfo::CHUNK_DONE)
 					{
@@ -816,9 +819,16 @@ bool  ftServer::ExtraFileAdd(std::string fname, const RsFileHash& hash, uint64_t
 bool ftServer::ExtraFileRemove(const RsFileHash& hash)
 { return mFileDatabase->removeExtraFile(hash); }
 
-bool ftServer::ExtraFileHash(
-        std::string localpath, rstime_t period, TransferRequestFlags flags )
+bool ftServer::ExtraFileHash( std::string localpath, rstime_t period, TransferRequestFlags flags )
 {
+	constexpr rstime_t uintmax = std::numeric_limits<uint32_t>::max();
+	if(period > uintmax)
+	{
+		RsErr() << __PRETTY_FUNCTION__ << " period: " << period << " > "
+		        << uintmax << std::errc::value_too_large << std::endl;
+		return false;
+	}
+
 	return mFtExtra->hashExtraFile(
 	            localpath, static_cast<uint32_t>(period), flags );
 }
@@ -1071,6 +1081,8 @@ bool ftServer::sendTurtleItem(const RsPeerId& peerId,const RsFileHash& hash,RsTu
 
 		if(!encryptItem(item, hash, encrypted_item))
 			return false ;
+
+                encrypted_item->setPriorityLevel(item->priority_level());
 
 		delete item ;
 
@@ -2270,7 +2282,7 @@ std::error_condition ftServer::exportFileLink(
 	tDirDet.type = DIR_TYPE_FILE;
 	tDirDet.name = fileName;
 	tDirDet.hash = fileHash;
-	tDirDet.count = fileSize;
+    tDirDet.size = fileSize;
 
 	return dirDetailsToLink(link, tDirDet, fragSneak, baseUrl);
 }
@@ -2295,7 +2307,7 @@ std::error_condition ftServer::parseFilesLink(
 			dt.name = *tUrl.getQueryV("name");
 			try
 			{
-				dt.count = std::stoull(*tUrl.getQueryV("size"));
+                dt.size = std::stoull(*tUrl.getQueryV("size"));
 				std::unique_ptr<RsFileTree> ft;
 				if( !dt.hash.isNull() &&
 				        (ft = RsFileTree::fromDirDetails(dt, true)) )

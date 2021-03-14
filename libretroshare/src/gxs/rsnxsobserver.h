@@ -39,12 +39,12 @@ public:
     /*!
      * @param messages messages are deleted after function returns
      */
-    virtual void receiveNewMessages(std::vector<RsNxsMsg*>& messages) = 0;
+    virtual void receiveNewMessages(const std::vector<RsNxsMsg*>& messages) = 0;
 
     /*!
      * @param groups groups are deleted after function returns
      */
-    virtual void receiveNewGroups(std::vector<RsNxsGrp*>& groups) = 0;
+    virtual void receiveNewGroups(const std::vector<RsNxsGrp*>& groups) = 0;
 
     /*!
      * \brief receiveDistantSearchResults
@@ -61,6 +61,11 @@ public:
      */
     virtual void notifyReceivePublishKey(const RsGxsGroupId &grpId) = 0;
 
+    /*!
+     * \brief notifyChangedGroupSyncParams
+     * \param 	caled when a group sync parameter is updated
+     */
+    virtual void notifyChangedGroupSyncParams(const RsGxsGroupId &grpId) = 0;
     /*!
      * @param grpId group id
      */

@@ -35,6 +35,7 @@
 #include "gui/settings/rsharesettings.h"
 #include "TorControl/TorManager.h"
 #include "util/misc.h"
+#include "gui/common/FilesDefs.h"
 
 #include <retroshare/rsidentity.h>
 #include <retroshare/rsinit.h>
@@ -132,7 +133,7 @@ GenCertDialog::GenCertDialog(bool onlyGenerateIdentity, QWidget *parent)
 	/* Invoke Qt Designer generated QObject setup routine */
 	ui.setupUi(this);
 	
-	//ui.headerFrame->setHeaderImage(QPixmap(":/icons/svg/profile.svg"));
+    //ui.headerFrame->setHeaderImage(FilesDefs::getPixmapFromQtResourcePath(":/icons/svg/profile.svg"));
 	//ui.headerFrame->setHeaderText(tr("Create a new profile"));
 
 	connect(ui.reuse_existing_node_CB, SIGNAL(triggered()), this, SLOT(switchReuseExistingNode()));
@@ -340,6 +341,10 @@ void GenCertDialog::setupState()
 	ui.hiddenport_spinBox->setVisible(hidden_state && !tor_auto);
 
 	ui.cbUseBob->setVisible(hidden_state && !tor_auto);
+#ifndef RS_USE_I2P_BOB
+	ui.cbUseBob->setDisabled(true);
+	ui.cbUseBob->setToolTip(tr("BOB support is not available"));
+#endif
 
 	if(!mAllFieldsOk)
 	{
@@ -428,9 +433,9 @@ void GenCertDialog::updateCheckLabels()
     }
 
     if(mEntropyOk)
-		ui.randomness_check_LB->setPixmap(QPixmap(IMAGE_GOOD)) ;
+        ui.randomness_check_LB->setPixmap(FilesDefs::getPixmapFromQtResourcePath(IMAGE_GOOD)) ;
 	else
-		ui.randomness_check_LB->setPixmap(QPixmap(IMAGE_BAD)) ;
+        ui.randomness_check_LB->setPixmap(FilesDefs::getPixmapFromQtResourcePath(IMAGE_BAD)) ;
 
 	setupState();
 }
@@ -631,9 +636,6 @@ void GenCertDialog::genPerson()
 
 		setCursor(Qt::ArrowCursor) ;
 	}
-	// now cache the PGP password so that it's not asked again for immediately signing the key
-	rsNotify->cachePgpPassphrase(ui.password_input->text().toUtf8().constData()) ;
-
 	//generate a random ssl password
 	std::string sslPasswd = RSRandom::random_alphaNumericString(RsInit::getSslPwdLen()) ;
 
@@ -645,7 +647,11 @@ void GenCertDialog::genPerson()
 	std::string err;
 	this->hide();//To show dialog asking password PGP Key.
 	std::cout << "RsAccounts::GenerateSSLCertificate" << std::endl;
-	bool okGen = RsAccounts::createNewAccount(PGPId, "", genLoc, "", isHiddenLoc, isAutoTor, sslPasswd, sslId, err);
+
+    // now cache the PGP password so that it's not asked again for immediately signing the key
+    rsNotify->cachePgpPassphrase(ui.password_input->text().toUtf8().constData()) ;
+
+    bool okGen = RsAccounts::createNewAccount(PGPId, "", genLoc, "", isHiddenLoc, isAutoTor, sslPasswd, sslId, err);
 
 	if (okGen)
 	{
@@ -653,16 +659,25 @@ void GenCertDialog::genPerson()
 		RsInit::LoadPassword(sslPasswd);
 		if (Rshare::loadCertificate(sslId, false)) {
 
-			accept();
+            // Normally we should clear the cached passphrase as soon as possible. However,some other GUI components may still need it at start.
+            // (csoler) This is really bad: we have to guess that 30 secs will be enough. I have no better way to do this.
+
+            QTimer::singleShot(30000, []() { rsNotify->clearPgpPassphrase(); } );
+
+            accept();
 		}
 	}
 	else
-	{
-		/* Message Dialog */
-		QMessageBox::warning(this,
-                               tr("Profile generation failure"),
-                               tr("Failed to generate your new certificate, maybe PGP password is wrong!"),
-                               QMessageBox::Ok);
-		reject();
-       }
+    {
+        // Now clear the cached passphrase
+        rsNotify->clearPgpPassphrase();
+
+        /* Message Dialog */
+        QMessageBox::warning(this,
+                             tr("Profile generation failure"),
+                             tr("Failed to generate your new certificate, maybe PGP password is wrong!"),
+                             QMessageBox::Ok);
+
+        reject();
+    }
 }

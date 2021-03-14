@@ -35,6 +35,98 @@ public:
 	ContentValue cv;
 };
 
+template<class ID, class MetaDataClass> class t_MetaDataCache
+{
+public:
+    t_MetaDataCache()
+        : mCache_ContainsAllMetas(false)
+    {}
+    virtual ~t_MetaDataCache() = default;
+
+    bool isCacheUpToDate() const { return mCache_ContainsAllMetas ; }
+    void setCacheUpToDate(bool b) { mCache_ContainsAllMetas = b; }
+
+    void getFullMetaList(std::map<ID,std::shared_ptr<MetaDataClass> >& mp) const { mp = mMetas ; }
+    void getFullMetaList(std::vector<std::shared_ptr<MetaDataClass> >& mp) const { for(auto& m:mMetas) mp.push_back(m.second) ; }
+
+    std::shared_ptr<MetaDataClass> getMeta(const ID& id)
+    {
+		auto itt = mMetas.find(id);
+
+		if(itt != mMetas.end())
+			return itt->second ;
+        else
+            return nullptr;
+    }
+
+    std::shared_ptr<MetaDataClass> getOrCreateMeta(const ID& id)
+    {
+		auto it = mMetas.find(id) ;
+
+		if(it != mMetas.end())
+		{
+#ifdef RS_DATA_SERVICE_DEBUG
+			RsDbg() << __PRETTY_FUNCTION__ << ": getting group meta " << grpId << " from cache." << std::endl;
+#endif
+            return it->second ;
+		}
+		else
+		{
+#ifdef RS_DATA_SERVICE_DEBUG
+			RsDbg() << __PRETTY_FUNCTION__ << ": group meta " << grpId << " not in cache. Loading it from DB..." << std::endl;
+#endif
+            return (mMetas[id] = std::make_shared<MetaDataClass>());
+        }
+    }
+
+    void updateMeta(const ID& id,const MetaDataClass& meta)
+    {
+        mMetas[id] = std::make_shared<MetaDataClass>(meta);     // create a new shared_ptr to possibly replace the previous one
+    }
+
+    void updateMeta(const ID& id,const std::shared_ptr<MetaDataClass>& meta)
+	{
+        mMetas[id] = meta;     // create a new shared_ptr to possibly replace the previous one
+	}
+
+    void clear(const ID& id)
+	{
+		auto it = mMetas.find(id) ;
+
+		// We dont actually delete the item, because it might be used by a calling client.
+		// In this case, the memory will not be used for long, so we keep it into a list for a safe amount
+		// of time and delete it later. Using smart pointers here would be more elegant, but that would need
+		// to be implemented thread safe, which is difficult in this case.
+
+		if(it != mMetas.end())
+		{
+#ifdef RS_DATA_SERVICE_DEBUG
+			std::cerr << "(II) moving database cache entry " << (void*)(*it).second << " to dead list." << std::endl;
+#endif
+
+			mMetas.erase(it) ;
+
+            // No need to modify  mCache_ContainsAllMetas since, assuming that the cache always contains
+            // all possible elements from the DB, clearing one from the cache means that it is also deleted from the db, so
+            // the property is preserved.
+        }
+	}
+
+    void debug_computeSize(uint32_t& nb_items, uint64_t& total_size) const
+    {
+        nb_items = mMetas.size();
+        total_size = 0;
+
+        for(auto it:mMetas) total_size += it.second->serial_size();
+    }
+private:
+    std::map<ID,std::shared_ptr<MetaDataClass> > mMetas;
+
+	static const uint32_t CACHE_ENTRY_GRACE_PERIOD = 600 ; // Unused items are deleted 10 minutes after last usage.
+
+    bool mCache_ContainsAllMetas ;
+};
+
 class RsDataService : public RsGeneralDataService
 {
 public:
@@ -47,40 +139,34 @@ public:
      * Retrieves all msgs
      * @param reqIds requested msg ids (grpId,msgId), leave msg list empty to get all msgs for the grp
      * @param msg result of msg retrieval
-	 * @param cache IGNORED whether to store results of this retrieval in memory
-	 *	for faster later retrieval
-	 * @param strictFilter if true do not request any message if reqIds is empty
+     * @param withMeta true will also retrieve metadata
      * @return error code
 	 */
-	int retrieveNxsMsgs(
-	        const GxsMsgReq& reqIds, GxsMsgResult& msg, bool cache,
-	        bool withMeta = false );
+    int retrieveNxsMsgs(const GxsMsgReq& reqIds, GxsMsgResult& msg,  bool withMeta = false) override;
 
     /*!
      * Retrieves groups, if empty, retrieves all grps, if map is not empty
      * only retrieve entries, if entry cannot be found, it is removed from map
      * @param grp retrieved groups
      * @param withMeta this initialise the metaData member of the nxsgroups retrieved
-     * @param cache whether to store retrieval in mem for faster later retrieval
      * @return error code
      */
-    int retrieveNxsGrps(std::map<RsGxsGroupId, RsNxsGrp*>& grp, bool withMeta, bool cache);
+    int retrieveNxsGrps(std::map<RsGxsGroupId, RsNxsGrp*>& grp, bool withMeta) override;
 
     /*!
      * Retrieves meta data of all groups stored (most current versions only)
-     * @param cache whether to store retrieval in mem for faster later retrieval
+     * @param grp output group meta data
      * @return error code
      */
-    int retrieveGxsGrpMetaData(RsGxsGrpMetaTemporaryMap& grp);
+    int retrieveGxsGrpMetaData(std::map<RsGxsGroupId, std::shared_ptr<RsGxsGrpMetaData> > &grp) override;
 
     /*!
      * Retrieves meta data of all groups stored (most current versions only)
      * @param grpIds grpIds for which to retrieve meta data
      * @param msgMeta meta data result as map of grpIds to array of metadata for that grpId
-     * @param cache whether to store retrieval in mem for faster later retrieval
      * @return error code
      */
-    int retrieveGxsMsgMetaData(const GxsMsgReq& reqIds, GxsMsgMetaResult& msgMeta);
+    int retrieveGxsMsgMetaData(const GxsMsgReq& reqIds, GxsMsgMetaResult& msgMeta) override;
 
     /*!
      * remove msgs in data store
@@ -88,21 +174,21 @@ public:
      * @param msgIds ids of messages to be removed
      * @return error code
      */
-    int removeMsgs(const GxsMsgReq& msgIds);
+    int removeMsgs(const GxsMsgReq& msgIds) override;
 
     /*!
      * remove groups in data store listed in grpIds param
      * @param grpIds ids of groups to be removed
      * @return error code
      */
-    int removeGroups(const std::vector<RsGxsGroupId>& grpIds);
+    int removeGroups(const std::vector<RsGxsGroupId>& grpIds) override;
 
     /*!
      * Retrieves all group ids in store
      * @param grpIds all grpids in store is inserted into this vector
      * @return error code
      */
-    int retrieveGroupIds(std::vector<RsGxsGroupId> &grpIds);
+    int retrieveGroupIds(std::vector<RsGxsGroupId> &grpIds) override;
 
     /*!
      * Retrives all msg ids in store
@@ -110,50 +196,57 @@ public:
      * @param msgId msgsids retrieved
      * @return error code
      */
-    int retrieveMsgIds(const RsGxsGroupId& grpId, RsGxsMessageId::std_set& msgId);
+    int retrieveMsgIds(const RsGxsGroupId& grpId, RsGxsMessageId::std_set& msgId) override;
 
     /*!
      * @return the cache size set for this RsGeneralDataService in bytes
      */
-    uint32_t cacheSize() const;
+    uint32_t cacheSize() const override;
+
+    /*!
+     * \brief serviceType
+     * \return
+     *          The service type for the current data service.
+     */
+    virtual uint16_t serviceType() const override { return mServType; }
 
     /*!
      * @param size size of cache to set in bytes
      */
-    int setCacheSize(uint32_t size);
+    int setCacheSize(uint32_t size) override;
 
     /*!
      * Stores a list of signed messages into data store
      * @param msg map of message and decoded meta data information
      * @return error code
      */
-    int storeMessage(const std::list<RsNxsMsg*>& msg);
+    int storeMessage(const std::list<RsNxsMsg*>& msg) override;
 
     /*!
      * Stores a list of groups in data store
      * @param grp map of group and decoded meta data
      * @return error code
      */
-    int storeGroup(const std::list<RsNxsGrp*>& grp);
+    int storeGroup(const std::list<RsNxsGrp*>& grp) override;
 
     /*!
 	 * Updates group entries in Db
 	 * @param grp map of group and decoded meta data
 	 * @return error code
 	 */
-    int updateGroup(const std::list<RsNxsGrp*>& grsp);
+    int updateGroup(const std::list<RsNxsGrp*>& grsp) override;
 
     /*!
      * @param metaData The meta data item to update
      * @return error code
      */
-    int updateMessageMetaData(MsgLocMetaData& metaData);
+    int updateMessageMetaData(const MsgLocMetaData& metaData) override;
 
     /*!
      * @param metaData The meta data item to update
      * @return error code
      */
-    int updateGroupMetaData(GrpLocMetaData& meta);
+    int updateGroupMetaData(const GrpLocMetaData &meta) override;
 
     /*!
      * Completely clear out data stored in
@@ -161,10 +254,10 @@ public:
      * as it was when first constructed
      * @return error code
      */
-    int resetDataStore();
+    int resetDataStore() override;
 
-    bool validSize(RsNxsMsg* msg) const;
-    bool validSize(RsNxsGrp* grp) const;
+    bool validSize(RsNxsMsg* msg) const override;
+    bool validSize(RsNxsGrp* grp) const override;
 
     /*!
      * Convenience function used to only update group keys. This is used when sending
@@ -172,7 +265,9 @@ public:
      * @return SQL error code
      */
 
-    int updateGroupKeys(const RsGxsGroupId& grpId,const RsTlvSecurityKeySet& keys, uint32_t subscribe_flags) ;
+    int updateGroupKeys(const RsGxsGroupId& grpId,const RsTlvSecurityKeySet& keys, uint32_t subscribe_flags)  override;
+
+    void debug_printCacheSize() ;
 
 private:
 
@@ -194,21 +289,28 @@ private:
     /*!
      * Retrieves all the msg meta results from a cursor
      * @param c cursor to result set
-     * @param metaSet message metadata retrieved from cursor are stored here
+     * @param msgMeta message metadata retrieved from cursor are stored here
      */
-    void locked_retrieveMsgMeta(RetroCursor* c, std::vector<RsGxsMsgMetaData*>& msgMeta);
+    void locked_retrieveMsgMetaList(RetroCursor* c, std::vector<std::shared_ptr<RsGxsMsgMetaData> > &msgMeta);
+
+    /*!
+     * Retrieves all the grp meta results from a cursor
+     * @param c cursor to result set
+     * @param grpMeta group metadata retrieved from cursor are stored here
+     */
+    void locked_retrieveGrpMetaList(RetroCursor *c, std::map<RsGxsGroupId, std::shared_ptr<RsGxsGrpMetaData> > &grpMeta);
 
     /*!
      * extracts a msg meta item from a cursor at its
      * current position
      */
-    RsGxsMsgMetaData* locked_getMsgMeta(RetroCursor& c, int colOffset);
+    std::shared_ptr<RsGxsMsgMetaData> locked_getMsgMeta(RetroCursor& c, int colOffset);
 
     /*!
      * extracts a grp meta item from a cursor at its
      * current position
      */
-    RsGxsGrpMetaData* locked_getGrpMeta(RetroCursor& c, int colOffset, bool use_cache);
+    std::shared_ptr<RsGxsGrpMetaData> locked_getGrpMeta(RetroCursor& c, int colOffset);
 
     /*!
      * extracts a msg item from a cursor at its
@@ -348,10 +450,10 @@ private:
     void locked_clearGrpMetaCache(const RsGxsGroupId& gid);
 	void locked_updateGrpMetaCache(const RsGxsGrpMetaData& meta);
 
-    std::map<RsGxsGroupId,RsGxsGrpMetaData*> mGrpMetaDataCache ;
-	std::list<std::pair<rstime_t,RsGxsGrpMetaData*> > mOldCachedItems ;
+    t_MetaDataCache<RsGxsGroupId,RsGxsGrpMetaData> mGrpMetaDataCache;
+    std::map<RsGxsGroupId,t_MetaDataCache<RsGxsMessageId,RsGxsMsgMetaData> > mMsgMetaDataCache;
 
-    bool mGrpMetaDataCache_ContainsAllDatabase ;
+    bool mUseCache;
 };
 
 #endif // RSDATASERVICE_H

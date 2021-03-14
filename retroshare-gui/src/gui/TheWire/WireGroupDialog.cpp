@@ -19,7 +19,10 @@
  *******************************************************************************/
 #include <QBuffer>
 
+#include "WireGroupExtra.h"
+
 #include "WireGroupDialog.h"
+#include "gui/common/FilesDefs.h"
 #include "gui/gxs/GxsIdDetails.h"
 
 #include <iostream>
@@ -27,7 +30,7 @@
 const uint32_t WireCreateEnabledFlags = ( 
 							GXS_GROUP_FLAGS_NAME          |
 							GXS_GROUP_FLAGS_ICON          |
-							GXS_GROUP_FLAGS_DESCRIPTION   |
+							// GXS_GROUP_FLAGS_DESCRIPTION   |
 							GXS_GROUP_FLAGS_DISTRIBUTION  |
 							// GXS_GROUP_FLAGS_PUBLISHSIGN   |
 							// GXS_GROUP_FLAGS_SHAREKEYS     |	// disabled because the UI doesn't handle it yet.
@@ -48,6 +51,7 @@ uint32_t WireCreateDefaultsFlags = ( GXS_GROUP_DEFAULTS_DISTRIB_PUBLIC	|
 							// GXS_GROUP_DEFAULTS_PERSONAL_GPG        |
 							GXS_GROUP_DEFAULTS_PERSONAL_REQUIRED    |
 							// GXS_GROUP_DEFAULTS_PERSONAL_IFNOPUB    |
+							GXS_GROUP_DEFAULTS_PERSONAL_GROUP       |
 
 							// GXS_GROUP_DEFAULTS_COMMENTS_YES		  |
 							GXS_GROUP_DEFAULTS_COMMENTS_NO          |
@@ -85,19 +89,19 @@ void WireGroupDialog::initUi()
 
 	setUiText(UITYPE_ADD_ADMINS_CHECKBOX, tr("Add Wire Admins"));
 	setUiText(UITYPE_CONTACTS_DOCK, tr("Select Wire Admins"));
+
+	mExtra = new WireGroupExtra(this);
+	injectExtraWidget(mExtra);
 }
 
 QPixmap WireGroupDialog::serviceImage()
 {
-	return QPixmap(":/icons/wire-circle.png");
+    return FilesDefs::getPixmapFromQtResourcePath(":/icons/wire-circle.png");
 }
 
 void WireGroupDialog::prepareWireGroup(RsWireGroup &group, const RsGroupMetaData &meta)
 {
 	group.mMeta = meta;
-	group.mDescription = getDescription().toUtf8().constData();
-
-#if 0
 	QPixmap pixmap = getLogo();
 
 	if (!pixmap.isNull()) {
@@ -107,12 +111,27 @@ void WireGroupDialog::prepareWireGroup(RsWireGroup &group, const RsGroupMetaData
 		buffer.open(QIODevice::WriteOnly);
 		pixmap.save(&buffer, "PNG"); // writes image into ba in PNG format
 
-		group.mThumbnail.copy((uint8_t *) ba.data(), ba.size());
+		group.mHeadshot.copy((uint8_t *) ba.data(), ba.size());
 	} else {
-		group.mThumbnail.clear();
+		group.mHeadshot.clear();
 	}
-#endif
 
+	// from Extra Widget.
+	group.mTagline = mExtra->getTagline();
+	group.mLocation = mExtra->getLocation();
+	pixmap = mExtra->getMasthead();
+
+	if (!pixmap.isNull()) {
+		QByteArray ba;
+		QBuffer buffer(&ba);
+
+		buffer.open(QIODevice::WriteOnly);
+		pixmap.save(&buffer, "JPG");
+
+		group.mMasthead.copy((uint8_t *) ba.data(), ba.size());
+	} else {
+		group.mMasthead.clear();
+	}
 }
 
 bool WireGroupDialog::service_createGroup(RsGroupMetaData &meta)
@@ -152,18 +171,28 @@ bool WireGroupDialog::service_loadGroup(const RsGxsGenericGroupData *data, Mode 
 	}
 
 	const RsWireGroup &group = *pgroup;
-	description = QString::fromUtf8(group.mDescription.c_str());
+	// description = QString::fromUtf8(group.mDescription.c_str());
 
-#if 0
-	if (group.mThumbnail.mData) {
+	if (group.mHeadshot.mData) {
 		QPixmap pixmap;
-		if (GxsIdDetails::loadPixmapFromData(group.mThumbnail.mData, group.mThumbnail.mSize, pixmap,GxsIdDetails::ORIGINAL)) {
+		if (GxsIdDetails::loadPixmapFromData(group.mHeadshot.mData, group.mHeadshot.mSize, pixmap,GxsIdDetails::ORIGINAL)) {
 			setLogo(pixmap);
 		}
 	} else {
-			setLogo(QPixmap(":/images/album_create_64.png"));
+			setLogo(FilesDefs::getPixmapFromQtResourcePath(":/images/album_create_64.png"));
 	}
-#endif
+
+	// from Extra Widget.
+	mExtra->setTagline(group.mTagline);
+	mExtra->setLocation(group.mLocation);
+
+	if (group.mMasthead.mData){
+		QPixmap pixmap;
+		if (GxsIdDetails::loadPixmapFromData(group.mMasthead.mData, group.mMasthead.mSize, pixmap,GxsIdDetails::ORIGINAL))
+		{
+			mExtra->setMasthead(pixmap);
+		}
+	}
 
 	return true;
 }

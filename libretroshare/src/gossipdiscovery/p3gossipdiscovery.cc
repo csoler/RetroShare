@@ -258,8 +258,7 @@ int p3discovery2::handleIncoming()
 
 		++nhandled;
 
-		Dbg4() << __PRETTY_FUNCTION__ << " Received item: " << std::endl
-		       << *item << std::endl;
+        Dbg4() << __PRETTY_FUNCTION__ << " Received item: " << *item << std::endl;
 
 		if((contact = dynamic_cast<RsDiscContactItem *>(item)) != nullptr)
 		{
@@ -269,30 +268,26 @@ int p3discovery2::handleIncoming()
                 processContactInfo(item->PeerId(), contact);
 		}
 		else if( (gxsidlst = dynamic_cast<RsDiscIdentityListItem *>(item)) != nullptr )
-		{
 			recvIdentityList(item->PeerId(),gxsidlst->ownIdentityList);
-			delete item;
-		}
 		else if((pgpkey = dynamic_cast<RsDiscPgpKeyItem *>(item)) != nullptr)
 			recvPGPCertificate(item->PeerId(), pgpkey);
 		else if((pgpcert = dynamic_cast<RsDiscPgpCertItem *>(item)) != nullptr)
-			// sink
-			delete pgpcert;
+            RsWarn() << "Received a deprecated RsDiscPgpCertItem. Will not be handled." << std::endl; // nothing to do.
 		else if((pgplist = dynamic_cast<RsDiscPgpListItem *>(item)) != nullptr)
 		{
 			if (pgplist->mode == RsGossipDiscoveryPgpListMode::FRIENDS)
 				processPGPList(pgplist->PeerId(), pgplist);
 			else if (pgplist->mode == RsGossipDiscoveryPgpListMode::GETCERT)
 				recvPGPCertificateRequest(pgplist->PeerId(), pgplist);
-			else delete item;
 		}
 		else
 		{
 			RsWarn() << __PRETTY_FUNCTION__ << " Received unknown item type " << (int)item->PacketSubType() << "! " << std::endl ;
             RsWarn() << item << std::endl;
-			delete item;
 		}
-	}
+
+        delete item;
+    }
 
 	return nhandled;
 }
@@ -350,8 +345,6 @@ void p3discovery2::sendOwnContactInfo(const RsPeerId &sslid)
 
 void p3discovery2::recvOwnContactInfo(const RsPeerId &fromId, const RsDiscContactItem *item)
 {
-    std::unique_ptr<const RsDiscContactItem> pitem(item); // ensures that item will be destroyed whichever door we leave through
-
 #ifdef P3DISC_DEBUG
 	std::cerr << "p3discovery2::recvOwnContactInfo()";
 	std::cerr << std::endl;
@@ -380,15 +373,49 @@ void p3discovery2::recvOwnContactInfo(const RsPeerId &fromId, const RsDiscContac
 	}
 
 	// Peer Own Info replaces the existing info, because the
-	// peer is the primary source of his own IPs.
+    // peer is the primary source of his own IPs, except for hidden nodes
+    // that normally send nothing. We still ignore it as a double security.
 
 	mPeerMgr->setNetworkMode(fromId, item->netMode);
 	mPeerMgr->setLocation(fromId, item->location);
 	mPeerMgr->setVisState(fromId, item->vs_disc, item->vs_dht);
 
-	setPeerVersion(fromId, item->version);
+    if(!mPeerMgr->isHiddenNode(fromId))
+    {
+        if(!det.localAddr.empty())
+        {
+            if(sockaddr_storage_isValidNet(item->localAddrV4.addr))
+                mPeerMgr->setLocalAddress(fromId,item->localAddrV4.addr);
+            else if(sockaddr_storage_isValidNet(item->localAddrV6.addr))
+                mPeerMgr->setLocalAddress(fromId,item->localAddrV6.addr);
+        }
 
-	updatePeerAddresses(item);
+        if(!det.extAddr.empty())
+        {
+            if(sockaddr_storage_isValidNet(item->extAddrV4.addr))
+                mPeerMgr->setExtAddress(fromId,item->extAddrV4.addr);
+            else if(sockaddr_storage_isValidNet(item->extAddrV6.addr))
+                mPeerMgr->setExtAddress(fromId,item->extAddrV6.addr);
+        }
+    }
+
+    setPeerVersion(fromId, item->version);
+
+    // Hidden nodes do not need IP information. So that information is dropped.
+    // However, that doesn't mean hidden nodes do not know that information. Normally
+    // normal nodes should not send it, but old nodes still do.
+
+    if(!mPeerMgr->isHiddenNode(rsPeers->getOwnId()))
+        updatePeerAddresses(item);
+
+    if(rsEvents)
+    {
+        auto ev = std::make_shared<RsGossipDiscoveryEvent>();
+        ev->mGossipDiscoveryEventType = RsGossipDiscoveryEventType::FRIEND_PEER_INFO_RECEIVED;
+        ev->mFromId = fromId;
+        ev->mAboutId = item->sslId;
+        rsEvents->postEvent(ev);
+    }
 
     // if the peer is not validated, we stop the exchange here
 
@@ -450,7 +477,7 @@ void p3discovery2::recvIdentityList(const RsPeerId& pid,const std::list<RsGxsId>
     std::cerr << "p3discovery2::recvIdentityList(): from peer " << pid << ": " << ids.size() << " identities" << std::endl;
 #endif
 
-    RsIdentityUsage use_info(RS_SERVICE_TYPE_DISC,RsIdentityUsage::IDENTITY_DATA_UPDATE);
+    RsIdentityUsage use_info(RsServiceType::GOSSIP_DISCOVERY,RsIdentityUsage::IDENTITY_NEW_FROM_DISCOVERY);
 
 	for(auto it(ids.begin());it!=ids.end();++it)
     {
@@ -673,7 +700,6 @@ void p3discovery2::processPGPList(const RsPeerId &fromId, const RsDiscPgpListIte
 #endif
 
 		// cleanup.
-		delete item;
 		return;
 	}
 
@@ -711,9 +737,6 @@ void p3discovery2::processPGPList(const RsPeerId &fromId, const RsDiscPgpListIte
 
 	it->second.mergeFriendList(item->pgpIdSet.ids);
 	updatePeers_locked(fromId);
-
-	// cleanup.
-	delete item;
 }
 
 
@@ -908,7 +931,6 @@ void p3discovery2::processContactInfo(const RsPeerId &fromId, const RsDiscContac
 		if(sockaddr_storage_isExternalNet(item->currentConnectAddress.addr))
 			mPeerMgr->addCandidateForOwnExternalAddress(item->PeerId(), item->currentConnectAddress.addr);
 
-		delete item;
 		return;
 	}
 
@@ -937,7 +959,6 @@ void p3discovery2::processContactInfo(const RsPeerId &fromId, const RsDiscContac
 			/* inform NetMgr that we know this peer */
 			mNetMgr->netAssistKnownPeer(item->sslId, item->extAddrV4.addr, NETASSIST_KNOWN_PEER_FOF | NETASSIST_KNOWN_PEER_OFFLINE);
 		}
-        delete item;
 		return;
 	}
 
@@ -985,9 +1006,18 @@ void p3discovery2::processContactInfo(const RsPeerId &fromId, const RsDiscContac
 	RsServer::notify()->notifyListChange(NOTIFY_LIST_NEIGHBOURS, NOTIFY_TYPE_MOD);
 
 	if(should_notify_discovery)
-		RsServer::notify()->notifyDiscInfoChanged();
+    {
+        RsServer::notify()->notifyDiscInfoChanged();
 
-    delete item;
+        if(rsEvents)
+        {
+            auto ev = std::make_shared<RsGossipDiscoveryEvent>();
+            ev->mGossipDiscoveryEventType = RsGossipDiscoveryEventType::FRIEND_PEER_INFO_RECEIVED;
+            ev->mFromId = fromId;
+            ev->mAboutId = item->sslId;
+            rsEvents->postEvent(ev);
+        }
+    }
 }
 
 /* we explictly request certificates, instead of getting them all the time
@@ -1036,8 +1066,6 @@ void p3discovery2::recvPGPCertificateRequest( const RsPeerId& fromId, const RsDi
 			sendPGPCertificate(pgpId, fromId);
 		else
             std::cerr << "(WW) not sending certificate " << pgpId << " asked by friend " << fromId << " because this either this cert is not a friend, or discovery is off" << std::endl;
-
-	delete item;
 }
 
 
@@ -1114,7 +1142,6 @@ void p3discovery2::recvPGPCertificate(const RsPeerId& fromId, RsDiscPgpKeyItem* 
 #endif
 	// now that will add the key *and* set the skip_signature_validation flag at once
 	rsPeers->loadPgpKeyFromBinaryData((unsigned char*)item->bin_data,item->bin_len, tmp_pgp_id,error_string);	// no error should occur at this point because we called loadDetailsFromStringCert() already
-	delete item;
 
     // Make sure we allow connections after the key is added. This is not the case otherwise. We only do that if the peer is non validated peer, since
     // otherwise the connection should already be accepted. This only happens when the short invite peer sends its own PGP key.

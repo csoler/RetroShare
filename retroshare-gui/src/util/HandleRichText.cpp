@@ -31,6 +31,8 @@
 #include "gui/RetroShareLink.h"
 #include "util/ObjectPainter.h"
 #include "util/imageutil.h"
+
+#include "util/rsdebug.h"
 #include "util/rstime.h"
 
 #ifdef USE_CMARK
@@ -39,6 +41,8 @@
 #endif
 
 #include <iostream>
+
+//#define DEBUG_SAVESPACE 1
 
 /**
  * The type of embedding we'd like to do
@@ -277,7 +281,7 @@ void RsHtml::anchorStylesheetForImg(QDomDocument &/*doc*/, QDomElement &/*elemen
 		break;
 
 	case RetroShareLink::TYPE_CERTIFICATE:
-		styleSheet = "QPushButton{ border-image: url(:/images/btn_blue.png) ;border-width: 4;padding: 0px 6px;font-size: 12px;color: white;} QPushButton:hover{ border-image: url(:/images/btn_blue_hover.png) ;}";
+		styleSheet = "QPushButton{ border-image: url(:/images/btn_blue.png) ;border-width: 4;padding: 0px 6px;font-size: 12pt;color: white;} QPushButton:hover{ border-image: url(:/images/btn_blue_hover.png) ;}";
 		break;
 	}
 }
@@ -554,18 +558,24 @@ static QString saveSpace(const QString text)
 		if(cursChar==QLatin1Char('>'))         {
 			if(!echapChar && i>0) {outBrackets=true; firstOutBracket=true;}
  		} else if(cursChar==QLatin1Char('\t')) {
-			if(outBrackets && firstOutBracket && (keyName!="style")) savedSpaceText.replace(i, 1, "&nbsp;&nbsp;");
+			if(outBrackets && firstOutBracket && (keyName!="style")) { savedSpaceText.replace(i, 1, "&nbsp;&nbsp;"); i+= 11; }
 		} else if(cursChar==QLatin1Char(' '))  {
-			if(outBrackets && firstOutBracket && (keyName!="style")) savedSpaceText.replace(i, 1, "&nbsp;");
+			if(outBrackets && firstOutBracket && (keyName!="style")) { savedSpaceText.replace(i, 1, "&nbsp;"); i+= 5; }
 		} else if(cursChar==QChar(0xA0))  {
-			if(outBrackets && firstOutBracket && (keyName!="style")) savedSpaceText.replace(i, 1, "&nbsp;");
+			if(outBrackets && firstOutBracket && (keyName!="style")) { savedSpaceText.replace(i, 1, "&nbsp;"); i+= 5; }
 		} else if(cursChar==QLatin1Char('<'))  {
 			if(!echapChar) {outBrackets=false; getKeyName=true; keyName.clear();}
 		} else firstOutBracket=false;
 		echapChar=(cursChar==QLatin1Char('\\'));
 
 	}
-	
+#ifdef DEBUG_SAVESPACE
+	RsDbg() << __PRETTY_FUNCTION__ << "Text to save:" << std::endl
+	        << text.toStdString() << std::endl
+	        << "---------------------- Saved Text:" << std::endl
+	        << savedSpaceText.toStdString() << std::endl;
+#endif
+
 	return savedSpaceText;
 }
 
@@ -608,13 +618,17 @@ QString RsHtml::formatText(QTextDocument *textDocument, const QString &text, ulo
 
 	QString errorMsg; int errorLine; int errorColumn;
 
-  QDomDocument doc;
+	QDomDocument doc;
 	if (doc.setContent(formattedText, &errorMsg, &errorLine, &errorColumn) == false) {
 
-		// convert text with QTextBrowser
-		QTextBrowser textBrowser;
-		textBrowser.setText(text);
-		formattedText=textBrowser.toHtml();
+		// convert text with QTextDocument
+		QTextDocument textDoc;
+		if (Qt::mightBeRichText(formattedText))
+			textDoc.setHtml(formattedText);
+		else
+			textDoc.setPlainText(text);
+
+		formattedText=textDoc.toHtml();
 		formattedText.remove(0,formattedText.indexOf("<"));
 		formattedText=saveSpace(formattedText);
 		doc.setContent(formattedText, &errorMsg, &errorLine, &errorColumn);
@@ -1024,9 +1038,10 @@ static void styleCreate(QDomDocument& doc
 		it.next();
 		const QStringList& classUsingIt ( it.value()) ;
 		bool first = true;
+		QString classNames = "";
 		foreach(QString className, classUsingIt) {
 			if (!className.trimmed().isEmpty()) {
-				style += QString(first?".":",.") + className;// + " ";
+				classNames += QString(first?".":",.") + className;// + " ";
 				first = false;
 			}
 		}
@@ -1073,9 +1088,9 @@ static void styleCreate(QDomDocument& doc
 			}
 
 			//.S1 .S2 .S4 {font-family:'Sans';}
-			style += "{" + key + ":" + val + ";}";
+			style += classNames + "{" + key + ":" + val + ";}";
 		} else {
-			style += "{" + it.key() + ";}\n";
+			style += classNames + "{" + it.key() + ";}\n";
 		}
 	}
 
@@ -1215,8 +1230,10 @@ QString RsHtml::makeQuotedText(RSTextBrowser *browser)
 	}
 	QStringList sl = text.split(QRegExp("[\r\n]"),QString::SkipEmptyParts);
 	text = sl.join("\n> ");
+	text.replace("\n> >","\n>>"); // Don't add space for already quotted lines.
 	text.replace(QChar(-4)," ");//Char used when image on text.
-	return QString("> ") + text;
+	QString quote = (text.left(1) == ">") ? QString(">") : QString("> ");
+	return quote + text;
 }
 
 void RsHtml::insertSpoilerText(QTextCursor cursor)

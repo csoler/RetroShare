@@ -22,7 +22,9 @@
 
 #include "AlbumDialog.h"
 #include "gui/gxs/GxsIdDetails.h"
+#include "gui/common/FilesDefs.h"
 #include "ui_AlbumDialog.h"
+
 #include "retroshare/rsgxsflags.h"
 
 AlbumDialog::AlbumDialog(const RsPhotoAlbum& album, TokenQueue* photoQueue, RsPhoto* rs_Photo, QWidget *parent) :
@@ -31,7 +33,7 @@ AlbumDialog::AlbumDialog(const RsPhotoAlbum& album, TokenQueue* photoQueue, RsPh
 {
     ui->setupUi(this);
     
-    ui->headerFrame->setHeaderImage(QPixmap(":/images/kview_64.png"));
+    ui->headerFrame->setHeaderImage(FilesDefs::getPixmapFromQtResourcePath(":/images/kview_64.png"));
     ui->headerFrame->setHeaderText(tr("Album"));
 
     connect(ui->pushButton_PublishPhotos, SIGNAL(clicked()), this, SLOT(updateAlbumPhotos()));
@@ -69,7 +71,7 @@ void AlbumDialog::setUp()
     else
     {
         // display a default Album icon when album has no Thumbnail
-        ui->label_thumbNail->setPixmap(QPixmap(":/images/album_default_128.png"));
+        ui->label_thumbNail->setPixmap(FilesDefs::getPixmapFromQtResourcePath(":/images/album_default_128.png"));
     }
 }
 

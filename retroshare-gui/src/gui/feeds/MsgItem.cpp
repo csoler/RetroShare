@@ -29,6 +29,7 @@
 #include "util/HandleRichText.h"
 #include "util/DateTime.h"
 #include "gui/common/AvatarDefs.h"
+#include "gui/common/FilesDefs.h"
 #include "gui/notifyqt.h"
 
 #include <retroshare/rsmsgs.h>
@@ -116,19 +117,28 @@ void MsgItem::updateItemStatic()
 
 	if (!mIsHome)
 	{
-      if (mi.msgflags & RS_MSG_USER_REQUEST)
-      {
-        title = QString::fromUtf8(mi.title.c_str()) + " " + tr("from") + " " + srcName;
-        replyButton->setText(tr("Reply to invite"));
-        subjectLabel->hide();
-        inviteFrame->show();
-      }
-      else
-      {
-        title = tr("Message From") + ": " + srcName;
-        sendinviteButton->hide();
-        inviteFrame->hide();
-      }
+		if ((mi.msgflags & RS_MSG_USER_REQUEST) && (!mi.rsgxsid_srcId.isNull()))
+		{
+			title = QString::fromUtf8(mi.title.c_str()) + " " + tr("from") + " " + srcName;
+			replyButton->setText(tr("Reply to invite"));
+			subjectLabel->hide();
+			inviteFrame->show();
+		}
+		else if ((mi.msgflags & RS_MSG_USER_REQUEST) && mi.rsgxsid_srcId.isNull())
+		{
+			title = QString::fromUtf8(mi.title.c_str()) + " " + " " + srcName;
+			subjectLabel->hide();
+			inviteFrame->show();
+			infoLabel->setText(tr("This message invites you to make friend! You may accept this request."));
+			sendinviteButton->hide();
+			replyButton->hide();
+		}
+		else
+		{
+			title = tr("Message From") + ": " + srcName;
+			sendinviteButton->hide();
+			inviteFrame->hide();
+		}
 	}
 	else
 	{
@@ -231,7 +241,7 @@ void MsgItem::doExpand(bool open)
 	if (open)
 	{
 		expandFrame->show();
-		expandButton->setIcon(QIcon(QString(":/icons/png/up-arrow.png")));
+        expandButton->setIcon(FilesDefs::getIconFromQtResourcePath(QString(":/icons/png/up-arrow.png")));
 		expandButton->setToolTip(tr("Hide"));
 
 		mCloseOnRead = false;
@@ -241,7 +251,7 @@ void MsgItem::doExpand(bool open)
 	else
 	{
 		expandFrame->hide();
-		expandButton->setIcon(QIcon(QString(":/icons/png/down-arrow.png")));
+        expandButton->setIcon(FilesDefs::getIconFromQtResourcePath(QString(":/icons/png/down-arrow.png")));
 		expandButton->setToolTip(tr("Expand"));
 	}
 

@@ -37,6 +37,7 @@
 #include "util/rstime.h"
 #include "retroshare/rsevents.h"
 #include "util/rsmemory.h"
+#include "util/rsdebug.h"
 
 class RsFiles;
 
@@ -63,8 +64,7 @@ struct RsFilesErrorCategory: std::error_category
 		case RsFilesErrorNum::FILES_HANDLE_NOT_FOUND:
 			return "Files handle not found";
 		default:
-			return "Error message for error: " + std::to_string(ev) +
-			        " not available in category: " + name();
+			return rsErrorNotInCategory(ev, name());
 		}
 	}
 
@@ -184,6 +184,8 @@ enum class RsSharedDirectoriesEventCode: uint8_t {
     HASHING_FILE                = 0x02, // mMessage: full path and hashing speed of the file being hashed
     DIRECTORY_SWEEP_ENDED       = 0x03, // (void)
     SAVING_FILE_INDEX           = 0x04, // (void)
+    EXTRA_LIST_FILE_ADDED       = 0x05, // (void)
+    EXTRA_LIST_FILE_REMOVED     = 0x06, // (void)
 };
 
 enum class RsFileTransferEventCode: uint8_t {
@@ -658,7 +660,8 @@ public:
 	 * @brief Get file details
 	 * @jsonapi{development}
 	 * @param[in] hash file identifier
-	 * @param[in] hintflags filtering hint (RS_FILE_HINTS_EXTRA|...|RS_FILE_HINTS_LOCAL)
+	 * @param[in] hintflags filtering hint ( RS_FILE_HINTS_UPLOAD|...|
+	 *	RS_FILE_HINTS_EXTRA|RS_FILE_HINTS_LOCAL )
 	 * @param[out] info storage for file information
 	 * @return true if file found, false otherwise
 	 */

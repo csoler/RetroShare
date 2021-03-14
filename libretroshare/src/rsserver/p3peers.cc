@@ -34,6 +34,7 @@
 #include "pqi/authssl.h"
 #include "pqi/authgpg.h"
 #include "retroshare/rsinit.h"
+#include "retroshare/rsnotify.h"
 #include "retroshare/rsfiles.h"
 #include "util/rsurl.h"
 #include "util/radix64.h"
@@ -120,15 +121,20 @@ p3Peers::p3Peers(p3LinkMgr *lm, p3PeerMgr *pm, p3NetMgr *nm)
         :mLinkMgr(lm), mPeerMgr(pm), mNetMgr(nm) {}
 
 	/* Updates ... */
-bool p3Peers::FriendsChanged(bool add)
+bool p3Peers::FriendsChanged(const RsPeerId& pid,bool add)
 {
 #ifdef P3PEERS_DEBUG
-        std::cerr << "p3Peers::FriendsChanged()" << std::endl;
+    std::cerr << "p3Peers::FriendsChanged()" << std::endl;
 #endif
-	RsServer::notify()->notifyListChange(NOTIFY_LIST_FRIENDS, add? NOTIFY_TYPE_ADD : NOTIFY_TYPE_DEL);
+    if(rsEvents)
+    {
+        auto ev = std::make_shared<RsPeerStateChangedEvent>(pid);
+        rsEvents->postEvent(ev);
+    }
+    RsServer::notify()->notifyListChange(NOTIFY_LIST_FRIENDS, add? NOTIFY_TYPE_ADD : NOTIFY_TYPE_DEL); // this is meant to disappear
 
-	/* TODO */
-	return false;
+    /* TODO */
+    return false;
 }
 
 bool p3Peers::OthersChanged()
@@ -768,7 +774,7 @@ bool 	p3Peers::addFriend(const RsPeerId &ssl_id, const RsPgpId &gpg_id,ServicePe
 		return true;
 	} 
 
-	FriendsChanged(true);
+    FriendsChanged(ssl_id,true);
 
 	/* otherwise - we install as ssl_id.....
 	 * If we are adding an SSL certificate. we flag lastcontact as now. 
@@ -782,7 +788,7 @@ bool p3Peers::addSslOnlyFriend( const RsPeerId& sslId, const RsPgpId& pgp_id,con
 {
     if( mPeerMgr->addSslOnlyFriend(sslId, pgp_id,details))
     {
-		FriendsChanged(true);
+        FriendsChanged(sslId,true);
         return true;
     }
     else
@@ -801,8 +807,9 @@ bool 	p3Peers::removeFriendLocation(const RsPeerId &sslId)
 #endif
 		//will remove if it's a ssl id
         mPeerMgr->removeFriend(sslId, false);
-        return true;
 
+        FriendsChanged(sslId,false);
+        return true;
 }
 
 bool 	p3Peers::removeFriend(const RsPgpId& gpgId)
@@ -1164,7 +1171,8 @@ enum class RsShortInviteFieldType : uint8_t
 	 * trasport layer will be implemented */
 	HIDDEN_LOCATOR  = 0x90,
 	DNS_LOCATOR     = 0x91,
-	EXT4_LOCATOR    = 0x92
+    EXT4_LOCATOR    = 0x92,		// external IPv4 address
+    LOC4_LOCATOR    = 0x93		// local IPv4 address
 };
 
 static void addPacketHeader(RsShortInviteFieldType ptag, size_t size, unsigned char *& buf, uint32_t& offset, uint32_t& buf_size)
@@ -1189,9 +1197,7 @@ static void addPacketHeader(RsShortInviteFieldType ptag, size_t size, unsigned c
 	offset += PGPKeyParser::write_125Size(&buf[offset],size) ;
 }
 
-bool p3Peers::getShortInvite(
-        std::string& invite, const RsPeerId& _sslId, bool formatRadix,
-        bool bareBones, const std::string& baseUrl )
+bool p3Peers::getShortInvite(std::string& invite, const RsPeerId& _sslId, RetroshareInviteFlags invite_flags, const std::string& baseUrl )
 {
 	RsPeerId sslId = _sslId;
 	if(sslId.isNull()) sslId = getOwnId();
@@ -1213,71 +1219,113 @@ bool p3Peers::getShortInvite(
 	memcpy(&buf[offset],tDetails.name.c_str(),tDetails.name.size());
     offset += tDetails.name.size();
 
-	if(!bareBones)
-	{
-		/* If is hidden use hidden address and port as locator, else if we have
-		 * a valid dyndns and extPort use that as locator, else if we have a
-		 * valid extAddr and extPort use that as locator, otherwise use most
-		 * recently known locator */
-		sockaddr_storage tExt;
-		if(tDetails.isHiddenNode)
-		{
-			addPacketHeader(RsShortInviteFieldType::HIDDEN_LOCATOR,4 + 2 + tDetails.hiddenNodeAddress.size(),buf,offset,buf_size);
+    /* If it is a hidden node, always use hidden address and port as locator */
 
-			buf[offset+0] = (uint8_t)((tDetails.hiddenType >> 24) & 0xff);
-			buf[offset+1] = (uint8_t)((tDetails.hiddenType >> 16) & 0xff);
-			buf[offset+2] = (uint8_t)((tDetails.hiddenType >>  8) & 0xff);
-			buf[offset+3] = (uint8_t)((tDetails.hiddenType      ) & 0xff);
+    if(tDetails.isHiddenNode)
+    {
+        addPacketHeader(RsShortInviteFieldType::HIDDEN_LOCATOR,4 + 2 + tDetails.hiddenNodeAddress.size(),buf,offset,buf_size);
 
-			buf[offset+4] = (uint8_t)((tDetails.hiddenNodePort >> 8) & 0xff);
-			buf[offset+5] = (uint8_t)((tDetails.hiddenNodePort     ) & 0xff);
+        buf[offset+0] = (uint8_t)((tDetails.hiddenType >> 24) & 0xff);
+        buf[offset+1] = (uint8_t)((tDetails.hiddenType >> 16) & 0xff);
+        buf[offset+2] = (uint8_t)((tDetails.hiddenType >>  8) & 0xff);
+        buf[offset+3] = (uint8_t)((tDetails.hiddenType      ) & 0xff);
 
-            memcpy(&buf[offset+6],tDetails.hiddenNodeAddress.c_str(),tDetails.hiddenNodeAddress.size());
-            offset += 4 + 2 + tDetails.hiddenNodeAddress.size();
-		}
-		else if( !tDetails.dyndns.empty() && (tDetails.extPort || tDetails.localPort) )
-		{
-			uint16_t tPort = tDetails.extPort ? tDetails.extPort : tDetails.localPort;
+        buf[offset+4] = (uint8_t)((tDetails.hiddenNodePort >> 8) & 0xff);
+        buf[offset+5] = (uint8_t)((tDetails.hiddenNodePort     ) & 0xff);
 
-			addPacketHeader(RsShortInviteFieldType::DNS_LOCATOR, 2 + tDetails.dyndns.size(),buf,offset,buf_size);
+        memcpy(&buf[offset+6],tDetails.hiddenNodeAddress.c_str(),tDetails.hiddenNodeAddress.size());
+        offset += 4 + 2 + tDetails.hiddenNodeAddress.size();
+    }
 
-            buf[offset+0] = (uint8_t)((tPort >> 8) & 0xff);
-            buf[offset+1] = (uint8_t)((tPort     ) & 0xff);
+    if( !!(invite_flags & RetroshareInviteFlags::DNS) && !tDetails.dyndns.empty() && (tDetails.extPort || tDetails.localPort))
+    {
+        uint16_t tPort = tDetails.extPort ? tDetails.extPort : tDetails.localPort;
 
-            memcpy(&buf[offset+2],tDetails.dyndns.c_str(),tDetails.dyndns.size());
-            offset += 2 + tDetails.dyndns.size();
-		}
-		else if( sockaddr_storage_inet_pton(tExt, tDetails.extAddr) &&
-		         sockaddr_storage_isValidNet(tExt) &&
-		         sockaddr_storage_ipv6_to_ipv4(tExt) &&
-		         tDetails.extPort )
-		{
-			uint32_t t4Addr = reinterpret_cast<sockaddr_in&>(tExt).sin_addr.s_addr;
+        addPacketHeader(RsShortInviteFieldType::DNS_LOCATOR, 2 + tDetails.dyndns.size(),buf,offset,buf_size);
 
-			addPacketHeader(RsShortInviteFieldType::EXT4_LOCATOR, 4 + 2,buf,offset,buf_size);
+        buf[offset+0] = (uint8_t)((tPort >> 8) & 0xff);
+        buf[offset+1] = (uint8_t)((tPort     ) & 0xff);
 
-			buf[offset+0] = (uint8_t)((t4Addr >> 24) & 0xff);
-			buf[offset+1] = (uint8_t)((t4Addr >> 16) & 0xff);
-			buf[offset+2] = (uint8_t)((t4Addr >>  8) & 0xff);
-			buf[offset+3] = (uint8_t)((t4Addr      ) & 0xff);
+        memcpy(&buf[offset+2],tDetails.dyndns.c_str(),tDetails.dyndns.size());
+        offset += 2 + tDetails.dyndns.size();
+    }
 
-			buf[offset+4] = (uint8_t)((tDetails.extPort >> 8) & 0xff);
-			buf[offset+5] = (uint8_t)((tDetails.extPort     ) & 0xff);
+    if( !!(invite_flags & RetroshareInviteFlags::FULL_IP_HISTORY) && (!tDetails.ipAddressList.empty()))
+        for(auto& s: tDetails.ipAddressList)
+        {
+            const std::string& tLc = s;
+            std::string tLocator = tLc.substr(0, tLc.find_first_of(" ")-1);
 
-            offset += 4+2;
-		}
-		else if(!tDetails.ipAddressList.empty())
-		{
-			const std::string& tLc = tDetails.ipAddressList.front();
-			std::string tLocator = tLc.substr(0, tLc.find_first_of(" ")-1);
-
-			addPacketHeader(RsShortInviteFieldType::LOCATOR, tLocator.size(),buf,offset,buf_size);
+            addPacketHeader(RsShortInviteFieldType::LOCATOR, tLocator.size(),buf,offset,buf_size);
             memcpy(&buf[offset],tLocator.c_str(),tLocator.size());
 
             offset += tLocator.size();
-		}
-	}
-	uint32_t computed_crc = PGPKeyManagement::compute24bitsCRC(buf,offset) ;
+        }
+    else if( !!(invite_flags & RetroshareInviteFlags::CURRENT_IP) )	// only add at least the local and external IPs
+    {
+#ifdef USE_NEW_LOCATOR_SYSTEM
+        // This new locator system as some advantages, but here it also has major drawbacks: (1) it cannot differentiate local and external addresses,
+        // and (2) it's quite larger than the old system, which tends to make certificates more than 1 line long.
+
+        sockaddr_storage tLocal;
+
+        if(sockaddr_storage_inet_pton(tLocal, tDetails.localAddr) && sockaddr_storage_isValidNet(tLocal) && tDetails.localPort )
+        {
+            addPacketHeader(RsShortInviteFieldType::LOCATOR, tDetails.localAddr.size(),buf,offset,buf_size);
+            memcpy(&buf[offset],tDetails.localAddr.c_str(),tDetails.localAddr.size());
+
+            offset += tDetails.localAddr.size();
+        }
+        sockaddr_storage tExt;
+
+        if(sockaddr_storage_inet_pton(tExt, tDetails.extAddr) && sockaddr_storage_isValidNet(tExt) && tDetails.extPort )
+        {
+            addPacketHeader(RsShortInviteFieldType::LOCATOR, tDetails.extAddr.size(),buf,offset,buf_size);
+            memcpy(&buf[offset],tDetails.extAddr.c_str(),tDetails.extAddr.size());
+
+            offset += tDetails.extAddr.size();
+        }
+#else
+        sockaddr_storage tLocal;
+        if(sockaddr_storage_inet_pton(tLocal, tDetails.localAddr) && sockaddr_storage_isValidNet(tLocal)  && sockaddr_storage_ipv6_to_ipv4(tLocal) && tDetails.localPort )
+        {
+            uint32_t t4Addr = reinterpret_cast<sockaddr_in&>(tLocal).sin_addr.s_addr;
+
+            addPacketHeader(RsShortInviteFieldType::LOC4_LOCATOR, 4 + 2,buf,offset,buf_size);
+
+            buf[offset+0] = (uint8_t)((t4Addr >> 24) & 0xff);
+            buf[offset+1] = (uint8_t)((t4Addr >> 16) & 0xff);
+            buf[offset+2] = (uint8_t)((t4Addr >>  8) & 0xff);
+            buf[offset+3] = (uint8_t)((t4Addr      ) & 0xff);
+
+            buf[offset+4] = (uint8_t)((tDetails.localPort >> 8) & 0xff);
+            buf[offset+5] = (uint8_t)((tDetails.localPort     ) & 0xff);
+
+            offset += 4+2;
+        }
+
+        sockaddr_storage tExt;
+        if(sockaddr_storage_inet_pton(tExt, tDetails.extAddr) && sockaddr_storage_isValidNet(tExt)  && sockaddr_storage_ipv6_to_ipv4(tExt) && tDetails.extPort )
+        {
+            uint32_t t4Addr = reinterpret_cast<sockaddr_in&>(tExt).sin_addr.s_addr;
+
+            addPacketHeader(RsShortInviteFieldType::EXT4_LOCATOR, 4 + 2,buf,offset,buf_size);
+
+            buf[offset+0] = (uint8_t)((t4Addr >> 24) & 0xff);
+            buf[offset+1] = (uint8_t)((t4Addr >> 16) & 0xff);
+            buf[offset+2] = (uint8_t)((t4Addr >>  8) & 0xff);
+            buf[offset+3] = (uint8_t)((t4Addr      ) & 0xff);
+
+            buf[offset+4] = (uint8_t)((tDetails.extPort >> 8) & 0xff);
+            buf[offset+5] = (uint8_t)((tDetails.extPort     ) & 0xff);
+
+            offset += 4+2;
+        }
+#endif
+
+    }
+
+    uint32_t computed_crc = PGPKeyManagement::compute24bitsCRC(buf,offset) ;
 
 	// handle endian issues.
 	unsigned char mem[3] ;
@@ -1291,7 +1339,7 @@ bool p3Peers::getShortInvite(
 
 	Radix64::encode(buf, static_cast<int>(offset), invite);
 
-	if(!formatRadix)
+    if(!(invite_flags & RetroshareInviteFlags::RADIX_FORMAT))
 	{
 		RsUrl inviteUrl(baseUrl);
 		inviteUrl.setQueryKV("rsInvite", invite);
@@ -1378,6 +1426,17 @@ bool p3Peers::parseShortInvite(const std::string& inviteStrUrl, RsPeerDetails& d
 			details.dyndns = std::string((char*)&buf[2],s-2);
             break;
 
+        case RsShortInviteFieldType::LOC4_LOCATOR:
+        {
+            uint32_t t4Addr = (((uint32_t)buf[0]) << 24)+(((uint32_t)buf[1])<<16)+(((uint32_t)buf[2])<<8) + (uint32_t)buf[3];
+            sockaddr_in tLocalAddr;
+            tLocalAddr.sin_addr.s_addr = t4Addr;
+
+            details.localAddr = rs_inet_ntoa(tLocalAddr.sin_addr);
+            details.localPort = (((uint32_t)buf[4])<<8) + (uint32_t)buf[5];
+        }
+        break;
+
 		case RsShortInviteFieldType::EXT4_LOCATOR:
 		{
 			uint32_t t4Addr = (((uint32_t)buf[0]) << 24)+(((uint32_t)buf[1])<<16)+(((uint32_t)buf[2])<<8) + (uint32_t)buf[3];
@@ -1392,7 +1451,7 @@ bool p3Peers::parseShortInvite(const std::string& inviteStrUrl, RsPeerDetails& d
   		case RsShortInviteFieldType::HIDDEN_LOCATOR:
 			details.hiddenType = (((uint32_t)buf[0]) << 24)+(((uint32_t)buf[1])<<16)+(((uint32_t)buf[2])<<8) + (uint32_t)buf[3];
 			details.hiddenNodePort = (((uint32_t)buf[4]) << 8)+ (uint32_t)buf[5];
-
+            details.isHiddenNode = true;
 			details.hiddenNodeAddress = std::string((char*)&buf[6],s-6);
 			break;
 
@@ -1523,9 +1582,7 @@ bool p3Peers::acceptInvite( const std::string& invite,
 	return true;
 }
 
-std::string p3Peers::GetRetroshareInvite(
-        const RsPeerId& sslId, bool include_signatures,
-        bool includeExtraLocators )
+std::string p3Peers::GetRetroshareInvite( const RsPeerId& sslId, RetroshareInviteFlags invite_flags)
 {
 #ifdef P3PEERS_DEBUG
 	std::cerr << __PRETTY_FUNCTION__ << std::endl;
@@ -1538,14 +1595,13 @@ std::string p3Peers::GetRetroshareInvite(
 
 	if (getPeerDetails(ssl_id, detail))
 	{
-		if(!includeExtraLocators) detail.ipAddressList.clear();
+        if(!(invite_flags & RetroshareInviteFlags::FULL_IP_HISTORY) || detail.isHiddenNode)
+            detail.ipAddressList.clear();
 
 		unsigned char *mem_block = nullptr;
 		size_t mem_block_size = 0;
 
-		if(!AuthGPG::getAuthGPG()->exportPublicKey(
-		            RsPgpId(detail.gpg_id), mem_block, mem_block_size, false,
-		            include_signatures ))
+        if(!AuthGPG::getAuthGPG()->exportPublicKey( RsPgpId(detail.gpg_id), mem_block, mem_block_size, false, !!(invite_flags & RetroshareInviteFlags::PGP_SIGNATURES) ))
 		{
 			std::cerr << "Cannot output certificate for id \"" << detail.gpg_id
 			          << "\". Sorry." << std::endl;
@@ -1553,7 +1609,7 @@ std::string p3Peers::GetRetroshareInvite(
 		}
 
 		RsCertificate cert(detail, mem_block, mem_block_size);
-		delete[] mem_block;
+		free(mem_block);
 
 		return cert.toStdString();
 	}
@@ -1591,7 +1647,7 @@ bool p3Peers::loadCertificateFromString(
     if(res)
     {
 		mPeerMgr->notifyPgpKeyReceived(gpgid);
-        FriendsChanged(true);
+        FriendsChanged(ssl_id,true);
     }
 
 	return res;
@@ -1688,18 +1744,22 @@ std::string p3Peers::saveCertificateToString(const RsPeerId &id)
         }
 }
 
-bool 	p3Peers::signGPGCertificate(const RsPgpId &id)
+bool 	p3Peers::signGPGCertificate(const RsPgpId &id, const std::string &gpg_passphrase)
 {
 #ifdef P3PEERS_DEBUG
 	std::cerr << "p3Peers::SignCertificate() " << id;
 	std::cerr << std::endl;
 #endif
+        rsNotify->cachePgpPassphrase(gpg_passphrase);
+        rsNotify->setDisableAskPassword(true);
 
+        bool res = AuthGPG::getAuthGPG()->SignCertificateLevel0(id);
 
-        AuthGPG::getAuthGPG()->AllowConnection(id, true);
-        return AuthGPG::getAuthGPG()->SignCertificateLevel0(id);
+        rsNotify->clearPgpPassphrase();
+        rsNotify->setDisableAskPassword(false);
+
+        return res;
 }
-
 
 bool 	p3Peers::trustGPGCertificate(const RsPgpId &id, uint32_t trustlvl)
 {

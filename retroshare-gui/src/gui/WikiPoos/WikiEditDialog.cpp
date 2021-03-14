@@ -71,11 +71,11 @@ WikiEditDialog::WikiEditDialog(QWidget *parent)
 
 	mWikiQueue = new TokenQueue(rsWiki->getTokenService(), this);
 
-        mThreadCompareRole = new RSTreeWidgetItemCompareRole;
-        mThreadCompareRole->setRole(WET_COL_DATE, WET_ROLE_SORT);
+	mThreadCompareRole = new RSTreeWidgetItemCompareRole;
+	mThreadCompareRole->setRole(WET_COL_DATE, WET_ROLE_SORT);
 
-        mRepublishMode = false;
-        mPreviewMode = false;
+	mRepublishMode = false;
+	mPreviewMode = false;
 	mPageLoading = false;
 
 	mIgnoreTextChange = false;
@@ -85,6 +85,11 @@ WikiEditDialog::WikiEditDialog(QWidget *parent)
 	mHistoryLoaded = false;
 	mHistoryMergeMode = false;
 
+	ui.toolButton_Show->setIcon(FilesDefs::getIconFromQtResourcePath(QString(":/icons/png/down-arrow.png")));
+	ui.toolButton_Hide->setIcon(FilesDefs::getIconFromQtResourcePath(QString(":/icons/png/up-arrow.png")));
+	ui.pushButton_Preview->setIcon(FilesDefs::getIconFromQtResourcePath(QString(":/icons/png/search.png")));
+	ui.pushButton_History->setIcon(FilesDefs::getIconFromQtResourcePath(QString(":/icons/png/history-clock-white.png")));
+
 	ui.checkBox_OldHistory->setChecked(false);
 	mOldHistoryEnabled = false;
 	ui.groupBox_History->hide();
@@ -93,7 +98,7 @@ WikiEditDialog::WikiEditDialog(QWidget *parent)
 
 WikiEditDialog::~WikiEditDialog()
 {
-        delete (mThreadCompareRole);
+	delete (mThreadCompareRole);
 	delete(mWikiQueue);
 }
 
@@ -290,12 +295,12 @@ void WikiEditDialog::historyToggle()
 	if (ui.groupBox_History->isHidden())
 	{
 		ui.groupBox_History->show();
-		ui.pushButton_History->setText(tr("Hide Edit History"));
+		ui.pushButton_History->setToolTip(tr("Hide Edit History"));
 	}
 	else
 	{
 		ui.groupBox_History->hide();
-		ui.pushButton_History->setText(tr("Show Edit History"));
+		ui.pushButton_History->setToolTip(tr("Show Edit History"));
 	}
 }
 
@@ -309,6 +314,7 @@ void WikiEditDialog::previewToggle()
 	{
 		mPreviewMode = false;
 		ui.pushButton_Preview->setText(tr("Preview"));
+		ui.pushButton_Preview->setIcon(FilesDefs::getIconFromQtResourcePath(QString(":/icons/png/search.png")));
 	}
 	else
 	{
@@ -316,6 +322,7 @@ void WikiEditDialog::previewToggle()
 		mCurrentText = ui.textEdit->toPlainText();
 		mPreviewMode = true;
 		ui.pushButton_Preview->setText(tr("Edit Page"));
+		ui.pushButton_Preview->setIcon(FilesDefs::getIconFromQtResourcePath(QString(":/icons/png/pencil-edit-button.png")));
 	}
 
 
@@ -403,7 +410,7 @@ void WikiEditDialog::setPreviousPage(RsWikiSnapshot &page)
 void WikiEditDialog::setNewPage()
 {
 	mNewPage = true;
-        mRepublishMode = false;
+	mRepublishMode = false;
 	mHistoryLoaded = false;
 	ui.lineEdit_Page->setText("");
 	ui.lineEdit_PrevVersion->setText("");
@@ -412,14 +419,14 @@ void WikiEditDialog::setNewPage()
 	redrawPage();
 	ui.treeWidget_History->clear();
 	ui.groupBox_History->hide();
-	ui.pushButton_History->setText(tr("Show Edit History"));
+	ui.pushButton_History->setToolTip(tr("Show Edit History"));
 
-	ui.headerFrame->setHeaderImage(QPixmap(":/images/addpage.png"));
+	ui.headerFrame->setHeaderImage(FilesDefs::getPixmapFromQtResourcePath(":/images/addpage.png"));
 	ui.headerFrame->setHeaderText(tr("Create New Wiki Page"));
 	setWindowTitle(tr("Create New Wiki Page"));
 
 	/* No need for for REQUIRED ID */
-        ui.comboBox_IdChooser->loadIds(0, RsGxsId());
+	ui.comboBox_IdChooser->loadIds(0, RsGxsId());
 
 	textReset();
 }
@@ -569,7 +576,7 @@ void WikiEditDialog::setupData(const RsGxsGroupId &groupId, const RsGxsMessageId
 		requestPage(msgId);
 	}
 
-	ui.headerFrame->setHeaderImage(QPixmap(":/images/editpage.png"));
+    ui.headerFrame->setHeaderImage(FilesDefs::getPixmapFromQtResourcePath(":/images/editpage.png"));
 	ui.headerFrame->setHeaderText(tr("Edit Wiki Page"));
 	setWindowTitle(tr("Edit Wiki Page"));
 

@@ -27,10 +27,13 @@
 
 #include "retroshare/rsconfig.h"
 #include "retroshare/rsinit.h"
+#include "retroshare/rspeers.h"
+#include <QTcpSocket>
 #include "util/misc.h"
 
 #include "TorControl/TorManager.h"
 #include "TorControl/TorControl.h"
+#include "gui/common/FilesDefs.h"
 
 #include <iomanip>
 
@@ -46,10 +49,11 @@ TorStatus::TorStatus(QWidget *parent)
     hbox->addWidget(statusTor);
     
     torstatusLabel = new QLabel( this );
-    torstatusLabel->setPixmap(QPixmap(":/icons/no-tor.png"));
+    torstatusLabel->setPixmap(FilesDefs::getPixmapFromQtResourcePath(":/icons/no-tor.png"));
     hbox->addWidget(torstatusLabel);
     
     _compactMode = false;
+    _updated = false;
 
     setLayout( hbox );
 }
@@ -60,24 +64,24 @@ void TorStatus::getTorStatus()
 	QString text = _compactMode?statusTor->text():"";
 
 	/* check local network state. We cannot make sure that Tor is running yet. */
-	uint32_t netState = rsConfig -> getNetState();
+	RsNetState netState = rsConfig -> getNetState();
 	bool online ;
 
 	switch(netState)
 	{
 		default:
-		case RSNET_NETSTATE_BAD_UNKNOWN:
-		case RSNET_NETSTATE_BAD_OFFLINE: online = false ;
+	    case RsNetState::BAD_UNKNOWN:
+	    case RsNetState::BAD_OFFLINE: online = false ;
 										 break ;
 
-		case RSNET_NETSTATE_WARNING_RESTART:
+	    case RsNetState::WARNING_RESTART:
 
-		case RSNET_NETSTATE_BAD_NATSYM:
-		case RSNET_NETSTATE_BAD_NODHT_NAT:
-		case RSNET_NETSTATE_WARNING_NATTED:
-		case RSNET_NETSTATE_WARNING_NODHT:
-		case RSNET_NETSTATE_GOOD:
-		case RSNET_NETSTATE_ADV_FORWARD: online = true ;
+	    case RsNetState::BAD_NATSYM:
+	    case RsNetState::BAD_NODHT_NAT:
+	    case RsNetState::WARNING_NATTED:
+	    case RsNetState::WARNING_NODHT:
+	    case RsNetState::GOOD:
+	    case RsNetState::ADV_FORWARD: online = true ;
 										 break ;
 	}
 
@@ -117,24 +121,71 @@ void TorStatus::getTorStatus()
 		if(torstatus == Tor::TorControl::TorOffline || !online || !tor_control_ok)
 		{
 			// RED - some issue.
-			torstatusLabel->setPixmap(QPixmap(":/icons/tor-stopping.png").scaledToHeight(1.5*S,Qt::SmoothTransformation));
+            torstatusLabel->setPixmap(FilesDefs::getPixmapFromQtResourcePath(":/icons/tor-stopping.png").scaledToHeight(1.5*S,Qt::SmoothTransformation));
 			torstatusLabel->setToolTip( text + tr("Tor is currently offline"));
 		}
 		else if(torstatus == Tor::TorControl::TorReady && online && tor_control_ok)
 		{
-			torstatusLabel->setPixmap(QPixmap(":/icons/tor-on.png").scaledToHeight(1.5*S,Qt::SmoothTransformation));
+            torstatusLabel->setPixmap(FilesDefs::getPixmapFromQtResourcePath(":/icons/tor-on.png").scaledToHeight(1.5*S,Qt::SmoothTransformation));
 			torstatusLabel->setToolTip( text + tr("Tor is OK"));
 		}
 		else // torstatus == Tor::TorControl::TorUnknown
 		{
 			// GRAY.
-			torstatusLabel->setPixmap(QPixmap(":/icons/no-tor.png").scaledToHeight(1.5*S,Qt::SmoothTransformation));
+            torstatusLabel->setPixmap(FilesDefs::getPixmapFromQtResourcePath(":/icons/no-tor.png").scaledToHeight(1.5*S,Qt::SmoothTransformation));
 			torstatusLabel->setToolTip( text + tr("No tor configuration"));
 		}
 	}
 	else
 	{
-		torstatusLabel->setPixmap(QPixmap(":/icons/tor-stopping.png").scaledToHeight(S,Qt::SmoothTransformation));
-		torstatusLabel->setToolTip( text + tr("Tor is currently offline"));
+		if(!_updated)
+		{
+			RsPeerDetails pd;
+			uint32_t hiddentype;
+			if (rsPeers->getPeerDetails(rsPeers->getOwnId(), pd)) {
+				if(pd.netMode == RS_NETMODE_HIDDEN)
+				{
+					hiddentype = pd.hiddenType;
+				}
+			}
+			std::string proxyaddr;
+			uint16_t proxyport;
+			uint32_t status ;
+			QTcpSocket socket ;
+			if(hiddentype == RS_HIDDEN_TYPE_TOR)
+			{
+				rsPeers->getProxyServer(RS_HIDDEN_TYPE_TOR, proxyaddr, proxyport, status);
+				socket.connectToHost(QString::fromStdString(proxyaddr),quint16(proxyport));
+				if(socket.waitForConnected(500))
+				{
+					socket.disconnectFromHost();
+					torstatusLabel->setPixmap(FilesDefs::getPixmapFromQtResourcePath(":/icons/tor-on.png").scaledToHeight(S,Qt::SmoothTransformation));
+					torstatusLabel->setToolTip( text + tr("Tor proxy is OK"));
+				}
+				else
+				{
+					torstatusLabel->setPixmap(FilesDefs::getPixmapFromQtResourcePath(":/icons/tor-off.png").scaledToHeight(S,Qt::SmoothTransformation));
+					torstatusLabel->setToolTip( text + tr("Tor proxy is not available"));
+				}
+			}
+			if(hiddentype == RS_HIDDEN_TYPE_I2P)
+			{
+				statusTor->setText("<strong>" + tr("I2P") + ":</strong>");
+				rsPeers->getProxyServer(RS_HIDDEN_TYPE_I2P, proxyaddr, proxyport, status);
+				socket.connectToHost(QString::fromStdString(proxyaddr),quint16(proxyport));
+				if(socket.waitForConnected(500))
+				{
+					socket.disconnectFromHost();
+					torstatusLabel->setPixmap(FilesDefs::getPixmapFromQtResourcePath(":/icons/i2p-128.png").scaledToHeight(S,Qt::SmoothTransformation));
+					torstatusLabel->setToolTip( text + tr("i2p proxy is OK"));
+				}
+				else
+				{
+					torstatusLabel->setPixmap(FilesDefs::getPixmapFromQtResourcePath(":/icons/tile_downloading_48.png").scaledToHeight(S,Qt::SmoothTransformation));
+					torstatusLabel->setToolTip( text + tr("i2p proxy is not available"));
+				}
+			}
+			_updated = true;
+		}
 	}
 }

@@ -26,6 +26,7 @@
 #include "retroshare-gui/RsAutoUpdatePage.h"
 #include "gui/msgs/MessageComposer.h"
 #include "gui/common/StatusDefs.h"
+#include "gui/common/FilesDefs.h"
 #include "gui/common/AvatarDefs.h"
 #include "util/DateTime.h"
 
@@ -205,7 +206,7 @@ void PeerItem::updateItem()
 
 		/* do buttons */
 		chatButton->setEnabled(details.state & RS_PEER_STATE_CONNECTED);
-		if (details.state & RS_PEER_STATE_FRIEND)
+		if (details.state & RS_PEER_STATE_CONNECTED)
 		{
 			sendmsgButton->setEnabled(true);
 		}
@@ -243,13 +244,13 @@ void PeerItem::doExpand(bool open)
 	if (open)
 	{
 		expandFrame->show();
-		expandButton->setIcon(QIcon(QString(":/icons/png/up-arrow.png")));
+        expandButton->setIcon(FilesDefs::getIconFromQtResourcePath(QString(":/icons/png/up-arrow.png")));
 		expandButton->setToolTip(tr("Hide"));
 	}
 	else
 	{
 		expandFrame->hide();
-		expandButton->setIcon(QIcon(QString(":/icons/png/down-arrow.png")));
+        expandButton->setIcon(FilesDefs::getIconFromQtResourcePath(QString(":/icons/png/down-arrow.png")));
 		expandButton->setToolTip(tr("Expand"));
 	}
 

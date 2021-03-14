@@ -117,11 +117,7 @@ void p3PhotoService::groupsChanged(std::list<RsGxsGroupId>& grpIds)
 	while(!mGroupChange.empty())
 	{
 		RsGxsGroupChange* gc = mGroupChange.back();
-		std::list<RsGxsGroupId>& gList = gc->mGrpIdList;
-		std::list<RsGxsGroupId>::iterator lit = gList.begin();
-		for(; lit != gList.end(); ++lit) {
-			grpIds.push_back(*lit);
-		}
+        grpIds.push_back(gc->mGroupId);
 
 		mGroupChange.pop_back();
 		delete gc;
@@ -136,7 +132,8 @@ void p3PhotoService::msgsChanged(GxsMsgIdResult& msgs)
 	while(!mMsgChange.empty())
 	{
 		RsGxsMsgChange* mc = mMsgChange.back();
-		msgs = mc->msgChangeMap;
+
+        msgs[mc->mGroupId].insert(mc->mMsgId);
 		mMsgChange.pop_back();
 		delete mc;
 	}
@@ -325,7 +322,7 @@ bool p3PhotoService::createAlbum(RsPhotoAlbum &album)
 	return submitAlbumDetails(token, album) && waitToken(token) == RsTokenService::COMPLETE;
 }
 
-bool p3PhotoService::updateAlbum(const RsPhotoAlbum &album)
+bool p3PhotoService::updateAlbum(const RsPhotoAlbum &/*album*/)
 {
 	// TODO
 	return false;

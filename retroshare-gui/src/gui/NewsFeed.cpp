@@ -33,8 +33,10 @@
 #include <retroshare/rsposted.h>
 
 #include "util/qtthreadsutils.h"
+#include "feeds/BoardsCommentsItem.h"
 #include "feeds/ChatMsgItem.h"
 #include "feeds/GxsCircleItem.h"
+#include "feeds/ChannelsCommentsItem.h"
 #include "feeds/GxsChannelGroupItem.h"
 #include "feeds/GxsChannelPostItem.h"
 #include "feeds/GxsForumGroupItem.h"
@@ -110,15 +112,18 @@ NewsFeed::NewsFeed(QWidget *parent) : MainPage(parent), ui(new Ui::NewsFeed),
     ui->feedOptionsButton->hide();	// (csoler) Hidden until we repare the system to display a specific settings page.
 
 QString hlp_str = tr(
- " <h1><img width=\"32\" src=\":/icons/help_64.png\">&nbsp;&nbsp;News Feed</h1>                                                          \
-   <p>The Log Feed displays the last events on your network, sorted by the time you received them.                \
+ " <h1><img width=\"32\" src=\":/icons/help_64.png\">&nbsp;&nbsp;Activity Feed</h1>                                                          \
+   <p>The Activity Feed displays the last events on your network, sorted by the time you received them.                \
    This gives you a summary of the activity of your friends.                                                       \
    You can configure which events to show by pressing on <b>Options</b>. </p>                                      \
    <p>The various events shown are:                                                                                \
    <ul>                                                                                                         \
    <li>Connection attempts (useful to make friends with new people and control who's trying to reach you)</li> \
-   <li>Channel and Forum posts</li>                                                                            \
-   <li>New Channels and Forums you can subscribe to</li>                                                       \
+   <li>Channel, Forum and Board posts</li>                                                                            \
+   <li>Circle membership requests and invites</li>                                                                            \
+   <li>New Channels, Forums and Boards you can subscribe to</li>                                                       \
+   <li>Channel and Board comments</li>                                                                 \
+   <li>New Mail messages</li>                                                                 \
    <li>Private messages from your friends</li>                                                                 \
    </ul> </p>                                                                                                      \
  ") ;
@@ -240,6 +245,9 @@ void NewsFeed::handlePostedEvent(std::shared_ptr<const RsEvent> event)
 	case RsPostedEventCode::NEW_MESSAGE:
 		addFeedItem( new PostedItem(this, NEWSFEED_POSTEDMSGLIST, pe->mPostedGroupId, pe->mPostedMsgId, false, true));
 		break;
+	case RsPostedEventCode::NEW_COMMENT:
+		addFeedItem( new BoardsCommentsItem(this, NEWSFEED_POSTEDMSGLIST, pe->mPostedGroupId, pe->mPostedMsgId, false, true));
+		break;
 	default: break;
 	}
 }
@@ -251,14 +259,20 @@ void NewsFeed::handleForumEvent(std::shared_ptr<const RsEvent> event)
 
 	switch(pe->mForumEventCode)
 	{
+	case RsForumEventCode::MODERATOR_LIST_CHANGED:
+		addFeedItem(new GxsForumGroupItem(this, NEWSFEED_UPDATED_FORUM, pe->mForumGroupId,pe->mModeratorsAdded,pe->mModeratorsRemoved, false, true));
+        break;
+
 	case RsForumEventCode::UPDATED_FORUM:
 	case RsForumEventCode::NEW_FORUM:
-		addFeedItem(new GxsForumGroupItem(this, NEWSFEED_FORUMNEWLIST, pe->mForumGroupId, false, true));
+		addFeedItem(new GxsForumGroupItem(this, NEWSFEED_NEW_FORUM, pe->mForumGroupId, false, true));
 		break;
+
 	case RsForumEventCode::UPDATED_MESSAGE:
 	case RsForumEventCode::NEW_MESSAGE:
-		addFeedItem(new GxsForumMsgItem(this, NEWSFEED_FORUMNEWLIST, pe->mForumGroupId, pe->mForumMsgId, false, true));
+		addFeedItem(new GxsForumMsgItem(this, NEWSFEED_NEW_FORUM, pe->mForumGroupId, pe->mForumMsgId, false, true));
 		break;
+
 	default: break;
 	}
 }
@@ -279,6 +293,9 @@ void NewsFeed::handleChannelEvent(std::shared_ptr<const RsEvent> event)
 	case RsChannelEventCode::NEW_MESSAGE:
 		addFeedItem(new GxsChannelPostItem(this, NEWSFEED_CHANNELNEWLIST, pe->mChannelGroupId, pe->mChannelMsgId, false, true));
 		break;
+	case RsChannelEventCode::NEW_COMMENT:
+		addFeedItem(new ChannelsCommentsItem(this, NEWSFEED_CHANNELNEWLIST, pe->mChannelGroupId, pe->mChannelMsgId, false, true));
+		break;
 	case RsChannelEventCode::RECEIVED_PUBLISH_KEY:
 		addFeedItem(new GxsChannelGroupItem(this, NEWSFEED_CHANNELPUBKEYLIST, pe->mChannelGroupId, false, true));
 		break;
@@ -288,47 +305,120 @@ void NewsFeed::handleChannelEvent(std::shared_ptr<const RsEvent> event)
 
 void NewsFeed::handleCircleEvent(std::shared_ptr<const RsEvent> event)
 {
- 	const RsGxsCircleEvent *pe = dynamic_cast<const RsGxsCircleEvent*>(event.get());
-    if(!pe)
-        return;
+    // Gives the backend a few secs to load the cache data while not blocking the UI. This is not so nice, but there's no proper
+    // other way to do that.
 
-	RsGxsCircleDetails details;
-
-    if(pe->mCircleId.isNull())	// probably an item for cache update
-        return ;
-
-	if(!rsGxsCircles->getCircleDetails(pe->mCircleId,details))
+    RsThread::async( [event,this]()
     {
-        std::cerr << "(EE) Cannot get information about circle " << pe->mCircleId << ". Not in cache?" << std::endl;
-    	return;
-    }
+		const RsGxsCircleEvent *pe = dynamic_cast<const RsGxsCircleEvent*>(event.get());
+		if(!pe)
+			return;
 
-    // Check if the circle is one of which we belong to. If so, then notify in the GUI about other members leaving/subscribing
+		if(pe->mCircleId.isNull())	// probably an item for cache update
+			return ;
 
-	if(details.mAmIAllowed || details.mAmIAdmin)
+		RsGxsCircleDetails details;
+        bool loaded = false;
+
+        for(int i=0;i<5 && !loaded;++i)
+			if(rsGxsCircles->getCircleDetails(pe->mCircleId,details))
+            {
+                std::cerr << "Cache item loaded for circle " << pe->mCircleId << std::endl;
+                loaded = true;
+            }
+			else
+            {
+                std::cerr << "Cache item for circle " << pe->mCircleId << " not loaded. Waiting " << i << "s" << std::endl;
+                rstime::rs_usleep(1000*1000);
+            }
+
+        if(!loaded)
+		{
+			std::cerr << "(EE) Cannot get information about circle " << pe->mCircleId << ". Not in cache?" << std::endl;
+			return;
+		}
+
+		if(!details.isGxsIdBased())	// not handled yet.
+			return;
+
+		// Check if the circle is one of which we belong to or we are an admin of.
+		// If so, then notify in the GUI about other members leaving/subscribing, according
+		// to the following rules. The names correspond to the RS_FEED_CIRCLE_* variables:
+		//
+		//  Message-based notifications:
+		//
+		//                       +---------------------------+----------------------------+
+		//                       |  Membership request       |  Membership cancellation   |
+		//                       +-------------+-------------+-------------+--------------+
+		//                       |  Admin      |  Not admin  |    Admin    |   Not admin  |
+		//  +--------------------+-------------+-------------+----------------------------+
+		//  |    in invitee list |  MEMB_JOIN  |  MEMB_JOIN  |  MEMB_LEAVE |  MEMB_LEAVE  |
+		//  +--------------------+-------------+-------------+-------------+--------------+
+		//  |not in invitee list |  MEMB_REQ   |      X      |      X      |      X       |
+		//  +--------------------+-------------+-------------+-------------+--------------+
+		//
+		//  Note: in this case, the GxsId never belongs to you, since you dont need to handle
+		//        notifications for actions you took yourself (leave/join a circle)
+		//
+		//  GroupData-based notifications, the GxsId belongs to you:
+		//
+		//                       +---------------------------+----------------------------+
+		//                       | GxsId joins invitee list  |  GxsId leaves invitee list |
+		//                       +-------------+-------------+-------------+--------------+
+		//                       |  Id is yours| Id is not   | Id is yours | Id is not    |
+		//  +--------------------+-------------+-------------+-------------+--------------+
+		//  | Has Member request | MEMB_ACCEPT | (MEMB_JOIN) | MEMB_REVOKED| (MEMB_LEAVE) |
+		//  +--------------------+-------------+-------------+-------------+--------------+
+		//  | No Member request  |  INVITE_REC |     X       |  INVITE_REM |     X        |
+		//  +--------------------+-------------+-------------+-------------+--------------+
+		//
+		//  Note: In this case you're never an admin of the circle, since these notification
+		//        would be a direct consequence of your own actions.
+
+	RsQThreadUtils::postToObject( [event,details,this]()
 	{
+		const RsGxsCircleEvent *pe = static_cast<const RsGxsCircleEvent*>(event.get());
+
 		switch(pe->mCircleEventType)
 		{
 		case RsGxsCircleEventCode::CIRCLE_MEMBERSHIP_REQUEST:
 			// only show membership requests if we're an admin of that circle
-			if(details.mAmIAdmin)
+			if(details.isIdInInviteeList(pe->mGxsId))
+				addFeedItemIfUnique(new GxsCircleItem(this, NEWSFEED_CIRCLELIST, pe->mCircleId, pe->mGxsId, RS_FEED_ITEM_CIRCLE_MEMB_JOIN),true);
+			else if(details.mAmIAdmin)
 				addFeedItemIfUnique(new GxsCircleItem(this, NEWSFEED_CIRCLELIST, pe->mCircleId, pe->mGxsId, RS_FEED_ITEM_CIRCLE_MEMB_REQ),true);
+
 			break;
-		case RsGxsCircleEventCode::CIRCLE_MEMBERSHIP_JOIN:
-			addFeedItemIfUnique(new GxsCircleItem(this, NEWSFEED_CIRCLELIST, pe->mCircleId, pe->mGxsId, RS_FEED_ITEM_CIRCLE_MEMB_JOIN),true);
-			break;
+
 		case RsGxsCircleEventCode::CIRCLE_MEMBERSHIP_LEAVE:
-			addFeedItemIfUnique(new GxsCircleItem(this, NEWSFEED_CIRCLELIST, pe->mCircleId, pe->mGxsId, RS_FEED_ITEM_CIRCLE_MEMB_LEAVE),true);
+
+			if(details.isIdInInviteeList(pe->mGxsId))
+				addFeedItemIfUnique(new GxsCircleItem(this, NEWSFEED_CIRCLELIST, pe->mCircleId, pe->mGxsId, RS_FEED_ITEM_CIRCLE_MEMB_LEAVE),true);
 			break;
-		case RsGxsCircleEventCode::CIRCLE_MEMBERSHIP_INVITE:
-			addFeedItemIfUnique(new GxsCircleItem(this, NEWSFEED_CIRCLELIST, pe->mCircleId, pe->mGxsId, RS_FEED_ITEM_CIRCLE_INVIT_REC),true);
+
+		case RsGxsCircleEventCode::CIRCLE_MEMBERSHIP_ID_ADDED_TO_INVITEE_LIST:
+			if(rsIdentity->isOwnId(pe->mGxsId))
+			{
+				if(details.isIdRequestingMembership(pe->mGxsId))
+					addFeedItemIfUnique(new GxsCircleItem(this, NEWSFEED_CIRCLELIST, pe->mCircleId, pe->mGxsId, RS_FEED_ITEM_CIRCLE_MEMB_ACCEPTED),true);
+				else
+					addFeedItemIfUnique(new GxsCircleItem(this, NEWSFEED_CIRCLELIST, pe->mCircleId, pe->mGxsId, RS_FEED_ITEM_CIRCLE_INVITE_REC),true);
+			}
 			break;
-		case RsGxsCircleEventCode::CIRCLE_MEMBERSHIP_REVOQUED:
-			addFeedItemIfUnique(new GxsCircleItem(this, NEWSFEED_CIRCLELIST, pe->mCircleId, pe->mGxsId, RS_FEED_ITEM_CIRCLE_MEMB_REVOQUED),true);
+
+		case RsGxsCircleEventCode::CIRCLE_MEMBERSHIP_ID_REMOVED_FROM_INVITEE_LIST:
+			if(rsIdentity->isOwnId(pe->mGxsId))
+			{
+				if(details.isIdRequestingMembership(pe->mGxsId))
+					addFeedItemIfUnique(new GxsCircleItem(this, NEWSFEED_CIRCLELIST, pe->mCircleId, pe->mGxsId, RS_FEED_ITEM_CIRCLE_MEMB_REVOKED),true);
+				else
+					addFeedItemIfUnique(new GxsCircleItem(this, NEWSFEED_CIRCLELIST, pe->mCircleId, pe->mGxsId, RS_FEED_ITEM_CIRCLE_INVITE_CANCELLED),true);
+			}
 			break;
+
 		default: break;
 		}
-	}
+	}, this ); }); // damn!
 }
 
 void NewsFeed::handleConnectionEvent(std::shared_ptr<const RsEvent> event)
@@ -376,7 +466,7 @@ void NewsFeed::handleSecurityEvent(std::shared_ptr<const RsEvent> event)
 #endif
 	uint flags = Settings->getNewsFeedFlags();
 
-	if(e.mErrorCode == RsAuthSslError::PEER_REFUSED_CONNECTION)
+	if(e.mErrorCode == RsAuthSslError::PEER_REFUSED_CONNECTION && (flags & RS_FEED_TYPE_SECURITY_IP))
 	{
 		addFeedItemIfUnique(new PeerItem(this, NEWSFEED_PEERLIST, e.mSslId, PEER_TYPE_HELLO, false), true );
 		return;
@@ -494,7 +584,7 @@ void NewsFeed::addFeedItemIfUnique(FeedItem *item, bool replace)
 	}
 
 	addFeedItem(item);
-	sendNewsFeedChanged();
+	//sendNewsFeedChanged(); //Already done by addFeedItem()
 }
 
 void NewsFeed::remUniqueFeedItem(FeedItem *item)

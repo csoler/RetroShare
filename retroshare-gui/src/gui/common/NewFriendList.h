@@ -25,8 +25,9 @@
 #include <QWidget>
 #include <QTreeView>
 
+#include <retroshare-gui/RsAutoUpdatePage.h>
+
 #include "FriendListModel.h"
-#include "RsAutoUpdatePage.h"
 #include "retroshare/rsstatus.h"
 
 namespace Ui {
@@ -102,11 +103,13 @@ private:
 	RsFriendListModel *mModel;
 	QAction *mActionSortByState;
 
-	void expandGroup(const RsNodeGroupId& gid);
-	void recursRestoreExpandedItems(const QModelIndex& index, const QString& parent_path, const std::set<QString>& exp, const std::set<QString> &sel);
-	void recursSaveExpandedItems(const QModelIndex& index,const QString& parent_path,std::set<QString>& exp, std::set<QString>& sel);
-	void saveExpandedPathsAndSelection(std::set<QString>& expanded_indexes, std::set<QString>& selected_indexes);
-	void restoreExpandedPathsAndSelection(const std::set<QString>& expanded_indexes, const std::set<QString>& selected_indexes);
+    void applyWhileKeepingTree(std::function<void()> predicate);
+
+    void expandGroup(const RsNodeGroupId& gid);
+    void recursRestoreExpandedItems(const QModelIndex& index, const QString& parent_path, const std::set<QString>& exp, const QString &sel, QModelIndex &selected_index,int indx);
+    void recursSaveExpandedItems(const QModelIndex& index, const QModelIndex& current_index, const QString& parent_path, std::set<QString>& exp, QString &sel,int indx);
+    void saveExpandedPathsAndSelection(std::set<QString>& expanded_indexes, QString& sel);
+    void restoreExpandedPathsAndSelection(const std::set<QString>& expanded_indexes, const QString &index_to_select, QModelIndex &selected_index);
 
     void checkInternalData(bool force);
 
@@ -118,10 +121,15 @@ private:
 
 	// Settings for peer list display
 	bool mShowState;
-    RsEventsHandlerId_t mEventHandlerId;
+    RsEventsHandlerId_t mEventHandlerId_peer;
+    RsEventsHandlerId_t mEventHandlerId_gssp;
+    RsEventsHandlerId_t mEventHandlerId_pssc;
 
 	std::set<RsNodeGroupId> openGroups;
 	std::set<RsPgpId>   openPeers;
+
+    int mLastSortColumn;
+    Qt::SortOrder mLastSortOrder;
 
 	bool getOrCreateGroup(const std::string& name, uint flag, RsNodeGroupId& id);
 	bool getGroupIdByName(const std::string& name, RsNodeGroupId& id);
@@ -144,6 +152,7 @@ private slots:
 	void msgGroup();
 	void msgProfile();
 	void recommendNode();
+	void removeItem();
 	void removeNode();
 	void removeProfile();
 	void createNewGroup() ;

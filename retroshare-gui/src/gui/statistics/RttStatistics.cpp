@@ -121,7 +121,7 @@ RttStatisticsGraph::RttStatisticsGraph(QWidget *parent)
 
     src->setCollectionTimeLimit(10*60*1000) ; // 10 mins
     src->setCollectionTimePeriod(1000) ;     // collect every second
-    src->setDigits(1) ;
+    src->setDigits(3) ;
     src->start() ;
 
     setSource(src) ;
@@ -131,4 +131,11 @@ RttStatisticsGraph::RttStatisticsGraph(QWidget *parent)
     resetFlags(RSGRAPH_FLAGS_LOG_SCALE_Y) ;
     resetFlags(RSGRAPH_FLAGS_PAINT_STYLE_PLAIN) ;
     setFlags(RSGRAPH_FLAGS_SHOW_LEGEND) ;
+
+	int graphColor = Settings->valueFromGroup("BandwidthStatsWidget", "cmbGraphColor", 0).toInt();
+
+	if(graphColor==0)
+		resetFlags(RSGraphWidget::RSGraphWidget::RSGRAPH_FLAGS_DARK_STYLE);
+	else
+		setFlags(RSGraphWidget::RSGraphWidget::RSGRAPH_FLAGS_DARK_STYLE);
 }

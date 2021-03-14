@@ -43,6 +43,7 @@ public:
 	QAction* getNotifyIcon(){ return mNotifyIcon;}
 
 	virtual bool hasSetting(QString */*name*/, QString */*group*/) { return false; }
+
 	bool notifyEnabled();
 	bool notifyCombined();
 	bool notifyBlink();

@@ -84,6 +84,9 @@ GlobalRouterStatistics::GlobalRouterStatistics(QWidget *parent)
 		
 		connect(treeWidget, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(CustomPopupMenu(QPoint)));
 
+    /* Set initial size the splitter */
+    splitter->setStretchFactor(1, 1);
+    splitter->setStretchFactor(0, 0);
 
 	// load settings
     processSettings(true);
@@ -106,12 +109,12 @@ void GlobalRouterStatistics::processSettings(bool bLoad)
         // load settings
 
         // state of splitter
-        //splitter->restoreState(Settings->value("Splitter").toByteArray());
+        splitter->restoreState(Settings->value("Splitter").toByteArray());
     } else {
         // save settings
 
         // state of splitter
-        //Settings->setValue("Splitter", splitter->saveState());
+        Settings->setValue("Splitter", splitter->saveState());
 
     }
 
@@ -126,7 +129,7 @@ void GlobalRouterStatistics::CustomPopupMenu( QPoint )
 	
 	QTreeWidgetItem *item = treeWidget->currentItem();
 	if (item) {
-	contextMnu.addAction(QIcon(":/images/info16.png"), tr("Details"), this, SLOT(personDetails()));
+    contextMnu.addAction(FilesDefs::getIconFromQtResourcePath(":/images/info16.png"), tr("Details"), this, SLOT(personDetails()));
 
   }
 
@@ -203,6 +206,8 @@ void GlobalRouterStatistics::updateContent()
 		item -> setData(COL_DUPLICATION_FACTOR, Qt::DisplayRole, QString::number(cache_infos[i].duplication_factor));
 		item -> setData(COL_RECEIVEDTIME,     Qt::DisplayRole, QString::number(now - cache_infos[i].routing_time));
         item -> setData(COL_SENDTIME,         Qt::DisplayRole, QString::number(now - cache_infos[i].last_sent_time));
+
+		item->setTextAlignment(COL_DATASIZE, Qt::AlignRight	);
     }
 }
 
