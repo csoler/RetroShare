@@ -19,7 +19,7 @@
 !include("../../retroshare.pri"): error("Could not include file ../../retroshare.pri")
 
 TEMPLATE = app
-QT     += network xml 
+QT     += network xml svg
 CONFIG += qt gui uic qrc resources idle 
 CONFIG += console
 TARGET = retroshare
@@ -1252,6 +1252,7 @@ identities {
 		gui/Identity/IdDialog.h \
 		gui/Identity/IdEditDialog.h \
 		gui/Identity/IdDetailsDialog.h \
+		gui/Identity/MultiAvatar.h \
 	
 	FORMS += gui/Identity/IdDialog.ui \
 		gui/Identity/IdEditDialog.ui \
@@ -1261,6 +1262,7 @@ identities {
 		gui/Identity/IdDialog.cpp \
 		gui/Identity/IdEditDialog.cpp \
 		gui/Identity/IdDetailsDialog.cpp \
+		gui/Identity/MultiAvatar.cpp \
 	
 }
 	

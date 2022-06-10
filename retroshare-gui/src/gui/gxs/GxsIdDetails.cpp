@@ -19,6 +19,7 @@
  *******************************************************************************/
 
 #include "GxsIdDetails.h"
+#include "gui/Identity/MultiAvatar.h"
 
 #include "gui/common/AvatarDialog.h"
 #include "gui/common/FilesDefs.h"
@@ -33,6 +34,7 @@
 #include <QPainterPath>
 #include <QThread>
 #include <QTimerEvent>
+#include <QSvgRenderer>
 
 #include <iostream>
 #include <cmath>
@@ -430,7 +432,16 @@ const QPixmap GxsIdDetails::makeDefaultIcon(const RsGxsId& id, AvatarSize size)
     	case LARGE:  S = 64*3 ; break;
     }
 
-    QPixmap image = drawIdentIcon(QString::fromStdString(id.toStdString()),S,true);
+    //QPixmap image = drawIdentIcon(QString::fromStdString(id.toStdString()),S,true);
+    QPixmap image(S,S);
+        QString svg_stream = QString::fromStdString(multiavatar(id.toStdString(),true));
+        QXmlStreamReader reader(svg_stream);
+        QSvgRenderer rend(&reader);
+        image.fill(Qt::transparent);
+        image.fill(QColor::fromRgba(0x00000000));
+        QPainter paint(&image);
+        rend.render(&paint);
+
 
     it[(int)size] = std::make_pair(now,image);
 
@@ -1185,8 +1196,6 @@ void GxsIdDetails::getIcons(const RsIdentityDetails &details, QList<QIcon> &icon
 #else
             pix = makeDefaultIcon(details.mId);
 #endif
-
-
         QIcon idIcon(pix);
         //CreateIdIcon(id, idIcon);
         icons.push_back(idIcon);

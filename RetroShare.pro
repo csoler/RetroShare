@@ -23,6 +23,7 @@ CONFIG += c++14
 
 !include("retroshare.pri"): error("Could not include file retroshare.pri")
 
+QT += svg
 TEMPLATE = subdirs
 
 SUBDIRS += openpgpsdk
