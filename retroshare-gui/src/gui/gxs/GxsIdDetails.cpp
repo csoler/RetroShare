@@ -390,6 +390,46 @@ static bool findTagIcon(int tag_class, int /*tag_type*/, QIcon &icon)
 	return true;
 }
 
+    class MyIconEngine: public QIconEngine
+    {
+    public:
+        MyIconEngine(const QString& svg_string): mSvgString(svg_string){}
+
+        void paint(QPainter *painter, const QRect &rect, QIcon::Mode mode, QIcon::State state) override
+    {
+        QXmlStreamReader reader(mSvgString);
+        QSvgRenderer rend(&reader);
+        //rend.setViewBox(rect);
+        rend.render(painter,rect);
+    }
+        QPixmap pixmap(const QSize &size, QIcon::Mode mode, QIcon::State state) override
+        {
+          // This function is necessary to create an EMPTY pixmap. It's called always
+          // before paint()
+
+          QImage img(size, QImage::Format_ARGB32);
+          img.fill(qRgba(0, 0, 0, 0));
+          QPixmap pix = QPixmap::fromImage(img, Qt::NoFormatConversion);
+          {
+            QPainter painter;
+            painter.begin(&pix);
+            painter.setPen(QPen(QBrush(QColor(0, 0, 0)), 3, Qt::SolidLine));
+            QRect r(QPoint(0.0, 0.0), size);
+            this->paint(&painter, r, mode, state);
+            painter.end();
+          }
+          std::cerr << "Drawn string " << mSvgString.toStdString() << std::endl;
+          if(mSvgString == QString("28b2ebc9e0064858d32a2eb532aa79bd"))
+              std::cerr << "Drawing: " << mSvgString.toStdString() << std::endl;
+          return pix;
+        }
+        virtual MyIconEngine *clone() const override
+        {
+            return new MyIconEngine(mSvgString);
+        }
+    private:
+        QString mSvgString;
+    };
 /**
  * @brief GxsIdDetails::makeIdentIcon
  * @param id: RsGxsId to compute
@@ -434,14 +474,9 @@ const QPixmap GxsIdDetails::makeDefaultIcon(const RsGxsId& id, AvatarSize size)
     }
 
     //QPixmap image = drawIdentIcon(QString::fromStdString(id.toStdString()),S,true);
-    QPixmap image(S,S);
     QString svg_stream = QString::fromStdString(multiavatar(id.toStdString(),true));
-    QXmlStreamReader reader(svg_stream);
-    QSvgRenderer rend(&reader);
-    image.fill(Qt::transparent);
-    image.fill(QColor::fromRgba(0x00000000));
-    QPainter paint(&image);
-    rend.render(&paint);
+    QIcon icon = makeDefaultIconSVG(id);
+    auto image = MyIconEngine(svg_stream).pixmap(QSize(S,S),QIcon::Normal,QIcon::On);
 
     it[(int)size] = std::make_pair(now,image);
 
@@ -450,40 +485,7 @@ const QPixmap GxsIdDetails::makeDefaultIcon(const RsGxsId& id, AvatarSize size)
 
 const QIcon GxsIdDetails::makeDefaultIconSVG(const RsGxsId& id)
 {
-    class MyIconEngine: public QIconEngine
-    {
-    public:
-        MyIconEngine(const QString& svg_string): mSvgString(svg_string){}
 
-        void paint(QPainter *painter, const QRect &rect, QIcon::Mode mode, QIcon::State state) override
-    {
-        QXmlStreamReader reader(mSvgString);
-        QSvgRenderer rend(&reader);
-        //rend.setViewBox(rect);
-        rend.render(painter,rect);
-    }
-        QPixmap pixmap(const QSize &size, QIcon::Mode mode, QIcon::State state) override
-        {
-          // This function is necessary to create an EMPTY pixmap. It's called always
-          // before paint()
-
-          QImage img(size, QImage::Format_ARGB32);
-          img.fill(qRgba(0, 0, 0, 0));
-          QPixmap pix = QPixmap::fromImage(img, Qt::NoFormatConversion);
-          {
-            QPainter painter(&pix);
-            QRect r(QPoint(0.0, 0.0), size);
-            this->paint(&painter, r, mode, state);
-          }
-          return pix;
-        }
-        virtual MyIconEngine *clone() const override
-        {
-            return new MyIconEngine(mSvgString);
-        }
-    private:
-        QString mSvgString;
-    };
 
     //QPixmap image = drawIdentIcon(QString::fromStdString(id.toStdString()),S,true);
     QString svg_stream = QString::fromStdString(multiavatar(id.toStdString(),true));
