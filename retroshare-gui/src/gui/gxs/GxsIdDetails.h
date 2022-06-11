@@ -112,7 +112,9 @@ public:
     // These two methods use a cache so as to minimize the memory impact of avatars.
 
     static const QPixmap makeDefaultIcon(const RsGxsId& id, AvatarSize size = MEDIUM);
-	static bool loadPixmapFromData(const unsigned char *data, size_t data_len, QPixmap& pix, AvatarSize size = MEDIUM);
+    static const QIcon makeDefaultIconSVG(const RsGxsId& id);
+
+    static bool loadPixmapFromData(const unsigned char *data, size_t data_len, QPixmap& pix, AvatarSize size = MEDIUM);
     static void checkCleanImagesCache();
     static void debug_dumpImagesCache();
 

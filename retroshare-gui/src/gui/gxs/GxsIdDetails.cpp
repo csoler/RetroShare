@@ -32,6 +32,7 @@
 #include <QMutexLocker>
 #include <QPainter>
 #include <QPainterPath>
+#include <QIconEngine>
 #include <QThread>
 #include <QTimerEvent>
 #include <QSvgRenderer>
@@ -434,18 +435,61 @@ const QPixmap GxsIdDetails::makeDefaultIcon(const RsGxsId& id, AvatarSize size)
 
     //QPixmap image = drawIdentIcon(QString::fromStdString(id.toStdString()),S,true);
     QPixmap image(S,S);
-        QString svg_stream = QString::fromStdString(multiavatar(id.toStdString(),true));
-        QXmlStreamReader reader(svg_stream);
-        QSvgRenderer rend(&reader);
-        image.fill(Qt::transparent);
-        image.fill(QColor::fromRgba(0x00000000));
-        QPainter paint(&image);
-        rend.render(&paint);
-
+    QString svg_stream = QString::fromStdString(multiavatar(id.toStdString(),true));
+    QXmlStreamReader reader(svg_stream);
+    QSvgRenderer rend(&reader);
+    image.fill(Qt::transparent);
+    image.fill(QColor::fromRgba(0x00000000));
+    QPainter paint(&image);
+    rend.render(&paint);
 
     it[(int)size] = std::make_pair(now,image);
 
     return image;
+}
+
+const QIcon GxsIdDetails::makeDefaultIconSVG(const RsGxsId& id)
+{
+    class MyIconEngine: public QIconEngine
+    {
+    public:
+        MyIconEngine(const QString& svg_string): mSvgString(svg_string){}
+
+        void paint(QPainter *painter, const QRect &rect, QIcon::Mode mode, QIcon::State state) override
+    {
+        QXmlStreamReader reader(mSvgString);
+        QSvgRenderer rend(&reader);
+        //rend.setViewBox(rect);
+        rend.render(painter,rect);
+    }
+        QPixmap pixmap(const QSize &size, QIcon::Mode mode, QIcon::State state) override
+        {
+          // This function is necessary to create an EMPTY pixmap. It's called always
+          // before paint()
+
+          QImage img(size, QImage::Format_ARGB32);
+          img.fill(qRgba(0, 0, 0, 0));
+          QPixmap pix = QPixmap::fromImage(img, Qt::NoFormatConversion);
+          {
+            QPainter painter(&pix);
+            QRect r(QPoint(0.0, 0.0), size);
+            this->paint(&painter, r, mode, state);
+          }
+          return pix;
+        }
+        virtual MyIconEngine *clone() const override
+        {
+            return new MyIconEngine(mSvgString);
+        }
+    private:
+        QString mSvgString;
+    };
+
+    //QPixmap image = drawIdentIcon(QString::fromStdString(id.toStdString()),S,true);
+    QString svg_stream = QString::fromStdString(multiavatar(id.toStdString(),true));
+
+    MyIconEngine *eng = new MyIconEngine(svg_stream);
+    return QIcon(eng);
 }
 
 void GxsIdDetails::debug_dumpImagesCache()
@@ -1191,14 +1235,13 @@ void GxsIdDetails::getIcons(const RsIdentityDetails &details, QList<QIcon> &icon
     if(icon_types & ICON_TYPE_AVATAR)
     {
         if(details.mAvatar.mSize == 0 || !GxsIdDetails::loadPixmapFromData(details.mAvatar.mData, details.mAvatar.mSize, pix))
-#if QT_VERSION < 0x040700
-            pix = makeDefaultIcon(details.mId);
-#else
-            pix = makeDefaultIcon(details.mId);
-#endif
+            icons.push_back(makeDefaultIconSVG(details.mId));
+        else
+    {
         QIcon idIcon(pix);
         //CreateIdIcon(id, idIcon);
         icons.push_back(idIcon);
+    }
     }
 
     if(icon_types & ICON_TYPE_PGP)
