@@ -95,6 +95,8 @@ FriendsDialog::FriendsDialog(QWidget *parent) : MainPage(parent)
 #ifdef RS_EMBEDED_FRIEND_SERVER
     if(RsAccounts::isTorAuto())
         ui.tabWidget->addTab(friendServerControl = new FriendServerControl(),QIcon(IMAGE_PEERS), tr("Friend Server"));
+    else
+        friendServerControl = nullptr;
 #endif
     ui.tabWidget->addTab(networkView = new NetworkView(),QIcon(IMAGE_NETWORK2), tr("Network graph"));
     ui.tabWidget->addTab(networkDialog = new NetworkDialog(),QIcon(IMAGE_PEERS), tr("Keyring"));
@@ -159,14 +161,14 @@ void FriendsDialog::activatePage(FriendsDialog::Page page)
 {
 	switch(page)
 	{
-		case FriendsDialog::IdTab: ui.tabWidget->setCurrentWidget(idDialog) ;
-											  break ;
 		case FriendsDialog::NetworkTab: ui.tabWidget->setCurrentWidget(networkDialog) ;
 											  break ;
 		case FriendsDialog::BroadcastTab: ui.tabWidget->setCurrentWidget(networkDialog) ;
 											  break ;
 		case FriendsDialog::NetworkViewTab: ui.tabWidget->setCurrentWidget(networkView) ;
 											  break ;
+    default:
+        RsErr() << "Unknown page: " << (int)page << " asked in FriendsDialog" ;
 	}
 }
 

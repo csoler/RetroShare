@@ -65,10 +65,10 @@ public:
 
 	 NetworkDialog *networkDialog ;
 	 NetworkView *networkView ;
+#ifdef RS_EMBEDED_FRIEND_SERVER
      FriendServerControl *friendServerControl ;
+#endif
 
-	 IdDialog *idDialog;
-	 
 private slots:
     void chatMessageReceived(const ChatMessage& msg);
     void chatStatusReceived(const ChatId& chat_id, const QString& status_string);
