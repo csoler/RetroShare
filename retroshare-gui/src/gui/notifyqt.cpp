@@ -119,6 +119,7 @@ void NotifyQt::notifyErrorMsg(int list, int type, std::string msg)
 	emit errorOccurred(list,type,QString::fromUtf8(msg.c_str())) ;
 }
 
+#ifdef TO_REMOVE
 void NotifyQt::notifyChatMessage(const ChatMessage &msg)
 {
     {
@@ -132,6 +133,7 @@ void NotifyQt::notifyChatMessage(const ChatMessage &msg)
 #endif
     emit chatMessageReceived(msg);
 }
+#endif
 
 void NotifyQt::notifyOwnAvatarChanged()
 {
@@ -333,6 +335,7 @@ void NotifyQt::notifyDiskFull(uint32_t loc,uint32_t size_in_mb)
 	emit diskFull(loc,size_in_mb) ;
 }
 
+#ifdef TO_REMOVE
 /* peer has changed the state */
 void NotifyQt::notifyPeerStatusChanged(const std::string& peer_id, uint32_t state)
 {
@@ -348,6 +351,7 @@ void NotifyQt::notifyPeerStatusChanged(const std::string& peer_id, uint32_t stat
 
 	emit peerStatusChanged(QString::fromStdString(peer_id), state);
 }
+#endif
 
 /* one or more peers has changed the states */
 void NotifyQt::notifyPeerStatusChangedSummary()
@@ -392,6 +396,7 @@ void NotifyQt::notifyPeerHasNewAvatar(std::string peer_id)
 	emit peerHasNewAvatar(QString::fromStdString(peer_id)) ;
 }
 
+#ifdef TO_REMOVE
 void NotifyQt::notifyCustomState(const std::string& peer_id, const std::string& status_string)
 {
 	{
@@ -405,6 +410,7 @@ void NotifyQt::notifyCustomState(const std::string& peer_id, const std::string& 
 #endif
 	emit peerHasNewCustomStateString(QString::fromStdString(peer_id), QString::fromUtf8(status_string.c_str())) ;
 }
+#endif
 
 void NotifyQt::notifyChatLobbyTimeShift(int shift)
 {
@@ -449,6 +455,7 @@ void NotifyQt::notifyChatLobbyEvent(uint64_t lobby_id,uint32_t event_type,const 
     emit chatLobbyEvent(lobby_id,event_type,nickname,QString::fromUtf8(str.c_str())) ;
 }
 
+#ifdef TO_REMOVE
 void NotifyQt::notifyChatStatus(const ChatId& chat_id,const std::string& status_string)
 {
 	{
@@ -462,8 +469,9 @@ void NotifyQt::notifyChatStatus(const ChatId& chat_id,const std::string& status_
 #endif
     emit chatStatusChanged(chat_id, QString::fromUtf8(status_string.c_str()));
 }
+#endif
 
-void NotifyQt::notifyChatCleared(const ChatId& chat_id)
+void NotifyQt::notifyChatLobbyCleared(const ChatId& chat_id)
 {
 	{
 		QMutexLocker m(&_mutex) ;
@@ -474,7 +482,7 @@ void NotifyQt::notifyChatCleared(const ChatId& chat_id)
 #ifdef NOTIFY_DEBUG
 	std::cerr << "notifyQt: Received chat cleared." << std::endl ;
 #endif
-	emit chatCleared(chat_id);
+    //emit chatLobbyCleared(chat_id);
 }
 
 void NotifyQt::notifyTurtleSearchResult(uint32_t /*search_id*/,const std::list<TurtleGxsInfo>& /*found_groups*/)

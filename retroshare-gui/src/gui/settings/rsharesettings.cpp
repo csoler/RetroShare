@@ -29,6 +29,7 @@
 
 #include "rsharesettings.h"
 #include "gui/MainWindow.h"
+#include "gui/chat/ChatDialog.h"
 
 #ifdef RS_JSONAPI
 #include <retroshare/rsjsonapi.h>

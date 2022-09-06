@@ -189,7 +189,7 @@ private slots:
 	void updateLenOfChatTextEdit();
 	void sendChat();
 
-	void updatePeersCustomStateString(const QString& peer_id, const QString& status_string) ;
+    void updatePeersCustomStateString(const QString &peer_id, const QString& status_string) ;
 
 	bool fileSave();
 	bool fileSaveAs();
@@ -273,6 +273,9 @@ private:
 	ChatLobbyUserNotify* notify;
 
 	Ui::ChatWidget *ui;
+
+    RsEventsHandlerId_t mEventHandlerId;
+    void handleEvent_main_thread(std::shared_ptr<const RsEvent> event);
 };
 
 #endif // CHATWIDGET_H

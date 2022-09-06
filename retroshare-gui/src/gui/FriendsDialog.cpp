@@ -34,13 +34,13 @@
 #include "groups/CreateGroup.h"
 #include "MainWindow.h"
 #include "NewsFeed.h"
-#include "notifyqt.h"
 #include "profile/ProfileWidget.h"
 #include "profile/StatusMessage.h"
 #include "RetroShareLink.h"
 #include "settings/rsharesettings.h"
 #include "util/misc.h"
 #include "util/DateTime.h"
+#include "util/qtthreadsutils.h"
 #include "FriendsDialog.h"
 #include "NetworkView.h"
 #include "NetworkDialog.h"
@@ -77,8 +77,6 @@ FriendsDialog::FriendsDialog(QWidget *parent) : MainPage(parent)
     ui.chatWidget->setWelcomeMessage(msg);
     ui.chatWidget->init(ChatId::makeBroadcastId(), tr("Broadcast"));
 
-    connect(NotifyQt::getInstance(), SIGNAL(chatMessageReceived(ChatMessage)), this, SLOT(chatMessageReceived(ChatMessage)));
-    connect(NotifyQt::getInstance(), SIGNAL(chatStatusChanged(ChatId,QString)), this, SLOT(chatStatusReceived(ChatId,QString)));
 #else // def RS_DIRECT_CHAT
 	ui.tabWidget->removeTab(ui.tabWidget->indexOf(ui.groupChatTab));
 #endif // def RS_DIRECT_CHAT
@@ -145,6 +143,30 @@ FriendsDialog::FriendsDialog(QWidget *parent) : MainPage(parent)
 	                    ).arg(QString::number(2*H));
 
 	registerHelpButton(ui.helpButton, hlp_str,"FriendsDialog") ;
+
+    mEventHandlerId = 0;
+    rsEvents->registerEventsHandler( [this](std::shared_ptr<const RsEvent> event) { RsQThreadUtils::postToObject( [this,event]() { handleEvent_main_thread(event); }); }, mEventHandlerId, RsEventType::CHAT_MESSAGE );
+}
+
+void FriendsDialog::handleEvent_main_thread(std::shared_ptr<const RsEvent> event)
+{
+    if(event->mType != RsEventType::CHAT_MESSAGE)
+        return;
+
+    const RsChatMessageEvent *fe = dynamic_cast<const RsChatMessageEvent*>(event.get());
+    if (!fe)
+        return;
+
+    switch (fe->mEventCode)
+    {
+    case RsChatMessageEventCode::NEW_MESSAGE_RECEIVED: chatMessageReceived(fe->mChatMessage);
+                                                        break;
+
+    case RsChatMessageEventCode::PEER_CHAT_STATUS_CHANGED:	chatStatusReceived(fe->mChatMessage.chat_id,QString::fromUtf8(fe->mStatusString.c_str()));
+                                                        break;
+    default:
+        RsErr() << "Received unhandled chat event of type " << static_cast<uint>(fe->mEventCode) ;
+    }
 }
 
 FriendsDialog::~FriendsDialog ()

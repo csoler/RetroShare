@@ -22,13 +22,12 @@
 
 #include "gui/common/FilesDefs.h"
 #include "ChatUserNotify.h"
-#include "gui/notifyqt.h"
 #include "gui/MainWindow.h"
 #include "gui/chat/ChatDialog.h"
 #include "gui/settings/rsharesettings.h"
+#include "util/qtthreadsutils.h"
 
 #include <algorithm>
-#include <retroshare/rsnotify.h>
 #include <retroshare/rsmsgs.h>
 
 static std::map<ChatId, int> waitingChats;
@@ -57,13 +56,39 @@ static ChatUserNotify* instance = 0;
 ChatUserNotify::ChatUserNotify(QObject *parent) :
     UserNotify(parent)
 {
-    connect(NotifyQt::getInstance(), SIGNAL(chatMessageReceived(ChatMessage)), this, SLOT(chatMessageReceived(ChatMessage)));
     instance = this;
+
+    mEventHandlerId = 0;
+    rsEvents->registerEventsHandler( [this](std::shared_ptr<const RsEvent> event) { RsQThreadUtils::postToObject( [this,event]() { handleEvent_main_thread(event); }); }, mEventHandlerId, RsEventType::CHAT_MESSAGE );
 }
+
+void ChatUserNotify::handleEvent_main_thread(std::shared_ptr<const RsEvent> event)
+{
+    if(event->mType != RsEventType::CHAT_MESSAGE)
+        return;
+
+    const RsChatMessageEvent *fe = dynamic_cast<const RsChatMessageEvent*>(event.get());
+    if (!fe)
+        return;
+
+    switch (fe->mEventCode)
+    {
+    case RsChatMessageEventCode::NEW_MESSAGE_RECEIVED: chatMessageReceived(fe->mChatMessage);
+                                                        break;
+
+    // case RsChatMesssageEventCode::CHAT_STATUS_CHANGED:	chatStatusReceived(fe->mChatMessage.chat_id,QString::fromUtf8(fe->mStatusString.c_str()));
+    //     												break;
+    default:
+        RsErr() << "Received unhandled chat event of type " << static_cast<uint>(fe->mEventCode) ;
+    }
+}
+
 
 ChatUserNotify::~ChatUserNotify()
 {
     instance = 0;
+
+    if(rsEvents) rsEvents->unregisterEventsHandler(mEventHandlerId);
 }
 
 bool ChatUserNotify::hasSetting(QString *name, QString *group)

@@ -42,9 +42,6 @@ public:
 
 	virtual bool hasSetting(QString *name, QString *group) override;
 
-private slots:
-	void chatMessageReceived(ChatMessage msg);
-
 private:
 	virtual QIcon getIcon() override;
 	virtual QIcon getMainIcon(bool hasNew) override;
@@ -54,6 +51,12 @@ private:
 	virtual QString getNotifyMessage(bool plural) override;
 
 	virtual void iconClicked() override;
+
+    RsEventsHandlerId_t mEventHandlerId;
+
+    void handleEvent_main_thread(std::shared_ptr<const RsEvent> event);
+
+    void chatMessageReceived(ChatMessage msg);
 };
 
 #endif // CHATUSERNOTIFY_H

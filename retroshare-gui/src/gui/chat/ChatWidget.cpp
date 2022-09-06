@@ -23,7 +23,6 @@
 #include "ui_ChatWidget.h"
 
 #include "gui/MainWindow.h"
-#include "gui/notifyqt.h"
 #include "gui/RetroShareLink.h"
 #include "gui/settings/rsharesettings.h"
 #include "gui/settings/rsettingswin.h"
@@ -34,6 +33,7 @@
 #include "gui/chat/ChatLobbyDialog.h"
 #include "gui/gxs/GxsIdDetails.h"
 #include "util/misc.h"
+#include "util/qtthreadsutils.h"
 #include "util/HandleRichText.h"
 #include "gui/chat/ChatUserNotify.h"//For BradCast
 #include "util/DateTime.h"
@@ -172,9 +172,11 @@ ChatWidget::ChatWidget(QWidget *parent)
 
 	connect(ui->hashBox, SIGNAL(fileHashingFinished(QList<HashedFile>)), this, SLOT(fileHashingFinished(QList<HashedFile>)));
 
+#ifdef TO_REMOVE
 	connect(NotifyQt::getInstance(), SIGNAL(peerStatusChanged(const QString&, int)), this, SLOT(updateStatus(const QString&, int)));
 	connect(NotifyQt::getInstance(), SIGNAL(peerHasNewCustomStateString(const QString&, const QString&)), this, SLOT(updatePeersCustomStateString(const QString&, const QString&)));
-	connect(NotifyQt::getInstance(), SIGNAL(chatFontChanged()), this, SLOT(resetFonts()));
+    connect(NotifyQt::getInstance(), SIGNAL(chatFontChanged()), this, SLOT(resetFonts()));
+#endif
 
 	connect(ui->textBrowser, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(contextMenuTextBrowser(QPoint)));
 
@@ -250,6 +252,41 @@ ChatWidget::ChatWidget(QWidget *parent)
 //    connect(action, SIGNAL(triggered()), this, SLOT(pasteCreateMsgLink()));
 //    ui->chatTextEdit->addContextMenuAction(action);
 //#endif
+
+    mEventHandlerId = 0;
+    rsEvents->registerEventsHandler( [this](std::shared_ptr<const RsEvent> event) { RsQThreadUtils::postToObject([=](){ handleEvent_main_thread(event); }, this ); }, mEventHandlerId, RsEventType::CHAT_MESSAGE );
+}
+
+void ChatWidget::handleEvent_main_thread(std::shared_ptr<const RsEvent> event)
+{
+    if(event->mType != RsEventType::CHAT_MESSAGE)
+        return;
+
+    const RsChatMessageEvent *fe = dynamic_cast<const RsChatMessageEvent*>(event.get());
+
+    if (!fe)
+        return;
+
+    if(fe->mChatMessage.chat_id.toStdString() != chatId.toStdString())	// only keep events for the current chat session
+        return ;
+
+    switch (fe->mEventCode)
+    {
+        case RsChatMessageEventCode::PEER_CHAT_STATUS_CHANGED: updateStatus(QString::fromStdString(fe->mChatMessage.chat_id.toStdString()),fe->mPeerStatus);
+        break;
+
+        case RsChatMessageEventCode::PEER_IS_TYPING: updateStatusString(QString::fromStdString(chatId.toStdString())+" %1",QObject::tr("is typing..."),false);
+        break;
+
+        case RsChatMessageEventCode::CHAT_FONTS_CHANGED: resetFonts();
+        break;
+
+    case RsChatMessageEventCode::PEER_CUSTOM_STATE_CHANGED:  updatePeersCustomStateString(QString::fromStdString(fe->mChatMessage.chat_id.toStdString()),QString::fromUtf8(fe->mStatusString.c_str()));
+        break;
+
+    default:
+        RsErr() << "Unhandled chat event code " << static_cast<int>(fe->mEventCode) << " in ChatWidget" ;
+    }
 }
 
 ChatWidget::~ChatWidget()
@@ -1229,7 +1266,7 @@ void ChatWidget::updateStatusTyping()
 {
 	if(Settings->getChatDoNotSendIsTyping())
 		return;
-	if (time(NULL) - lastStatusSendTime > 5)	// limit 'peer is typing' packets to at most every 10 sec
+    if (time(NULL) - lastStatusSendTime > 5)	// limit 'peer is typing' packets to at most every 5 sec
 	{
 #ifdef ONLY_FOR_LINGUIST
 		tr("is typing...");
@@ -1773,7 +1810,7 @@ void ChatWidget::setCurrentFileName(const QString &fileName)
 	setWindowModified(false);
 }
 
-void ChatWidget::updateStatus(const QString &peer_id, int status)
+void ChatWidget::updateStatus(const QString& peer_id, int status)
 {
     if (! (chatType() == CHATTYPE_PRIVATE || chatType() == CHATTYPE_DISTANT))
     {
@@ -1889,15 +1926,15 @@ void ChatWidget::updateTitle()
 
 void ChatWidget::updatePeersCustomStateString(const QString& peer_id, const QString& status_string)
 {
-	if (chatType() != CHATTYPE_PRIVATE )
-	{
-		return;
-	}
+    if (chatType() != CHATTYPE_PRIVATE )
+    {
+        return;
+    }
 
 	QString status_text;
 
-	if (RsPeerId(peer_id.toStdString()) == chatId.toPeerId()) {
-		// the peers status string has changed
+    if (peer_id == QString::fromStdString(chatId.toPeerId().toStdString())) {
+        // the peers status string has changed
 		if (status_string.isEmpty()) {
 			ui->statusMessageLabel->hide();
 			ui->titleLabel->setAlignment ( Qt::AlignTop );
@@ -1910,7 +1947,7 @@ void ChatWidget::updatePeersCustomStateString(const QString& peer_id, const QStr
 			ui->titleLabel->setAlignment ( Qt::AlignVCenter );
 			ui->statusLabel->setAlignment ( Qt::AlignVCenter );
 		}
-	}
+    }
 }
 
 void ChatWidget::updateStatusString(const QString &statusMask, const QString &statusString, bool permanent)

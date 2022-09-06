@@ -63,11 +63,12 @@ class NotifyQt: public QObject, public NotifyClient
 		virtual void notifyListPreChange(int list, int type);
 		virtual void notifyListChange(int list, int type);
 		virtual void notifyErrorMsg(int list, int sev, std::string msg);
-		virtual void notifyChatMessage(const ChatMessage&        /* msg */);
-		virtual void notifyChatStatus(const ChatId &chat_id,const std::string& status_string);
-		virtual void notifyChatCleared(const ChatId &chat_id);
-		virtual void notifyCustomState(const std::string& peer_id, const std::string& status_string);
-		virtual void notifyTurtleSearchResult(const RsPeerId &pid, uint32_t search_id, const std::list<TurtleFileInfo>& found_files);
+        //virtual void notifyChatMessage(const ChatMessage&        /* msg */);
+        //virtual void notifyChatStatus(const ChatId &chat_id,const std::string& status_string);
+        //virtual void notifyCustomState(const std::string& peer_id, const std::string& status_string);
+        //virtual void notifyPeerStatusChanged(const std::string& peer_id, uint32_t state);
+        virtual void notifyChatLobbyCleared(const ChatId &chat_id);
+        virtual void notifyTurtleSearchResult(const RsPeerId &pid, uint32_t search_id, const std::list<TurtleFileInfo>& found_files);
 		virtual void notifyTurtleSearchResult(uint32_t search_id,const std::list<TurtleGxsInfo>& found_groups);
 		virtual void notifyPeerHasNewAvatar(std::string peer_id) ;
 		virtual void notifyOwnAvatarChanged() ;
@@ -77,7 +78,6 @@ class NotifyQt: public QObject, public NotifyClient
 		virtual void notifyOwnStatusMessageChanged() ;
 		virtual void notifyDiskFull(uint32_t loc,uint32_t size_in_mb) ;
 		/* peer has changed the state */
-		virtual void notifyPeerStatusChanged(const std::string& peer_id, uint32_t state);
 		/* one or more peers has changed the states */
 		virtual void notifyPeerStatusChangedSummary();
 

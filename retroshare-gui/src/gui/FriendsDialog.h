@@ -70,8 +70,6 @@ public:
 #endif
 
 private slots:
-    void chatMessageReceived(const ChatMessage& msg);
-    void chatStatusReceived(const ChatId& chat_id, const QString& status_string);
 
     void addFriend();
 
@@ -89,10 +87,16 @@ signals:
     void notifyGroupChat(const QString&,const QString&) ;
 
 private:
+    void chatStatusReceived(const ChatId& chat_id, const QString& status_string);
+    void chatMessageReceived(const ChatMessage& msg);
+
+    void handleEvent_main_thread(std::shared_ptr<const RsEvent> event);
     void processSettings(bool bLoad);
 
     /** Qt Designer generated object */
     Ui::FriendsDialog ui;
+
+    RsEventsHandlerId_t mEventHandlerId;
 };
 
 #endif

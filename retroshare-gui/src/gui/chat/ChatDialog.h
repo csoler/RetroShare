@@ -29,6 +29,12 @@
 class ChatWidget;
 class RSStyle;
 
+const uint32_t RS_CHAT_OPEN          = 0x0001;
+//const uint32_t free                = 0x0002;
+const uint32_t RS_CHAT_FOCUS         = 0x0004;
+const uint32_t RS_CHAT_TABBED_WINDOW = 0x0008;
+const uint32_t RS_CHAT_BLINK         = 0x0010;
+
 class ChatDialog : public QWidget
 {
 	Q_OBJECT
