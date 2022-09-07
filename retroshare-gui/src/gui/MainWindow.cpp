@@ -61,6 +61,7 @@
 #include "notifyqt.h"
 #include "common/UserNotify.h"
 #include "gui/ServicePermissionDialog.h"
+#include "util/qtthreadsutils.h"
 
 #ifdef UNFINISHED
 #include "unfinished/ApplicationWindow.h"
@@ -354,8 +355,31 @@ MainWindow::MainWindow(QWidget* parent, Qt::WindowFlags flags)
 
     connect(NotifyQt::getInstance(), SIGNAL(settingsChanged()), this, SLOT(settingsChanged()));
     settingsChanged();
+
+    mEventHandlerId = 0;	// very important!
+
+    rsEvents->registerEventsHandler( [this](std::shared_ptr<const RsEvent> event) {
+        RsQThreadUtils::postToObject([=](){ handleEvent_main_thread(event); }, this );
+    }, mEventHandlerId, RsEventType::SYSTEM );
 }
 
+void MainWindow::handleEvent_main_thread(std::shared_ptr<const RsEvent> event)
+{
+    if(event->mType != RsEventType::SYSTEM) return;
+
+    const RsSystemEvent *fe = dynamic_cast<const RsSystemEvent*>(event.get());
+    if(!fe)
+        return;
+
+    switch(fe->mEventCode)
+    {
+    case RsSystemEventCode::DISK_FULL: displayDiskSpaceWarning(fe->mLocation,fe->mSizeLimit);
+        break;
+
+    default:
+        RsErr() << "Unhandled sysem event code " << static_cast<int>(fe->mEventCode) << " in MainWindow." ;
+    }
+}
 /** Destructor. */
 MainWindow::~MainWindow()
 {

@@ -109,6 +109,7 @@ NotifyQt::NotifyQt() : cDialog(NULL)
     qRegisterMetaType<RsGxsId>("RsGxsId");
 }
 
+#ifdef TO_REMOVE
 void NotifyQt::notifyErrorMsg(int list, int type, std::string msg)
 {
 	{
@@ -119,7 +120,6 @@ void NotifyQt::notifyErrorMsg(int list, int type, std::string msg)
 	emit errorOccurred(list,type,QString::fromUtf8(msg.c_str())) ;
 }
 
-#ifdef TO_REMOVE
 void NotifyQt::notifyChatMessage(const ChatMessage &msg)
 {
     {
@@ -322,6 +322,7 @@ void NotifyQt::notifyDiscInfoChanged()
 	emit discInfoChanged() ;
 }
 
+#ifdef TO_REMOVE
 void NotifyQt::notifyDiskFull(uint32_t loc,uint32_t size_in_mb)
 {
 	{
@@ -335,7 +336,6 @@ void NotifyQt::notifyDiskFull(uint32_t loc,uint32_t size_in_mb)
 	emit diskFull(loc,size_in_mb) ;
 }
 
-#ifdef TO_REMOVE
 /* peer has changed the state */
 void NotifyQt::notifyPeerStatusChanged(const std::string& peer_id, uint32_t state)
 {
@@ -569,16 +569,18 @@ void NotifyQt::notifyListChange(int list, int type)
 #endif
 			emit filesPostModChanged(false) ;  /* Local */
 			break;
-		case NOTIFY_LIST_SEARCHLIST:
+#ifdef REMOVE
+        case NOTIFY_LIST_SEARCHLIST:
 			break;
 		case NOTIFY_LIST_CHANNELLIST:
 			break;
-		case NOTIFY_LIST_TRANSFERLIST:
+        case NOTIFY_LIST_TRANSFERLIST:
 #ifdef NOTIFY_DEBUG
 			std::cerr << "received transfer changed" << std::endl ;
 #endif
 			emit transfersChanged() ;
 			break;
+#endif
 		case NOTIFY_LIST_CONFIG:
 #ifdef NOTIFY_DEBUG
 			std::cerr << "received config changed" << std::endl ;

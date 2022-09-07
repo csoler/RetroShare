@@ -25,6 +25,8 @@
 #include <QSystemTrayIcon>
 #include <set>
 
+#include "retroshare/rsevents.h"
+
 #include "gui/common/rwindow.h"
 #include "gui/common/RSComboBox.h"
 
@@ -355,6 +357,10 @@ private:
     bool isIdle;
 
 	 Ui::MainWindow *ui ;
+
+    RsEventsHandlerId_t mEventHandlerId;	// very important!
+
+    void handleEvent_main_thread(std::shared_ptr<const RsEvent> event);
 };
 
 #endif
