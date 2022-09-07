@@ -28,6 +28,7 @@
 #include "gui/common/ElidedLabel.h"
 #include "util/qtthreadsutils.h"
 #include "gui/notifyqt.h"
+#include "util/misc.h"
 #include "gui/common/FilesDefs.h"
 
 HashingStatus::HashingStatus(QWidget *parent)
@@ -80,8 +81,29 @@ void HashingStatus::handleEvent_main_thread(std::shared_ptr<const RsEvent> event
     case RsSharedDirectoriesEventCode::DIRECTORY_SWEEP_ENDED:
 		break;
 	case RsSharedDirectoriesEventCode::HASHING_FILE:
-		info = tr("Hashing file") + " " + QString::fromUtf8(fe->mMessage.c_str());
+    {
+        QString tmpout;
+
+        if(fe->mCurrentHashingSpeed > 0)
+            tmpout = QString("%1/%2 (%3 - %4%, %5 MB/s) : %6")
+                    .arg((unsigned long int)fe->mHashCounter+1)
+                    .arg((unsigned long int)fe->mTotalFilesToHash)
+                    .arg(misc::friendlyUnit(fe->mTotalHashedSize,true))
+                    .arg(int(fe->mTotalHashedSize/double(fe->mTotalSizeToHash)*100.0))
+                    .arg(fe->mCurrentHashingSpeed)
+                    .arg(fe->mFileName.c_str()) ;
+        else
+            tmpout = QString("%1/%2 (%3 - %4%) : %5")
+                    .arg((unsigned long int)fe->mHashCounter+1)
+                    .arg((unsigned long int)fe->mTotalFilesToHash)
+                    .arg(misc::friendlyUnit(fe->mTotalHashedSize,true))
+                    .arg(int(fe->mTotalHashedSize/double(fe->mTotalSizeToHash)*100.0))
+                    .arg(fe->mFileName.c_str()) ;
+
+        info = tr("Hashing file") + " " + tmpout;
+    }
 		break;
+
 	case RsSharedDirectoriesEventCode::SAVING_FILE_INDEX:
 		info = tr("Saving file index...");
 		break;

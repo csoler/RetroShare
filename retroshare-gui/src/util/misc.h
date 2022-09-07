@@ -38,71 +38,11 @@ class misc : public QObject
     Q_OBJECT
 
  public:
-    // Convert any type of variable to C++ String
-    // convert=true will convert -1 to 0
-//    template <class T> static std::string toString(const T& x, bool convert=false) {
-//      std::ostringstream o;
-//      if(!(o<<x)) {
-//        throw std::runtime_error("::toString()");
-//      }
-//      if(o.str() == "-1" && convert)
-//        return "0";
-//      return o.str();
-//    }
-
-//    template <class T> static QString toQString(const T& x, bool convert=false) {
-//      std::ostringstream o;
-//      if(!(o<<x)) {
-//        throw std::runtime_error("::toString()");
-//      }
-//      if(o.str() == "-1" && convert)
-//        return QString::fromUtf8("0");
-//      return QString::fromUtf8(o.str().c_str());
-//    }
-
-//    template <class T> static QByteArray toQByteArray(const T& x, bool convert=false) {
-//      std::ostringstream o;
-//      if(!(o<<x)) {
-//        throw std::runtime_error("::toString()");
-//      }
-//      if(o.str() == "-1" && convert)
-//        return "0";
-//      return QByteArray(o.str().c_str());
-//    }
-
-    // Convert C++ string to any type of variable
-//    template <class T> static T fromString(const std::string& s) {
-//      T x;
-//      std::istringstream i(s);
-//      if(!(i>>x)) {
-//        throw std::runtime_error("::fromString()");
-//      }
-//      return x;
-//    }
-
-//     template <class T> static T fromQString::fromUtf8(const QString& s) {
-//       T x;
-//       std::istringstream i((const char*)s.toUtf8());
-//       if(!(i>>x)) {
-//         throw std::runtime_error("::fromString()");
-//       }
-//       return x;
-//     }
-// 
-//     template <class T> static T fromQByteArray(const QByteArray& s) {
-//       T x;
-//       std::istringstream i((const char*)s);
-//       if(!(i>>x)) {
-//         throw std::runtime_error("::fromString()");
-//       }
-//       return x;
-//     }
-
-    // return best userfriendly storage unit (B, KiB, MiB, GiB, TiB)
+    // return best userfriendly storage unit (B, KB, MB, GB, TB)
     // use Binary prefix standards from IEC 60027-2
     // see http://en.wikipedia.org/wiki/Kilobyte
     // value must be given in bytes
-    static QString friendlyUnit(float val);
+    static QString friendlyUnit(uint64_t, bool _short=false);
 
     static bool isPreviewable(QString extension);
 
@@ -112,36 +52,6 @@ class misc : public QObject
     static QString qBittorrentPath();
 
     static QString findFileInDir(QString dir_path, QString fileName);
-
-    // Insertion sort, used instead of bubble sort because it is
-    // approx. 5 times faster.
-//    template <class T> static void insertSort(QList<QPair<int, T> > &list, const QPair<int, T>& value, Qt::SortOrder sortOrder) {
-//      int i = 0;
-//      if(sortOrder == Qt::AscendingOrder) {
-//        while(i < list.size() and value.second > list.at(i).second) {
-//          ++i;
-//        }
-//      }else{
-//        while(i < list.size() and value.second < list.at(i).second) {
-//          ++i;
-//        }
-//      }
-//      list.insert(i, value);
-//    }
-
-//    template <class T> static void insertSort2(QList<QPair<int, T> > &list, const QPair<int, T>& value, Qt::SortOrder sortOrder) {
-//      int i = 0;
-//      if(sortOrder == Qt::AscendingOrder) {
-//        while(i < list.size() and value.first > list.at(i).first) {
-//          ++i;
-//        }
-//      }else{
-//        while(i < list.size() and value.first < list.at(i).first) {
-//          ++i;
-//        }
-//      }
-//      list.insert(i, value);
-//    }
 
     // Can't use template class for QString because >,< use unicode code for sorting
     // which is not what a human would expect when sorting strings.

@@ -38,19 +38,20 @@
 // use Binary prefix standards from IEC 60027-2
 // see http://en.wikipedia.org/wiki/Kilobyte
 // value must be given in bytes
-QString misc::friendlyUnit(float val)
+QString misc::friendlyUnit(uint64_t val,bool _short)
 {
-    if(val < 0) {
-        return tr("Unknown", "Unknown (size)");
-    }
-    const QString units[6] = {tr(" B", "bytes"), tr(" KB", "kilobytes (1024 bytes)"), tr(" MB", "megabytes (1024 kilobytes)"), tr(" GB", "gigabytes (1024 megabytes)"), tr(" TB", "terabytes (1024 gigabytes)"), tr(" PB", "petabytes (1024 terabytes)") };
-    for(unsigned int i=0; i<6; ++i) {
-        if (val < 1024.) {
-            return QString(QByteArray::number(val, 'f', 1)) + units[i];
-        }
-        val /= 1024.;
-    }
-    return  QString(QByteArray::number(val, 'f', 1)) + tr(" TB", "terabytes (1024 gigabytes)");
+    const QString units_short[6] = {"B","KB","MB","GB","TB","PB"};
+    const QString units_long[6] = {tr(" B", "bytes"), tr(" KB", "kilobytes (1024 bytes)"), tr(" MB", "megabytes (1024 kilobytes)"), tr(" GB", "gigabytes (1024 megabytes)"), tr(" TB", "terabytes (1024 gigabytes)"), tr(" PB", "petabytes (1024 terabytes)") };
+
+    long double v = val;
+
+    for(unsigned int i=0; i<6; ++i)
+        if(v < 1024.0)
+            return QString::number(v,'f',2) + " " + (_short?units_short[i]:units_long[i]);
+        else
+            v /= 1024. ;
+
+    return QString::number(v*1024.,'f',2) + " " + (_short?units_short[6]:units_long[6]);
 }
 
 QString misc::fingerPrintStyleSplit(const QString& in)
