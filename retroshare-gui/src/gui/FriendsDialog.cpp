@@ -144,28 +144,46 @@ FriendsDialog::FriendsDialog(QWidget *parent) : MainPage(parent)
 
 	registerHelpButton(ui.helpButton, hlp_str,"FriendsDialog") ;
 
-    mEventHandlerId = 0;
-    rsEvents->registerEventsHandler( [this](std::shared_ptr<const RsEvent> event) { RsQThreadUtils::postToObject( [this,event]() { handleEvent_main_thread(event); }); }, mEventHandlerId, RsEventType::CHAT_MESSAGE );
+    mEventHandlerId_chat = 0;
+    rsEvents->registerEventsHandler( [this](std::shared_ptr<const RsEvent> event) { RsQThreadUtils::postToObject( [this,event]() { handleEvent_main_thread(event); }); }, mEventHandlerId_chat, RsEventType::CHAT_MESSAGE );
+
+    mEventHandlerId_peer = 0;
+    rsEvents->registerEventsHandler( [this](std::shared_ptr<const RsEvent> event) { RsQThreadUtils::postToObject( [this,event]() { handleEvent_main_thread(event); }); }, mEventHandlerId_peer, RsEventType::PEER_STATUS_CHANGED );
 }
 
 void FriendsDialog::handleEvent_main_thread(std::shared_ptr<const RsEvent> event)
 {
-    if(event->mType != RsEventType::CHAT_MESSAGE)
-        return;
-
-    const RsChatMessageEvent *fe = dynamic_cast<const RsChatMessageEvent*>(event.get());
-    if (!fe)
-        return;
-
-    switch (fe->mEventCode)
+    if(event->mType == RsEventType::CHAT_MESSAGE)
     {
-    case RsChatMessageEventCode::NEW_MESSAGE_RECEIVED: chatMessageReceived(fe->mChatMessage);
-                                                        break;
+        const RsChatMessageEvent *fe = dynamic_cast<const RsChatMessageEvent*>(event.get());
+        if (!fe)
+            return;
 
-    case RsChatMessageEventCode::PEER_CHAT_STATUS_CHANGED:	chatStatusReceived(fe->mChatMessage.chat_id,QString::fromUtf8(fe->mStatusString.c_str()));
-                                                        break;
-    default:
-        RsErr() << "Received unhandled chat event of type " << static_cast<uint>(fe->mEventCode) ;
+        switch (fe->mEventCode)
+        {
+        case RsChatMessageEventCode::NEW_MESSAGE_RECEIVED: chatMessageReceived(fe->mChatMessage);
+            break;
+
+        case RsChatMessageEventCode::PEER_CHAT_STATUS_CHANGED:	chatStatusReceived(fe->mChatMessage.chat_id,QString::fromUtf8(fe->mStatusString.c_str()));
+            break;
+        default:
+            RsErr() << "Received unhandled chat event of type " << static_cast<uint>(fe->mEventCode) ;
+        }
+    }
+    else if(event->mType == RsEventType::PEER_STATUS_CHANGED)
+    {
+        auto fe = dynamic_cast<const RsPeerStatusChangeEvent*>(event.get());
+        if (!fe)
+            return;
+
+        switch (fe->mEventCode)
+        {
+        case RsPeerStatusEventCode::PEER_STATUS_MESSAGE_CHANGED: loadmypersonalstatus();
+            break;
+
+        default:
+            RsErr() << "Received unhnalded peer status event of type " << static_cast<uint>(fe->mEventCode) ;
+        }
     }
 }
 

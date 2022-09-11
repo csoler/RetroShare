@@ -58,13 +58,14 @@ protected:
 
 private slots:
     void updateStatus(const QString& peerId, int status);
-	void updateAvatar(const QString& peerId);
+    void updateAvatar(const RsPeerId &peerId);
     void updateOwnAvatar();
 
 private:
     void refreshAvatarImage() ;
     void refreshStatus();
     void updateStatus(int status);
+    void handleEvent(std::shared_ptr<const RsEvent> e);
 
 	QString defaultAvatar;
 	Ui::AvatarWidget *ui;
@@ -78,6 +79,7 @@ private:
 	} mFlag;
 	FrameType mFrameType;
 	uint32_t  mPeerState;
+    RsEventsHandlerId_t mEventHandlerId ;
 };
 
 #endif // AVATARWIDGET_H

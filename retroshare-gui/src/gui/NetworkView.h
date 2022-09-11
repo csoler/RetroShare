@@ -24,6 +24,7 @@
 #include <QGraphicsScene>
 
 #include <retroshare/rstypes.h>
+#include <retroshare/rsevents.h>
 
 #include <retroshare-gui/RsAutoUpdatePage.h>
 #include "ui_NetworkView.h"
@@ -65,6 +66,9 @@ class NetworkView : public RsAutoUpdatePage
         std::map<RsPgpId,GraphWidget::NodeId> _node_ids ;
 
 		bool _should_update ;
+
+        RsEventsHandlerId_t mEventHandlerId;
+        void handleEvent_main_thread(std::shared_ptr<const RsEvent> event);
 };
 
 #endif

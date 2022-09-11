@@ -95,8 +95,8 @@ MessengerWindow::MessengerWindow(QWidget* parent, Qt::WindowFlags flags)
 
     connect(ui.messagelineEdit, SIGNAL(textChanged(const QString &)), this, SLOT(savestatusmessage()));
 
-    connect(NotifyQt::getInstance(), SIGNAL(ownStatusMessageChanged()), this, SLOT(loadmystatusmessage()));
-    connect(NotifyQt::getInstance(), SIGNAL(peerStatusChanged(QString,int)), this, SLOT(updateOwnStatus(QString,int)));
+    //connect(NotifyQt::getInstance(), SIGNAL(ownStatusMessageChanged()), this, SLOT(loadmystatusmessage()));
+    //connect(NotifyQt::getInstance(), SIGNAL(peerStatusChanged(QString,int)), this, SLOT(updateOwnStatus(QString,int)));
 
         for (std::set<RsPgpId>::iterator peerIt = expandedPeers.begin(); peerIt != expandedPeers.end(); ++peerIt) {
             ui.friendList->addPeerToExpand(*peerIt);
@@ -143,7 +143,7 @@ MessengerWindow::MessengerWindow(QWidget* parent, Qt::WindowFlags flags)
     /* Show nick and current state */
     StatusInfo statusInfo;
     rsStatus->getOwnStatus(statusInfo);
-    updateOwnStatus(QString::fromStdString(ownId.toStdString()), statusInfo.status);
+    updateOwnStatus(statusInfo.status);
 
     MainWindow *pMainWindow = MainWindow::getInstance();
     if (pMainWindow) {
@@ -153,6 +153,33 @@ MessengerWindow::MessengerWindow(QWidget* parent, Qt::WindowFlags flags)
     }
 
     loadmystatusmessage();
+
+    mEventHandlerId = 0;
+    rsEvents->registerEventsHandler( [this](std::shared_ptr<const RsEvent> event) { RsQThreadUtils::postToObject( [this,event]() { handleEvent_main_thread(event); }) ;}, mEventHandlerId, RsEventType::CHAT_MESSAGE );
+}
+
+void MessengerWindow::handleEvent_main_thread(std::shared_ptr<const RsEvent> event)
+{
+    if(event->mType == RsEventType::CHAT_MESSAGE)
+    {
+        const RsChatMessageEvent *fe = dynamic_cast<const RsChatMessageEvent*>(event.get());
+
+        if(!fe)
+            return;
+
+        switch(fe->mEventCode)
+        {
+        case  RsChatMessageEventCode::PEER_CHAT_STATUS_CHANGED:
+            updateOwnStatus(fe->mPeerStatus);
+            break;
+
+        case RsChatMessageEventCode::PEER_CUSTOM_STATE_CHANGED:
+            if(fe->mChatMessage.chat_id.toPeerId() == rsPeers->getOwnId())
+                loadmystatusmessage();
+            break;
+
+        default: ;
+    }
 }
 
 MessengerWindow::~MessengerWindow ()
@@ -214,16 +241,11 @@ void MessengerWindow::savestatusmessage()
     rsMsgs->setCustomStateString(ui.messagelineEdit->currentText().toUtf8().constData());
 }
 
-void MessengerWindow::updateOwnStatus(const QString &peer_id, int status)
+void MessengerWindow::updateOwnStatus(int status)
 {
     // add self nick + own status
-    if (peer_id == QString::fromStdString(rsPeers->getOwnId().toStdString()))
-    {
-        // my status has changed
+    // my status has changed
 
-        ui.statusButton->setText(m_nickName + " (" + StatusDefs::name(status) + ")");
-		ui.statusButton->setIcon(QIcon(StatusDefs::imageIM(status)));
-
-        return;
-    }
+    ui.statusButton->setText(m_nickName + " (" + StatusDefs::name(status) + ")");
+    ui.statusButton->setIcon(QIcon(StatusDefs::imageIM(status)));
 }

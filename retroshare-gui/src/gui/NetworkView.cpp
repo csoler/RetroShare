@@ -28,6 +28,7 @@
 #include <algorithm>
 
 #include "gui/elastic/elnode.h"
+#include "util/qtthreadsutils.h"
 
 /********
 * #define DEBUG_NETWORKVIEW
@@ -37,35 +38,52 @@
 NetworkView::NetworkView(QWidget *parent)
 : RsAutoUpdatePage(60000,parent)
 {
-  /* Invoke the Qt Designer generated object setup routine */
-  ui.setupUi(this);
+    /* Invoke the Qt Designer generated object setup routine */
+    ui.setupUi(this);
 
-  mScene = new QGraphicsScene();
-  mScene->setItemIndexMethod(QGraphicsScene::NoIndex);
-  mScene->setSceneRect(0, 0, ui.graphicsView->width(), ui.graphicsView->height());
+    mScene = new QGraphicsScene();
+    mScene->setItemIndexMethod(QGraphicsScene::NoIndex);
+    mScene->setSceneRect(0, 0, ui.graphicsView->width(), ui.graphicsView->height());
 
-  ui.graphicsView->setScene(mScene);
-  ui.graphicsView->setEdgeLength(ui.edgeLengthSB->value()) ;
+    ui.graphicsView->setScene(mScene);
+    ui.graphicsView->setEdgeLength(ui.edgeLengthSB->value()) ;
 
-  setMaxFriendLevel(ui.maxFriendLevelSB->value()) ;
+    setMaxFriendLevel(ui.maxFriendLevelSB->value()) ;
 
-  /* add button */
-  connect( ui.refreshButton, SIGNAL( clicked( void ) ), this, SLOT( redraw( void ) ) );
-  connect( mScene, SIGNAL( changed ( const QList<QRectF> & ) ), this, SLOT ( changedScene( void ) ) );
+    /* add button */
+    connect( ui.refreshButton, SIGNAL( clicked( void ) ), this, SLOT( redraw( void ) ) );
+    connect( mScene, SIGNAL( changed ( const QList<QRectF> & ) ), this, SLOT ( changedScene( void ) ) );
 
-  /* Hide Settings frame */
-  connect( ui.maxFriendLevelSB, SIGNAL(valueChanged(int)), this, SLOT(setMaxFriendLevel(int)));
-  connect( ui.edgeLengthSB, SIGNAL(valueChanged(int)), this, SLOT(setEdgeLength(int)));
-  connect( ui.freezeCheckBox, SIGNAL(toggled(bool)), this, SLOT(setFreezeState(bool)));
-  connect( ui.nameBox, SIGNAL(textChanged(QString)), this, SLOT(setNameSearch(QString)));
+    /* Hide Settings frame */
+    connect( ui.maxFriendLevelSB, SIGNAL(valueChanged(int)), this, SLOT(setMaxFriendLevel(int)));
+    connect( ui.edgeLengthSB, SIGNAL(valueChanged(int)), this, SLOT(setEdgeLength(int)));
+    connect( ui.freezeCheckBox, SIGNAL(toggled(bool)), this, SLOT(setFreezeState(bool)));
+    connect( ui.nameBox, SIGNAL(textChanged(QString)), this, SLOT(setNameSearch(QString)));
 
-  _should_update = true ;
+    _should_update = true ;
+
+    mEventHandlerId = 0;
+    rsEvents->registerEventsHandler( [this](std::shared_ptr<const RsEvent> event) { RsQThreadUtils::postToObject( [this,event]() { handleEvent_main_thread(event); }) ;}, mEventHandlerId, RsEventType::GOSSIP_DISCOVERY );
 }
+
+void NetworkView::handleEvent_main_thread(std::shared_ptr<const RsEvent> event)
+{
+    if(event->mType != RsEventType::GOSSIP_DISCOVERY) return;
+
+    const RsGossipDiscoveryEvent *fe = dynamic_cast<const RsGossipDiscoveryEvent*>(event.get());
+    if(!fe)
+        return;
+
+    updateDisplay();
+}
+
 
 NetworkView::~NetworkView()
 {
 	if(mScene != NULL)
 		delete mScene ;
+
+    rsEvents->unregisterEventsHandler(mEventHandlerId);
 }
 
 void NetworkView::setEdgeLength(int l)

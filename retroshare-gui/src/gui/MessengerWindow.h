@@ -52,7 +52,7 @@ private slots:
     /** Open Shared Manager **/
     void openShareManager();
 
-    void updateOwnStatus(const QString &peer_id, int status);
+    void updateOwnStatus(int status);
 
     void savestatusmessage();
 
@@ -68,6 +68,9 @@ private:
 
     static std::set<RsPgpId> expandedPeers ;
     static std::set<RsNodeGroupId> expandedGroups ;
+
+    RsEventsHandlerId_t mEventHandlerId;
+    void handleEvent_main_thread(std::shared_ptr<const RsEvent> event);
 };
 
 #endif

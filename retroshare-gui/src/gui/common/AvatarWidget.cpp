@@ -48,12 +48,41 @@ AvatarWidget::AvatarWidget(QWidget *parent) : QLabel(parent), ui(new Ui::AvatarW
 	setFrameType(NO_FRAME);
 
 	/* connect signals */
-	connect(NotifyQt::getInstance(), SIGNAL(peerHasNewAvatar(const QString&)), this, SLOT(updateAvatar(const QString&)));
-	connect(NotifyQt::getInstance(), SIGNAL(ownAvatarChanged()), this, SLOT(updateOwnAvatar()));
+    //connect(NotifyQt::getInstance(), SIGNAL(peerHasNewAvatar(const QString&)), this, SLOT(updateAvatar(const QString&)));
+    //connect(NotifyQt::getInstance(), SIGNAL(ownAvatarChanged()), this, SLOT(updateOwnAvatar()));
+
+    mEventHandlerId = 0;
+    rsEvents->registerEventsHandler( [this](std::shared_ptr<const RsEvent> event) { handleEvent(event); }, mEventHandlerId, RsEventType::PEER_STATUS_CHANGED );
 }
+
+void AvatarWidget::handleEvent(std::shared_ptr<const RsEvent> e)
+{
+    if(e->mType != RsEventType::PEER_STATUS_CHANGED)
+        return;
+
+    const auto *ne = dynamic_cast<const RsPeerStatusChangeEvent*>(e.get());
+
+    if(!ne)
+        return;
+
+    switch(ne->mEventCode)
+    {
+    case RsPeerStatusEventCode::PEER_AVATAR_CHANGED:
+        if(ne->mSslId == rsPeers->getOwnId())
+            updateOwnAvatar();
+        else
+            updateAvatar(ne->mSslId);
+
+        break;
+
+    default: ; // other events non relevant
+    }
+}
+
 
 AvatarWidget::~AvatarWidget()
 {
+    rsEvents->unregisterEventsHandler(mEventHandlerId);
 	delete ui;
 }
 
@@ -255,14 +284,14 @@ void AvatarWidget::updateStatus(int status)
     Rshare::refreshStyleSheet(this, false);
 }
 
-void AvatarWidget::updateAvatar(const QString &peerId)
+void AvatarWidget::updateAvatar(const RsPeerId &peerId)
 {
 	if(mId.isPeerId()){
-		if(mId.toPeerId() == RsPeerId(peerId.toStdString()))
+        if(mId.toPeerId() == peerId)
 			refreshAvatarImage() ;
 		//else not mId so pass through
 	} else if(mId.isDistantChatId()) {
-			if (mId.toDistantChatId() == DistantChatPeerId(peerId.toStdString()))
+            if (mId.toDistantChatId() == DistantChatPeerId(peerId))
 				refreshAvatarImage() ;
 			//else not mId so pass through
 	} 

@@ -96,7 +96,8 @@ private:
     /** Qt Designer generated object */
     Ui::FriendsDialog ui;
 
-    RsEventsHandlerId_t mEventHandlerId;
+    RsEventsHandlerId_t mEventHandlerId_chat;
+    RsEventsHandlerId_t mEventHandlerId_peer;
 };
 
 #endif

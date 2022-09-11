@@ -133,7 +133,6 @@ void NotifyQt::notifyChatMessage(const ChatMessage &msg)
 #endif
     emit chatMessageReceived(msg);
 }
-#endif
 
 void NotifyQt::notifyOwnAvatarChanged()
 {
@@ -148,6 +147,7 @@ void NotifyQt::notifyOwnAvatarChanged()
 #endif
 	emit ownAvatarChanged() ;
 }
+#endif
 
 class SignatureEventData
 {
@@ -307,6 +307,7 @@ bool NotifyQt::askForPluginConfirmation(const std::string& plugin_file_name, con
 		return false;
 }
 
+#ifdef TO_REMOVE
 void NotifyQt::notifyDiscInfoChanged()
 {
 	{
@@ -322,7 +323,6 @@ void NotifyQt::notifyDiscInfoChanged()
 	emit discInfoChanged() ;
 }
 
-#ifdef TO_REMOVE
 void NotifyQt::notifyDiskFull(uint32_t loc,uint32_t size_in_mb)
 {
 	{
@@ -351,7 +351,6 @@ void NotifyQt::notifyPeerStatusChanged(const std::string& peer_id, uint32_t stat
 
 	emit peerStatusChanged(QString::fromStdString(peer_id), state);
 }
-#endif
 
 /* one or more peers has changed the states */
 void NotifyQt::notifyPeerStatusChangedSummary()
@@ -396,7 +395,6 @@ void NotifyQt::notifyPeerHasNewAvatar(std::string peer_id)
 	emit peerHasNewAvatar(QString::fromStdString(peer_id)) ;
 }
 
-#ifdef TO_REMOVE
 void NotifyQt::notifyCustomState(const std::string& peer_id, const std::string& status_string)
 {
 	{
@@ -539,6 +537,7 @@ void NotifyQt::notifyListChange(int list, int type)
 #endif
 	switch(list)
 	{
+#ifdef TO_REMOVE
 		case NOTIFY_LIST_NEIGHBOURS:
 #ifdef NOTIFY_DEBUG
 			std::cerr << "received neighbours changed" << std::endl ;
@@ -551,7 +550,8 @@ void NotifyQt::notifyListChange(int list, int type)
 #endif
 			emit friendsChanged() ;
 			break;
-		case NOTIFY_LIST_DIRLIST_LOCAL:
+#endif
+        case NOTIFY_LIST_DIRLIST_LOCAL:
 #ifdef NOTIFY_DEBUG
 			std::cerr << "received files changed" << std::endl ;
 #endif
@@ -649,10 +649,12 @@ void NotifyQt::notifyListPreChange(int list, int /*type*/)
 	switch(list)
 	{
 		case NOTIFY_LIST_NEIGHBOURS:
-			break;
+            break;
+#ifdef TO_REMOVE
 		case NOTIFY_LIST_FRIENDS:
 			emit friendsChanged() ;
-			break;
+            break;
+#endif
 		case NOTIFY_LIST_DIRLIST_FRIENDS:
 			emit filesPreModChanged(false) ;	/* remote */
 			break ;
@@ -689,6 +691,7 @@ void NotifyQt::UpdateGUI()
 			return ;
 	}
 
+#ifdef TO_REMOVE
 	static bool already_updated = false ;	// these only update once at start because they may already have been set before 
 														// the gui is running, then they get updated by callbacks.
 	if(!already_updated)
@@ -698,6 +701,7 @@ void NotifyQt::UpdateGUI()
 
 		already_updated = true ;
 	}
+#endif
 	
 	/* Finally Check for PopupMessages / System Error Messages */
 

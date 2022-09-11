@@ -43,6 +43,7 @@
 #include "settings/rsharesettings.h"
 #include "RetroShareLink.h"
 #include "util/QtVersion.h"
+#include "util/qtthreadsutils.h"
 
 #include <time.h>
 
@@ -94,6 +95,20 @@ NetworkDialog::NetworkDialog(QWidget */*parent*/)
     ui.filterLineEdit->addFilter(QIcon(), tr("Peer ID"), pgpid_item_model::PGP_ITEM_MODEL_COLUMN_PEERID, tr("Search peer ID"));
     ui.filterLineEdit->setCurrentFilter(pgpid_item_model::PGP_ITEM_MODEL_COLUMN_PEERNAME);
     connect(ui.filterLineEdit, SIGNAL(textChanged(QString)), PGPIdItemProxy, SLOT(setFilterWildcard(QString)));
+
+    mEventHandlerId = 0;
+    rsEvents->registerEventsHandler( [this](std::shared_ptr<const RsEvent> event) { RsQThreadUtils::postToObject( [this,event]() { handleEvent_main_thread(event); }) ;}, mEventHandlerId, RsEventType::GOSSIP_DISCOVERY );
+}
+
+void NetworkDialog::handleEvent_main_thread(std::shared_ptr<const RsEvent> event)
+{
+    if(event->mType != RsEventType::GOSSIP_DISCOVERY) return;
+
+    const RsFileTransferEvent *fe = dynamic_cast<const RsFileTransferEvent*>(event.get());
+    if(!fe)
+        return;
+
+    securedUpdateDisplay();
 }
 
 void NetworkDialog::changeEvent(QEvent *e)
