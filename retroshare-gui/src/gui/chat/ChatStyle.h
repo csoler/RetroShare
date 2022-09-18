@@ -30,6 +30,8 @@
 #include <QMetaType>
 #include <QDir>
 
+#include "retroshare/rsevents.h"
+
 /* Flags for ChatStyle::formatMessage */
 #define CHAT_FORMATMSG_SYSTEM          1
 
@@ -88,15 +90,16 @@ public:
     static bool getAvailableStyles(enumStyleType styleType, QList<ChatStyleInfo> &styles);
     static bool getAvailableVariants(const QString &stylePath, QStringList &variants);
 
-private slots:
-    void styleChanged(int styleType);
-
 private:
+    void styleChanged(ChatStyle::enumStyleType styleType);
+    void handleEvent_main_thread(std::shared_ptr<const RsEvent> ev);
+
     enumStyleType m_styleType;
     QDir m_styleDir;
     QString m_styleVariant;
 
     QString m_style[FORMATMSG_COUNT];
+    RsEventsHandlerId_t mEventHandlerId ;
 };
 
 #endif // _CHATSTYLE_H

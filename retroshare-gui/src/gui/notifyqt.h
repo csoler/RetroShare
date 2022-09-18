@@ -89,8 +89,8 @@ class NotifyQt: public QObject, public NotifyClient
 		virtual bool askForPluginConfirmation(const std::string& plugin_filename, const std::string& plugin_file_hash,bool first_time);
 
 		/* Notify from GUI */
-		void notifyChatFontChanged();
-		void notifyChatStyleChanged(int /*ChatStyle::enumStyleType*/ styleType);
+        //void notifyChatFontChanged();
+        //void notifyChatStyleChanged(int /*ChatStyle::enumStyleType*/ styleType);
 
 		void testToasters(uint notifyFlags, /*RshareSettings::enumToasterPosition*/ int position, QPoint margin);
 		void testToaster(ToasterNotify *toasterNotify, /*RshareSettings::enumToasterPosition*/ int position, QPoint margin);

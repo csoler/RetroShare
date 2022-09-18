@@ -987,6 +987,7 @@ void NotifyQt::testToaster(QString tag, ToasterNotify *toasterNotify, /*RshareSe
 	}
 }
 
+#ifdef TO_REMOVE
 void NotifyQt::notifyChatFontChanged()
 {
 	{
@@ -997,6 +998,7 @@ void NotifyQt::notifyChatFontChanged()
 
 	emit chatFontChanged();
 }
+#endif
 void NotifyQt::notifyChatStyleChanged(int /*ChatStyle::enumStyleType*/ styleType)
 {
 	{

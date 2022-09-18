@@ -129,7 +129,11 @@ void ChatPage::updateChatParams()
 	Settings->setValue("DistantChat", ui.distantChatComboBox->currentIndex());
 
 	Settings->setChatScreenFont(fontTempChat.toString());
-	NotifyQt::getInstance()->notifyChatFontChanged();
+
+    // NotifyQt::getInstance()->notifyChatFontChanged();
+    auto ev = std::make_shared<RsChatMessageEvent>();
+    ev->mEventCode = RsChatMessageEventCode::CHAT_FONTS_CHANGED;
+    rsEvents->sendEvent(ev);
 
 	Settings->setChatSendMessageWithCtrlReturn(ui.sendMessageWithCtrlReturn->isChecked());
 	Settings->setChatSendAsPlainTextByDef(ui.sendAsPlainTextByDef->isChecked());
@@ -189,7 +193,12 @@ void ChatPage::updatePublicStyle()
 
 	if (publicStylePath != info.stylePath || publicStyleVariant != ui.publicComboBoxVariant->currentText()) {
 		Settings->setPublicChatStyle(info.stylePath, ui.publicComboBoxVariant->currentText());
-		NotifyQt::getInstance()->notifyChatStyleChanged(ChatStyle::TYPE_PUBLIC);
+
+        auto ev = std::make_shared<RsChatMessageEvent>();
+        ev->mEventCode = RsChatMessageEventCode::CHAT_STYLE_CHANGED;
+        ev->mStyleType = static_cast<int>(ChatStyle::TYPE_PUBLIC);
+        rsEvents->postEvent(ev);
+        //NotifyQt::getInstance()->notifyChatStyleChanged(ChatStyle::TYPE_PUBLIC);
 	}
 }
 
@@ -199,7 +208,12 @@ void ChatPage::updatePrivateStyle()
 
 	if (privateStylePath != info.stylePath || privateStyleVariant != ui.privateComboBoxVariant->currentText()) {
 		Settings->setPrivateChatStyle(info.stylePath, ui.privateComboBoxVariant->currentText());
-		NotifyQt::getInstance()->notifyChatStyleChanged(ChatStyle::TYPE_PRIVATE);
+
+        auto ev = std::make_shared<RsChatMessageEvent>();
+        ev->mEventCode = RsChatMessageEventCode::CHAT_STYLE_CHANGED;
+        ev->mStyleType = static_cast<int>(ChatStyle::TYPE_PRIVATE);
+        rsEvents->postEvent(ev);
+        //NotifyQt::getInstance()->notifyChatStyleChanged(ChatStyle::TYPE_PRIVATE);
 	}
 }
 
@@ -209,7 +223,13 @@ void ChatPage::updateHistoryStyle()
 
 	if (historyStylePath != info.stylePath || historyStyleVariant != ui.historyComboBoxVariant->currentText()) {
 		Settings->setHistoryChatStyle(info.stylePath, ui.historyComboBoxVariant->currentText());
-		NotifyQt::getInstance()->notifyChatStyleChanged(ChatStyle::TYPE_HISTORY);
+
+        auto ev = std::make_shared<RsChatMessageEvent>();
+        ev->mEventCode = RsChatMessageEventCode::CHAT_STYLE_CHANGED;
+        ev->mStyleType = static_cast<int>(ChatStyle::TYPE_HISTORY);
+        rsEvents->postEvent(ev);
+
+        //NotifyQt::getInstance()->notifyChatStyleChanged(ChatStyle::TYPE_HISTORY);
 	}
 }
 

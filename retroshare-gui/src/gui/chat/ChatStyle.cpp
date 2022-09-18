@@ -109,6 +109,7 @@
 #include "gui/notifyqt.h"
 #include "util/DateTime.h"
 #include "util/HandleRichText.h"
+#include "util/qtthreadsutils.h"
 
 #include <retroshare/rsinit.h>
 
@@ -129,15 +130,36 @@ ChatStyle::ChatStyle() : QObject()
 {
     m_styleType = TYPE_UNKNOWN;
 
-    connect(NotifyQt::getInstance(), SIGNAL(chatStyleChanged(int)), SLOT(styleChanged(int)));
+    // connect(NotifyQt::getInstance(), SIGNAL(chatStyleChanged(int)), SLOT(styleChanged(int)));
+
+    mEventHandlerId = 0;
+
+    rsEvents->registerEventsHandler( [this](std::shared_ptr<const RsEvent> event)
+    {
+        RsQThreadUtils::postToObject([=](){ handleEvent_main_thread(event); }, this );
+    }, mEventHandlerId, RsEventType::CHAT_MESSAGE );
 }
 
+void ChatStyle::handleEvent_main_thread(std::shared_ptr<const RsEvent> event)
+{
+    const RsChatMessageEvent *fe = dynamic_cast<const RsChatMessageEvent*>(event.get());
+    if(!fe)
+        return;
+
+    switch (fe->mEventCode)
+    {
+    case RsChatMessageEventCode::CHAT_STYLE_CHANGED:
+        styleChanged(static_cast<ChatStyle::enumStyleType>(fe->mStyleType));
+    default:
+        break;
+    }
+}
 /* Destructor. */
 ChatStyle::~ChatStyle()
 {
 }
 
-void ChatStyle::styleChanged(int styleType)
+void ChatStyle::styleChanged(ChatStyle::enumStyleType styleType)
 {
     if (m_styleType == styleType) {
         setStyleFromSettings(m_styleType);
