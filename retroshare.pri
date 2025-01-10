@@ -271,17 +271,17 @@ isEmpty(RS_THREAD_LIB):RS_THREAD_LIB = pthread
 #
 #  V07_NON_BACKWARD_COMPATIBLE_CHANGE_001:
 #
-#     What: Computes the node id by performing a sha256 hash of the certificate's PGP signature, instead of simply picking up the last 20 bytes of it.
+#     What: Tomputes the node id by performing a sha256 hash of the certificate's PGP signature, instead of simply picking up the last 20 bytes of it.
 #
 #     Why: There is no real risk in forging a certificate with the same ID as the authentication is performed over the PGP signature of the certificate
-#           which hashes the full SSL certificate (i.e. the full serialized CERT_INFO structure). However the possibility to
-#           create two certificates with the same IDs is a problem, as it can be used to cause disturbance in the software.
+#          which hashes the full SSL certificate (i.e. the full serialized CERT_INFO structure). However the possibility to
+#          create two certificates with the same IDs is a problem, as it can be used to cause disturbance in the software.
 #
-#     Backward compat: connexions impossible with non patched peers older than Nov 2017, probably because the SSL id that is computed is not the same on both side,
+#     Backward compat: Connections are impossible with non patched peers older than Nov 2017, probably because the SSL id that is computed is not the same on both sides,
 #                    and in particular unpatched peers see a cerficate with ID different (because computed with the old method) than the ID that was
 #                    submitted when making friends.
 #
-#     Note: the advantage of basing the ID on the signature rather than the public key is not very clear, given that the signature is based on a hash
+#     Note: The advantage of basing the ID on the signature rather than the public key is not very clear, given that the signature is based on a hash
 #           of the public key (and the rest of the certificate info).
 #
 #  V07_NON_BACKWARD_COMPATIBLE_CHANGE_002:
@@ -290,15 +290,15 @@ isEmpty(RS_THREAD_LIB):RS_THREAD_LIB = pthread
 #
 #     Why:  Sha1 is likely to be prone to primary collisions anytime soon, so it is urgent to turn to a more secure solution.
 #
-#     Backward compat: unpatched peers after Nov 2017 are able to verify signatures since openpgp-sdk already handle it.
+#     Backward compat: Unpatched peers after Nov 2017 are able to verify signatures since openpgp-sdk can already handle it.
 #
 #  V07_NON_BACKWARD_COMPATIBLE_CHANGE_003:
 #
-#    What: Do not hash PGP certificate twice when signing
+#    What: Do not hash PGP certificate twice when signing.
 #
-#    Why: hasing twice is not per se a security issue, but it makes it harder to change the settings for hashing.
+#    Why: Hashing twice is not per se a security issue, but it makes it harder to change the settings for hashing.
 #
-#    Backward compat: patched peers cannot connect to non patched peers older than Nov 2017.
+#    Backward compat: Patched peers cannot connect to non patched peers older than Nov 2017.
 #
 #  V07_NON_BACKWARD_COMPATIBLE_CHANGE_004:
 #
@@ -306,7 +306,7 @@ isEmpty(RS_THREAD_LIB):RS_THREAD_LIB = pthread
 #
 #    Why:  Avoids sending probe packets
 #
-#    BackwardCompat: old RS before Mai 2019 will not be able to distant chat.
+#    BackwardCompat: Old RS before Mai 2019 will not be able to distant chat.
 #
 #  V07_NON_BACKWARD_COMPATIBLE_CHANGE_005:
 #
