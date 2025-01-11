@@ -271,7 +271,7 @@ isEmpty(RS_THREAD_LIB):RS_THREAD_LIB = pthread
 #
 #  V07_NON_BACKWARD_COMPATIBLE_CHANGE_001:
 #
-#     What: Tomputes the node id by performing a sha256 hash of the certificate's PGP signature, instead of simply picking up the last 20 bytes of it.
+#     What: Computes the node id by performing a sha256 hash of the certificate's PGP signature, instead of simply picking up the last 20 bytes of it.
 #
 #     Why: There is no real risk in forging a certificate with the same ID as the authentication is performed over the PGP signature of the certificate
 #          which hashes the full SSL certificate (i.e. the full serialized CERT_INFO structure). However the possibility to
