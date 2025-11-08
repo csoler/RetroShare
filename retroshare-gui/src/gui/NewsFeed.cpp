@@ -512,13 +512,33 @@ void NewsFeed::handleSecurityEvent(std::shared_ptr<const RsEvent> event)
 
 void NewsFeed::testFeeds(uint /*notifyFlags*/)
 {
-    auto feedItem = new GxsChannelPostItem(instance,
-                                           NEWSFEED_CHANNELNEWLIST,
-                                           RsGxsGroupId  ("00000000000000000000000000000000"),
-                                           RsGxsMessageId("0000000000000000000000000000000000000000")
-                                           , false, true);
+	uint flags = Settings->getNewsFeedFlags();
 
-    instance->addFeedItem(feedItem);
+	if (flags & RS_FEED_TYPE_PEER)
+		instance->addFeedItemIfUnique(new PeerItem(instance, NEWSFEED_PEERLIST, RsPeerId("0000000"), PEER_TYPE_CONNECT, false), true);
+
+	if (flags & RS_FEED_TYPE_MSG)
+		instance->addFeedItemIfUnique(new MsgItem(instance, NEWSFEED_MESSAGELIST, std::string("0000000"), false), true);
+
+	if (flags & RS_FEED_TYPE_CHANNEL){
+		instance->addFeedItem(new GxsChannelGroupItem(instance, NEWSFEED_CHANNELNEWLIST, RsGxsGroupId("0000000"), false, true));
+		instance->addFeedItem(new GxsChannelPostItem(instance, NEWSFEED_CHANNELNEWLIST, RsGxsGroupId("0000000"), RsGxsMessageId("0000000"), false, true));
+		instance->addFeedItem(new ChannelsCommentsItem(instance, NEWSFEED_CHANNELNEWLIST, RsGxsGroupId("0000000"), RsGxsMessageId("0000000"), RsGxsMessageId("0000000"), false, true));
+	}
+
+	if(flags & RS_FEED_TYPE_FORUM){
+		instance->addFeedItem(new GxsForumGroupItem(instance, NEWSFEED_NEW_FORUM, RsGxsGroupId("0000000"), false, true));
+		instance->addFeedItem(new GxsForumMsgItem(instance, NEWSFEED_NEW_FORUM, RsGxsGroupId("0000000"), RsGxsMessageId("0000000"), false, true ));
+	}
+
+	if(flags & RS_FEED_TYPE_POSTED){
+		instance->addFeedItem( new PostedGroupItem(instance, NEWSFEED_POSTEDNEWLIST, RsGxsGroupId("0000000"), false, true));
+		instance->addFeedItem( new PostedItem(instance, NEWSFEED_POSTEDMSGLIST, RsGxsGroupId("0000000"), RsGxsMessageId("0000000"), false, true));
+		instance->addFeedItem( new BoardsCommentsItem(instance, NEWSFEED_POSTEDMSGLIST, RsGxsGroupId("0000000"), RsGxsMessageId("0000000"), false, true));
+	}
+
+	if (flags & RS_FEED_TYPE_CIRCLE)
+		instance->addFeedItemIfUnique(new GxsCircleItem(instance, NEWSFEED_CIRCLELIST, RsGxsCircleId("0000000"), RsGxsId("0000000"), RS_FEED_ITEM_CIRCLE_MEMB_JOIN),true);;
 
 #ifdef TO_REMOVE
 	if (!instance) {
