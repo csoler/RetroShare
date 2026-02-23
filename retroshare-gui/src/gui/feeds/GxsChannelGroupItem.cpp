@@ -33,8 +33,8 @@
  * #define DEBUG_ITEM 1
  ****/
 
-GxsChannelGroupItem::GxsChannelGroupItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, bool isHome, bool autoUpdate) :
-    GxsGroupFeedItem(feedHolder, feedId, groupId, isHome, rsGxsChannels, autoUpdate)
+GxsChannelGroupItem::GxsChannelGroupItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, bool autoUpdate) :
+    GxsGroupFeedItem(feedHolder, feedId, groupId, rsGxsChannels, autoUpdate)
 {
     mLoadingGroup = false;
     mLoadingStatus = LOADING_STATUS_NO_DATA;
@@ -228,12 +228,6 @@ void GxsChannelGroupItem::fill()
 		ui->infoLastPost->setText(tr("Never"));
 	else
 		ui->infoLastPost->setText(DateTime::formatDateTime(mGroup.mMeta.mLastPost));
-
-	if (mIsHome)
-	{
-		/* disable buttons */
-		ui->clearButton->setEnabled(false);
-	}
 }
 
 void GxsChannelGroupItem::toggle()

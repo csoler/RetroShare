@@ -35,7 +35,7 @@ class MsgItem : public FeedItem, private Ui::MsgItem
 
 public:
 	/** Default Constructor */
-	MsgItem(FeedHolder *parent, uint32_t feedId, const std::string &msgId, bool isHome);
+    MsgItem(FeedHolder *parent, uint32_t feedId, const std::string &msgId);
 	virtual ~MsgItem();
 
 	void updateItemStatic();
@@ -66,7 +66,6 @@ private:
 	std::string mMsgId;
 	QString mMsg;
 
-	bool mIsHome;
 	bool mCloseOnRead;
 	RsEventsHandlerId_t mEventHandlerId;
 

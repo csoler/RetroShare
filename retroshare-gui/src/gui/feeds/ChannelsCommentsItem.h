@@ -47,7 +47,6 @@ public:
                          const RsGxsGroupId& groupId,
                          const RsGxsMessageId& commentId,
                          const RsGxsMessageId& threadId,
-                         bool isHome,
                          bool autoUpdate);
 
 	virtual ~ChannelsCommentsItem();

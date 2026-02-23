@@ -46,8 +46,8 @@
 using namespace Rs::Mail;
 
 /** Constructor */
-MsgItem::MsgItem(FeedHolder *parent, uint32_t feedId, const std::string &msgId, bool isHome) :
-   FeedItem(parent,feedId,NULL), mMsgId(msgId), mIsHome(isHome)
+MsgItem::MsgItem(FeedHolder *parent, uint32_t feedId, const std::string &msgId) :
+   FeedItem(parent,feedId,NULL), mMsgId(msgId)
 {
   /* Invoke the Qt Designer generated object setup routine */
   setupUi(this);
@@ -171,57 +171,28 @@ void MsgItem::updateItemStatic()
             srcName = QString::fromUtf8(rsPeers->getPeerName(mi.from.toRsPeerId()).c_str());
     }
 
-
-	if (!mIsHome)
-	{
-        if ((mi.msgflags & RS_MSG_USER_REQUEST) && mi.from.type()==MsgAddress::MSG_ADDRESS_TYPE_RSGXSID)   // !mi.rsgxsid_srcId.isNull()))
-		{
-			title = QString::fromUtf8(mi.title.c_str()) + " " + tr("from") + " " + srcName;
-			replyButton->setText(tr("Reply to invite"));
-			subjectLabel->hide();
-			info_Frame_Invite->show();
-		}
-        else if ((mi.msgflags & RS_MSG_USER_REQUEST) && mi.from.type()!=MsgAddress::MSG_ADDRESS_TYPE_RSGXSID) // mi.rsgxsid_srcId.isNull())
-		{
-			title = QString::fromUtf8(mi.title.c_str()) + " " + " " + srcName;
-			subjectLabel->hide();
-			info_Frame_Invite->show();
-			infoLabel_Invite->setText(tr("This message invites you to make friend! You may accept this request."));
-			sendinviteButton->hide();
-			replyButton->hide();
-		}
-		else
-		{
-			title = tr("Message From") + ": " + srcName;
-			sendinviteButton->hide();
-			info_Frame_Invite->hide();
-		}
-	}
-	else
-	{
-		/* subject */
-        uint32_t box = mi.msgflags & RS_MSG_BOXMASK;
-		switch(box)
-		{
-			case RS_MSG_SENTBOX:
-				title = tr("Sent Msg") + ": ";
-				replyButton->setEnabled(false);
-				break;
-			case RS_MSG_DRAFTBOX:
-				title = tr("Draft Msg") + ": ";
-				replyButton->setEnabled(false);
-				break;
-			case RS_MSG_OUTBOX:
-				title = tr("Pending Msg") + ": ";
-				//deleteButton->setEnabled(false);
-				replyButton->setEnabled(false);
-				break;
-			default:
-			case RS_MSG_INBOX:
-				title = "";
-				break;
-		}
-	}
+    if ((mi.msgflags & RS_MSG_USER_REQUEST) && mi.from.type()==MsgAddress::MSG_ADDRESS_TYPE_RSGXSID)   // !mi.rsgxsid_srcId.isNull()))
+    {
+        title = QString::fromUtf8(mi.title.c_str()) + " " + tr("from") + " " + srcName;
+        replyButton->setText(tr("Reply to invite"));
+        subjectLabel->hide();
+        info_Frame_Invite->show();
+    }
+    else if ((mi.msgflags & RS_MSG_USER_REQUEST) && mi.from.type()!=MsgAddress::MSG_ADDRESS_TYPE_RSGXSID) // mi.rsgxsid_srcId.isNull())
+    {
+        title = QString::fromUtf8(mi.title.c_str()) + " " + " " + srcName;
+        subjectLabel->hide();
+        info_Frame_Invite->show();
+        infoLabel_Invite->setText(tr("This message invites you to make friend! You may accept this request."));
+        sendinviteButton->hide();
+        replyButton->hide();
+    }
+    else
+    {
+        title = tr("Message From") + ": " + srcName;
+        sendinviteButton->hide();
+        info_Frame_Invite->hide();
+    }
 
 	titleLabel->setText(title);
 	subjectLabel->setText(QString::fromUtf8(mi.title.c_str()));
@@ -248,16 +219,6 @@ void MsgItem::updateItemStatic()
 	}
 
 	playButton->setEnabled(false);
-	
-	if (mIsHome)
-	{
-		/* disable buttons */
-		clearButton->setEnabled(false);
-		//gotoButton->setEnabled(false);
-
-		/* hide buttons */
-		clearButton->hide();
-	}
 }
 
 void MsgItem::fillExpandFrame()

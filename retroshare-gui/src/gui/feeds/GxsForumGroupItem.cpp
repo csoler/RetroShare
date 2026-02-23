@@ -31,8 +31,8 @@
  * #define DEBUG_ITEM 1
  ****/
 
-GxsForumGroupItem::GxsForumGroupItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, bool isHome, bool autoUpdate) :
-    GxsGroupFeedItem(feedHolder, feedId, groupId, isHome, rsGxsForums, autoUpdate)
+GxsForumGroupItem::GxsForumGroupItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, bool autoUpdate) :
+    GxsGroupFeedItem(feedHolder, feedId, groupId, rsGxsForums, autoUpdate)
 {
     mLoadingGroup = false;
     mLoadingStatus = LOADING_STATUS_NO_DATA;
@@ -40,8 +40,8 @@ GxsForumGroupItem::GxsForumGroupItem(FeedHolder *feedHolder, uint32_t feedId, co
     addEventHandler();
 }
 
-GxsForumGroupItem::GxsForumGroupItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, const std::list<RsGxsId>& added_moderators,const std::list<RsGxsId>& removed_moderators,bool isHome, bool autoUpdate):
-    GxsGroupFeedItem(feedHolder, feedId, groupId, isHome, rsGxsForums, autoUpdate),
+GxsForumGroupItem::GxsForumGroupItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, const std::list<RsGxsId>& added_moderators,const std::list<RsGxsId>& removed_moderators, bool autoUpdate):
+    GxsGroupFeedItem(feedHolder, feedId, groupId, rsGxsForums, autoUpdate),
     mAddedModerators(added_moderators),
     mRemovedModerators(removed_moderators)
 {
@@ -283,12 +283,6 @@ void GxsForumGroupItem::fill()
 //	{
 //		ui->titleLabel->setText(tr("Updated Forum"));
 //	}
-
-	if (mIsHome)
-	{
-		/* disable buttons */
-		ui->clearButton->setEnabled(false);
-	}
 }
 void GxsForumGroupItem::toggle()
 {

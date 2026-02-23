@@ -215,7 +215,7 @@ RsGxsCommentService *PostedDialog::getCommentService()
 
 QWidget *PostedDialog::createCommentHeaderWidget(const RsGxsGroupId &grpId, const RsGxsMessageId &msgId)
 {
-	return new PostedItem(NULL, 0, grpId, msgId, true, false);
+    return new PostedItem(NULL, 0, grpId, msgId, false);
 }
 
 void PostedDialog::groupInfoToGroupItemInfo(const RsGxsGenericGroupData *groupData, GroupItemInfo &groupItemInfo)

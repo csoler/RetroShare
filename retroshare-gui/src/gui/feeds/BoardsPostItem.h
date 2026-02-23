@@ -42,7 +42,7 @@ public:
 	// It can be used for all apparences of channel posts. But in rder to merge comments from the previous versions of the post, the list of
 	// previous posts should be supplied. It's optional. If not supplied only the comments of the new version will be displayed.
 
-    BoardsPostItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId& groupId, const RsGxsMessageId &messageId, bool isHome, bool autoUpdate, const std::set<RsGxsMessageId>& older_versions = std::set<RsGxsMessageId>());
+    BoardsPostItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId& groupId, const RsGxsMessageId &messageId, bool autoUpdate, const std::set<RsGxsMessageId>& older_versions = std::set<RsGxsMessageId>());
     virtual ~BoardsPostItem();
 
     uint64_t uniqueIdentifier() const override { return hash_64bits("BoardsPostItem " + messageId().toStdString()) ; }

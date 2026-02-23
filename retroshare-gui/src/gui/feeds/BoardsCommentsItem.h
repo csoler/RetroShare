@@ -38,8 +38,7 @@ class BaseBoardsCommentsItem : public GxsFeedItem
 	Q_OBJECT
 
 public:
-	BaseBoardsCommentsItem(FeedHolder *parent, uint32_t feedId, const RsGxsGroupId& groupId, const RsGxsMessageId& messageId, bool isHome, bool autoUpdate);
-	BaseBoardsCommentsItem(FeedHolder *parent, uint32_t feedId, const RsGroupMetaData& group_meta, const RsGxsMessageId& post_id, bool isHome, bool autoUpdate);
+    BaseBoardsCommentsItem(FeedHolder *parent, uint32_t feedId, const RsGxsGroupId& groupId, const RsGxsMessageId& messageId, bool autoUpdate);
 	virtual ~BaseBoardsCommentsItem();
 
 	bool setPost(const RsPostedPost& post, bool doFill = true);
@@ -99,8 +98,7 @@ class BoardsCommentsItem: public BaseBoardsCommentsItem
 	Q_OBJECT
 
 public:
-	BoardsCommentsItem(FeedHolder *parent, uint32_t feedId, const RsGxsGroupId& groupId, const RsGxsMessageId& messageId, bool isHome, bool autoUpdate);
-	BoardsCommentsItem(FeedHolder *parent, uint32_t feedId, const RsGroupMetaData& group_meta, const RsGxsMessageId& post_id, bool isHome, bool autoUpdate);
+    BoardsCommentsItem(FeedHolder *parent, uint32_t feedId, const RsGxsGroupId& groupId, const RsGxsMessageId& messageId, bool autoUpdate);
 
 protected:
 	void setup() override;
@@ -110,10 +108,10 @@ protected:
 	void setCommentsSize(int comNb) override;
 
 private slots:
-	void doExpand(bool open);
-	void toggle();
-	void makeUpVote();
-	void makeDownVote();
+    void doExpand(bool open) override;
+    void toggle() override;
+    void makeUpVote() override;
+    void makeDownVote() override;
 
 private:
 	/** Qt Designer generated object */

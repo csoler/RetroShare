@@ -38,8 +38,8 @@ class BasePostedItem : public GxsFeedItem
 	Q_OBJECT
 
 public:
-	BasePostedItem(FeedHolder *parent, uint32_t feedId, const RsGxsGroupId& groupId, const RsGxsMessageId& messageId, bool isHome, bool autoUpdate);
-	BasePostedItem(FeedHolder *parent, uint32_t feedId, const RsGroupMetaData& group_meta, const RsGxsMessageId& post_id, bool isHome, bool autoUpdate);
+    BasePostedItem(FeedHolder *parent, uint32_t feedId, const RsGxsGroupId& groupId, const RsGxsMessageId& messageId, bool autoUpdate);
+    BasePostedItem(FeedHolder *parent, uint32_t feedId, const RsGroupMetaData& group_meta, const RsGxsMessageId& post_id, bool autoUpdate);
 	virtual ~BasePostedItem();
 
 	bool setPost(const RsPostedPost& post, bool doFill = true);
@@ -101,8 +101,8 @@ class PostedItem: public BasePostedItem
 	Q_OBJECT
 
 public:
-	PostedItem(FeedHolder *parent, uint32_t feedId, const RsGxsGroupId& groupId, const RsGxsMessageId& messageId, bool isHome, bool autoUpdate);
-	PostedItem(FeedHolder *parent, uint32_t feedId, const RsGroupMetaData& group_meta, const RsGxsMessageId& post_id, bool isHome, bool autoUpdate);
+    PostedItem(FeedHolder *parent, uint32_t feedId, const RsGxsGroupId& groupId, const RsGxsMessageId& messageId, bool autoUpdate);
+    PostedItem(FeedHolder *parent, uint32_t feedId, const RsGroupMetaData& group_meta, const RsGxsMessageId& post_id, bool autoUpdate);
 
 protected:
 	void setup() override;
@@ -121,6 +121,8 @@ private slots:
 private:
 	/** Qt Designer generated object */
 	Ui::PostedItem *ui;
+
+    bool mIsHome;
 };
 
 Q_DECLARE_METATYPE(RsPostedPost)

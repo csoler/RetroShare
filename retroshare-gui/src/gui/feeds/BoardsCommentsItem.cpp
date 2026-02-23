@@ -52,24 +52,13 @@
 /** Constructor */
 
 //========================================================================================
-//                                     BaseBoardsCommentsItem                                   //
+//                                     BaseBoardsCommentsItem                           //
 //========================================================================================
 
-BaseBoardsCommentsItem::BaseBoardsCommentsItem( FeedHolder *feedHolder, uint32_t feedId
-                              , const RsGroupMetaData &group_meta, const RsGxsMessageId& post_id
-                              , bool isHome, bool autoUpdate)
-    : GxsFeedItem(feedHolder, feedId, group_meta.mGroupId, post_id, isHome, rsPosted, autoUpdate)
-    , mInFill(false), mGroupMeta(group_meta)
-    , mLoaded(false), mIsLoadingGroup(false), mIsLoadingMessage(false), mIsLoadingComment(false)
-{
-	mPost.mMeta.mMsgId = post_id;
-	mPost.mMeta.mGroupId = mGroupMeta.mGroupId;
-}
-
-BaseBoardsCommentsItem::BaseBoardsCommentsItem( FeedHolder *feedHolder, uint32_t feedId
+BaseBoardsCommentsItem::BaseBoardsCommentsItem(FeedHolder *feedHolder, uint32_t feedId
                               , const RsGxsGroupId &groupId, const RsGxsMessageId& post_id
-                              , bool isHome, bool autoUpdate)
-    : GxsFeedItem(feedHolder, feedId, groupId, post_id, isHome, rsPosted, autoUpdate)
+                              , bool autoUpdate)
+    : GxsFeedItem(feedHolder, feedId, groupId, post_id, rsPosted, autoUpdate)
     , mInFill(false)
     , mLoaded(false), mIsLoadingGroup(false), mIsLoadingMessage(false), mIsLoadingComment(false)
 {
@@ -350,14 +339,8 @@ void BaseBoardsCommentsItem::showAuthorInPeople()
 //                                        BoardsCommentsItem                                    //
 //========================================================================================
 
-BoardsCommentsItem::BoardsCommentsItem(FeedHolder *feedHolder, uint32_t feedId, const RsGroupMetaData &group_meta, const RsGxsMessageId& post_id, bool isHome, bool autoUpdate) :
-    BaseBoardsCommentsItem(feedHolder, feedId, group_meta, post_id, isHome, autoUpdate)
-{
-	setup();
-}
-
-BoardsCommentsItem::BoardsCommentsItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, const RsGxsMessageId& post_id, bool isHome, bool autoUpdate) :
-    BaseBoardsCommentsItem(feedHolder, feedId, groupId, post_id, isHome, autoUpdate)
+BoardsCommentsItem::BoardsCommentsItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, const RsGxsMessageId& post_id, bool autoUpdate) :
+    BaseBoardsCommentsItem(feedHolder, feedId, groupId, post_id, autoUpdate)
 {
 	setup();
 	loadGroup();
@@ -506,16 +489,8 @@ void BoardsCommentsItem::fill()
 		ui->readButton->hide();
 	}
 
-	if (mIsHome)
-	{
-		ui->clearButton->hide();
-		ui->readAndClearButton->hide();
-	}
-	else
-	{
-		ui->clearButton->show();
-		ui->readAndClearButton->show();
-	}
+    ui->clearButton->show();
+    ui->readAndClearButton->show();
 	
 	// hide read button not yet functional
 	ui->readButton->hide();

@@ -36,7 +36,7 @@ class PostedGroupItem : public GxsGroupFeedItem
 
 public:
 	/** Default Constructor */
-	PostedGroupItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, bool isHome, bool autoUpdate);
+    PostedGroupItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, bool autoUpdate);
     virtual ~PostedGroupItem() override;
 
     uint64_t uniqueIdentifier() const override { return hash_64bits("PostedGroupItem " + groupId().toStdString()) ; }

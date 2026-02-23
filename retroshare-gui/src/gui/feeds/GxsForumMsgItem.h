@@ -35,7 +35,7 @@ class GxsForumMsgItem : public GxsFeedItem
 	Q_OBJECT
 
 public:
-	GxsForumMsgItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, const RsGxsMessageId &messageId, bool isHome, bool autoUpdate);
+    GxsForumMsgItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, const RsGxsMessageId &messageId, bool autoUpdate);
 
 	virtual ~GxsForumMsgItem();
 

@@ -1384,7 +1384,7 @@ posted {
 		gui/Posted/BoardPostDisplayWidget.h \
 		gui/Posted/BoardPostImageHelper.h \
 		gui/Posted/PostedItem.h \
-		gui/Posted/PostedCardView.h \
+                #gui/Posted/PostedCardView.h \
 		gui/Posted/PostedGroupDialog.h \
 		gui/feeds/PostedGroupItem.h \
 		gui/Posted/PostedCreatePostDialog.h \
@@ -1399,7 +1399,7 @@ posted {
 		gui/Posted/BoardPostDisplayWidget_compact.ui \
 		gui/Posted/BoardPostDisplayWidget_card.ui \
 		gui/Posted/PostedItem.ui \
-		gui/Posted/PostedCardView.ui \
+                #gui/Posted/PostedCardView.ui \
 		gui/Posted/PostedCreatePostDialog.ui \
 		gui/Posted/PhotoView.ui \
 		#gui/Posted/PostedDialog.ui \
@@ -1413,7 +1413,7 @@ posted {
 		gui/Posted/PostedPostsModel.cpp \
 		gui/feeds/PostedGroupItem.cpp \
 		gui/Posted/PostedItem.cpp \
-		gui/Posted/PostedCardView.cpp \
+                #gui/Posted/PostedCardView.cpp \
 		gui/Posted/PostedGroupDialog.cpp \
 		gui/Posted/PostedCreatePostDialog.cpp \
 		gui/Posted/PhotoView.cpp \

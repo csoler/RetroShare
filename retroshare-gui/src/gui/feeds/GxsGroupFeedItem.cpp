@@ -36,7 +36,7 @@
 
 const uint GxsGroupFeedItem::GROUP_ITEM_LOADING_TIMEOUT_ms = 2000;
 
-GxsGroupFeedItem::GxsGroupFeedItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, bool isHome, RsGxsIfaceHelper *iface, bool /*autoUpdate*/) :
+GxsGroupFeedItem::GxsGroupFeedItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, RsGxsIfaceHelper *iface, bool /*autoUpdate*/) :
     FeedItem(feedHolder,feedId,NULL)
 {
 #ifdef DEBUG_ITEM
@@ -45,7 +45,6 @@ GxsGroupFeedItem::GxsGroupFeedItem(FeedHolder *feedHolder, uint32_t feedId, cons
 #endif
 
 	/* this are just generally useful for all children */
-	mIsHome = isHome;
     mLastDelay = 300;	// re-update after 300ms on fail. See deferred_update()
 
 	/* load data if we can */

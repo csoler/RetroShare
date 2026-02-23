@@ -38,7 +38,7 @@ class GxsGroupFeedItem : public FeedItem
 
 public:
 	/** Note parent can = NULL */
-	GxsGroupFeedItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, bool isHome, RsGxsIfaceHelper *iface, bool autoUpdate);
+    GxsGroupFeedItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, RsGxsIfaceHelper *iface, bool autoUpdate);
 	virtual ~GxsGroupFeedItem();
 
 	RsGxsGroupId groupId() const { return mGroupId; }

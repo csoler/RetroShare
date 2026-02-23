@@ -49,8 +49,8 @@
  * #define DEBUG_ITEM 1
  ****/
 
-ChannelsCommentsItem::ChannelsCommentsItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId& groupId, const RsGxsMessageId &commentId, const RsGxsMessageId &threadId, bool isHome, bool autoUpdate) :
-    GxsFeedItem(feedHolder, feedId, groupId, commentId, isHome, rsGxsChannels, autoUpdate), // this one should be in GxsFeedItem
+ChannelsCommentsItem::ChannelsCommentsItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId& groupId, const RsGxsMessageId &commentId, const RsGxsMessageId &threadId, bool autoUpdate) :
+    GxsFeedItem(feedHolder, feedId, groupId, commentId, rsGxsChannels, autoUpdate), // this one should be in GxsFeedItem
     mThreadId(threadId)
 {
     mGroupMeta.mGroupId.clear();	// safety measure

@@ -32,8 +32,8 @@
  * #define DEBUG_ITEM 1
  ****/
 
-PostedGroupItem::PostedGroupItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, bool isHome, bool autoUpdate) :
-    GxsGroupFeedItem(feedHolder, feedId, groupId, isHome, rsPosted, autoUpdate)
+PostedGroupItem::PostedGroupItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, bool autoUpdate) :
+    GxsGroupFeedItem(feedHolder, feedId, groupId, rsPosted, autoUpdate)
 {
     mLoadingGroup = false;
     mLoadingStatus = LOADING_STATUS_NO_DATA;
@@ -213,12 +213,6 @@ void PostedGroupItem::fill()
 //	{
 //		ui->titleLabel->setText(tr("Updated Board"));
 //	}
-
-	if (mIsHome)
-	{
-		/* disable buttons */
-		ui->clearButton->setEnabled(false);
-	}
 }
 
 void PostedGroupItem::toggle()

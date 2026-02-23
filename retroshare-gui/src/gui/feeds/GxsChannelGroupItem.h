@@ -36,7 +36,7 @@ class GxsChannelGroupItem : public GxsGroupFeedItem
 
 public:
 	/** Default Constructor */
-	GxsChannelGroupItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, bool isHome, bool autoUpdate);
+    GxsChannelGroupItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, bool autoUpdate);
     //GxsChannelGroupItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsChannelGroup &group, bool isHome, bool autoUpdate);
     virtual ~GxsChannelGroupItem();
 

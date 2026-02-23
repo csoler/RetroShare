@@ -47,8 +47,8 @@
  * #define DEBUG_ITEM 1
  ****/
 
-BoardsPostItem::BoardsPostItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId& groupId, const RsGxsMessageId &messageId, bool isHome, bool autoUpdate,const std::set<RsGxsMessageId>& older_versions) :
-    GxsFeedItem(feedHolder, feedId, groupId, messageId, isHome, rsPosted, autoUpdate) // this one should be in GxsFeedItem
+BoardsPostItem::BoardsPostItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId& groupId, const RsGxsMessageId &messageId, bool autoUpdate,const std::set<RsGxsMessageId>& older_versions) :
+    GxsFeedItem(feedHolder, feedId, groupId, messageId, rsPosted, autoUpdate) // this one should be in GxsFeedItem
 {
 	QVector<RsGxsMessageId> v;
 	//bool self = false;
@@ -378,19 +378,8 @@ void BoardsPostItem::fill()
         mCloseOnRead = true;
 	
 	// differences between Feed or Top of Comment.
-    if(mFeedHolder)
-    {
-        if (mIsHome) {
-            ui->commentButton->show();
-        } else if (ui->commentButton->icon().isNull()){
-            //Icon is seted if a comment received.
+    if(!mFeedHolder || ui->commentButton->icon().isNull()) //Icon is seted if a comment received.
             ui->commentButton->hide();
-        }
-    }
-    else
-    {
-        ui->commentButton->hide();
-    }
 
 	// disable voting buttons - if they have already voted.
 	/*if (post.mMeta.mMsgStatus & GXS_SERV::GXS_MSG_STATUS_VOTE_MASK)

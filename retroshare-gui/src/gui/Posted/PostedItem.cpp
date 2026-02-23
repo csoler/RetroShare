@@ -54,8 +54,8 @@
 
 BasePostedItem::BasePostedItem( FeedHolder *feedHolder, uint32_t feedId
                               , const RsGroupMetaData &group_meta, const RsGxsMessageId& post_id
-                              , bool isHome, bool autoUpdate)
-    : GxsFeedItem(feedHolder, feedId, group_meta.mGroupId, post_id, isHome, rsPosted, autoUpdate)
+                              , bool autoUpdate)
+    : GxsFeedItem(feedHolder, feedId, group_meta.mGroupId, post_id, rsPosted, autoUpdate)
     , mInFill(false), mGroupMeta(group_meta)
     , mLoaded(false), mIsLoadingGroup(false), mIsLoadingMessage(false), mIsLoadingComment(false)
 {
@@ -63,10 +63,10 @@ BasePostedItem::BasePostedItem( FeedHolder *feedHolder, uint32_t feedId
 	mPost.mMeta.mGroupId = mGroupMeta.mGroupId;
 }
 
-BasePostedItem::BasePostedItem( FeedHolder *feedHolder, uint32_t feedId
+BasePostedItem::BasePostedItem(FeedHolder *feedHolder, uint32_t feedId
                               , const RsGxsGroupId &groupId, const RsGxsMessageId& post_id
-                              , bool isHome, bool autoUpdate)
-    : GxsFeedItem(feedHolder, feedId, groupId, post_id, isHome, rsPosted, autoUpdate)
+                              , bool autoUpdate)
+    : GxsFeedItem(feedHolder, feedId, groupId, post_id, rsPosted, autoUpdate)
     , mInFill(false)
     , mLoaded(false), mIsLoadingGroup(false), mIsLoadingMessage(false), mIsLoadingComment(false)
 {
@@ -364,14 +364,14 @@ void BasePostedItem::showAuthorInPeople()
 //                                        PostedItem                                    //
 //========================================================================================
 
-PostedItem::PostedItem(FeedHolder *feedHolder, uint32_t feedId, const RsGroupMetaData &group_meta, const RsGxsMessageId& post_id, bool isHome, bool autoUpdate) :
-    BasePostedItem(feedHolder, feedId, group_meta, post_id, isHome, autoUpdate)
+PostedItem::PostedItem(FeedHolder *feedHolder, uint32_t feedId, const RsGroupMetaData &group_meta, const RsGxsMessageId& post_id, bool autoUpdate) :
+    BasePostedItem(feedHolder, feedId, group_meta, post_id, autoUpdate)
 {
     PostedItem::setup();
 }
 
-PostedItem::PostedItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, const RsGxsMessageId& post_id, bool isHome, bool autoUpdate) :
-    BasePostedItem(feedHolder, feedId, groupId, post_id, isHome, autoUpdate)
+PostedItem::PostedItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, const RsGxsMessageId& post_id, bool autoUpdate) :
+    BasePostedItem(feedHolder, feedId, groupId, post_id, autoUpdate)
 {
     PostedItem::setup();
     PostedItem::loadGroup();
@@ -646,19 +646,9 @@ void PostedItem::fill()
 		ui->newLabel->hide();
 	}
 
-	if (mIsHome)
-	{
-		ui->clearButton->hide();
-		ui->readAndClearButton->hide();
-		ui->nameLabel->hide();
-	}
-	else
-	{
-		ui->clearButton->show();
-		ui->readAndClearButton->show();
-		ui->nameLabel->show();
-		ui->voteFrame->hide();
-	}
+    ui->clearButton->hide();
+    ui->readAndClearButton->hide();
+    ui->nameLabel->hide();
 
 	// disable voting buttons - if they have already voted.
 	if (mPost.mMeta.mMsgStatus & GXS_SERV::GXS_MSG_STATUS_VOTE_MASK)

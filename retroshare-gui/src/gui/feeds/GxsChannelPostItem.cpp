@@ -45,8 +45,8 @@
  * #define DEBUG_ITEM 1
  ****/
 
-GxsChannelPostItem::GxsChannelPostItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId& groupId, const RsGxsMessageId &messageId, bool isHome, bool autoUpdate,const std::set<RsGxsMessageId>& older_versions) :
-    GxsFeedItem(feedHolder, feedId, groupId, messageId, isHome, rsGxsChannels, autoUpdate) // this one should be in GxsFeedItem
+GxsChannelPostItem::GxsChannelPostItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId& groupId, const RsGxsMessageId &messageId, bool autoUpdate, const std::set<RsGxsMessageId>& older_versions) :
+    GxsFeedItem(feedHolder, feedId, groupId, messageId, rsGxsChannels, autoUpdate) // this one should be in GxsFeedItem
 {
 	QVector<RsGxsMessageId> v;
 	//bool self = false;
@@ -332,11 +332,8 @@ void GxsChannelPostItem::fill()
     //if( !IS_GROUP_PUBLISHER(mGroupMeta.mSubscribeFlags) )
     ui->editButton->hide() ;	// never show this button. Feeds are not the place to edit posts.
 
-	if (!mIsHome)
-	{
-		if (mCloseOnRead && !IS_MSG_NEW(mPost.mMeta.mMsgStatus)) {
+        if (mCloseOnRead && !IS_MSG_NEW(mPost.mMeta.mMsgStatus))
 			removeItem();
-		}
 
 		title = tr("Channel Feed") + ": ";
 		RetroShareLink link = RetroShareLink::createGxsGroupLink(RetroShareLink::TYPE_CHANNEL, mPost.mMeta.mGroupId, groupName());
@@ -363,60 +360,10 @@ void GxsChannelPostItem::fill()
 		if (IS_MSG_NEW(mPost.mMeta.mMsgStatus)) {
 			mCloseOnRead = true;
 		}
-	}
-	else
-	{
-		/* subject */
-		ui->titleLabel->setText(QString::fromUtf8(mPost.mMeta.mMsgName.c_str()));
-
-        //uint32_t autorized_lines = (int)floor((ui->logoLabel->height() - ui->titleLabel->height() - ui->buttonHLayout->sizeHint().height())/QFontMetricsF(ui->subjectLabel->font()).height());
-
-		// fill first 4 lines of message. (csoler) Disabled the replacement of smileys and links, because the cost is too crazy
-		//ui->subjectLabel->setText(RsHtml().formatText(NULL, RsStringUtil::CopyLines(QString::fromUtf8(mPost.mMsg.c_str()), autorized_lines), RSHTML_FORMATTEXT_EMBED_SMILEYS | RSHTML_FORMATTEXT_EMBED_LINKS));
-
-        ui->subjectLabel->setText(RsStringUtil::CopyLines(QString::fromUtf8(mPost.mMsg.c_str()), 2)) ;
-
-        //QString score = QString::number(post.mTopScore);
-		// scoreLabel->setText(score); 
-
-		/* disable buttons: deletion facility not enabled with cache services yet */
-		ui->clearButton->setEnabled(false);
-		ui->unsubscribeButton->setEnabled(false);
-		ui->clearButton->hide();
-		ui->readAndClearButton->hide();
-		ui->unsubscribeButton->hide();
-		ui->copyLinkButton->show();
-
-		if (IS_GROUP_SUBSCRIBED(mGroupMeta.mSubscribeFlags) || IS_GROUP_ADMIN(mGroupMeta.mSubscribeFlags))
-		{
-			ui->readButton->setVisible(true);
-
-			setReadStatus(IS_MSG_NEW(mPost.mMeta.mMsgStatus), IS_MSG_UNREAD(mPost.mMeta.mMsgStatus) || IS_MSG_NEW(mPost.mMeta.mMsgStatus));
-		} 
-		else 
-		{
-			ui->readButton->setVisible(false);
-			ui->newLabel->setVisible(false);
-		}
-
-		mCloseOnRead = false;
-	}
 	
 	// differences between Feed or Top of Comment.
-	if (mFeedHolder)
-	{
-		if (mIsHome) {
-			ui->commentButton->show();
-		} else if (ui->commentButton->icon().isNull()){
-			//Icon is seted if a comment received.
-			ui->commentButton->hide();
-		}
-
-	}
-	else
-	{
-		ui->commentButton->hide();
-	}
+    if (!mFeedHolder || ui->commentButton->icon().isNull()) //Icon is seted if a comment received.
+        ui->commentButton->hide();
 	
 	// disable voting buttons - if they have already voted.
 	/*if (post.mMeta.mMsgStatus & GXS_SERV::GXS_MSG_STATUS_VOTE_MASK)

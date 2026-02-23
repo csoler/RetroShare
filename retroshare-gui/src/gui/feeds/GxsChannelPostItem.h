@@ -42,7 +42,7 @@ public:
 	// It can be used for all apparences of channel posts. But in rder to merge comments from the previous versions of the post, the list of
 	// previous posts should be supplied. It's optional. If not supplied only the comments of the new version will be displayed.
 
-	GxsChannelPostItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId& groupId, const RsGxsMessageId &messageId, bool isHome, bool autoUpdate, const std::set<RsGxsMessageId>& older_versions = std::set<RsGxsMessageId>());
+    GxsChannelPostItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId& groupId, const RsGxsMessageId &messageId, bool autoUpdate, const std::set<RsGxsMessageId>& older_versions = std::set<RsGxsMessageId>());
 
 #ifdef UNUSED
 	// This one is used in channel thread widget. We don't want the group data to reload at every post, so we load it in the hosting

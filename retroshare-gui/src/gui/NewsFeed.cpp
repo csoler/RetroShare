@@ -229,7 +229,7 @@ void NewsFeed::handleMailEvent(std::shared_ptr<const RsEvent> event)
 	{
 	case RsMailStatusEventCode::NEW_MESSAGE:
 		for(auto msgid: pe->mChangedMsgIds)
-			addFeedItem( new MsgItem(this, NEWSFEED_MESSAGELIST, msgid, false));
+            addFeedItem( new MsgItem(this, NEWSFEED_MESSAGELIST, msgid));
 		break;
 	default: break;
 	}
@@ -245,13 +245,13 @@ void NewsFeed::handlePostedEvent(std::shared_ptr<const RsEvent> event)
 	{
 	case RsPostedEventCode::UPDATED_POSTED_GROUP:
 	case RsPostedEventCode::NEW_POSTED_GROUP:
-		addFeedItem( new PostedGroupItem(this, NEWSFEED_POSTEDNEWLIST, pe->mPostedGroupId, false, true));
+        addFeedItem( new PostedGroupItem(this, NEWSFEED_POSTEDNEWLIST, pe->mPostedGroupId, true));
 		break;
 	case RsPostedEventCode::NEW_MESSAGE:
-        addFeedItem( new BoardsPostItem(this, NEWSFEED_POSTEDMSGLIST, pe->mPostedGroupId, pe->mPostedMsgId, false, true));
+        addFeedItem( new BoardsPostItem(this, NEWSFEED_POSTEDMSGLIST, pe->mPostedGroupId, pe->mPostedMsgId, true));
 		break;
 	case RsPostedEventCode::NEW_COMMENT:
-		addFeedItem( new BoardsCommentsItem(this, NEWSFEED_POSTEDMSGLIST, pe->mPostedGroupId, pe->mPostedMsgId, false, true));
+        addFeedItem( new BoardsCommentsItem(this, NEWSFEED_POSTEDMSGLIST, pe->mPostedGroupId, pe->mPostedMsgId, true));
 		break;
 	default: break;
 	}
@@ -265,12 +265,12 @@ void NewsFeed::handleForumEvent(std::shared_ptr<const RsEvent> event)
 	switch(pe->mForumEventCode)
 	{
 	case RsForumEventCode::MODERATOR_LIST_CHANGED:
-		addFeedItem(new GxsForumGroupItem(this, NEWSFEED_UPDATED_FORUM, pe->mForumGroupId,pe->mModeratorsAdded,pe->mModeratorsRemoved, false, true));
+        addFeedItem(new GxsForumGroupItem(this, NEWSFEED_UPDATED_FORUM, pe->mForumGroupId,pe->mModeratorsAdded,pe->mModeratorsRemoved, true));
         break;
 
 	case RsForumEventCode::UPDATED_FORUM:
 	case RsForumEventCode::NEW_FORUM:
-		addFeedItem(new GxsForumGroupItem(this, NEWSFEED_NEW_FORUM, pe->mForumGroupId, false, true));
+        addFeedItem(new GxsForumGroupItem(this, NEWSFEED_NEW_FORUM, pe->mForumGroupId, true));
 		break;
 
 	case RsForumEventCode::UPDATED_MESSAGE:
@@ -278,7 +278,7 @@ void NewsFeed::handleForumEvent(std::shared_ptr<const RsEvent> event)
 			addFeedItem(new GxsForumMsgItem(
 			                this, NEWSFEED_NEW_FORUM,
 			                pe->mForumGroupId, pe->mForumMsgId,
-			                false, true ));
+                            true ));
 		break;
 
 	default: break;
@@ -295,17 +295,17 @@ void NewsFeed::handleChannelEvent(std::shared_ptr<const RsEvent> event)
 	{
 	case RsChannelEventCode::UPDATED_CHANNEL: // [[fallthrough]];
 	case RsChannelEventCode::NEW_CHANNEL:
-		addFeedItem(new GxsChannelGroupItem(this, NEWSFEED_CHANNELNEWLIST, pe->mChannelGroupId, false, true));
+        addFeedItem(new GxsChannelGroupItem(this, NEWSFEED_CHANNELNEWLIST, pe->mChannelGroupId, true));
 		break;
 	case RsChannelEventCode::UPDATED_MESSAGE:  // [[fallthrough]];
 	case RsChannelEventCode::NEW_MESSAGE:
-		addFeedItem(new GxsChannelPostItem(this, NEWSFEED_CHANNELNEWLIST, pe->mChannelGroupId, pe->mChannelMsgId, false, true));
+        addFeedItem(new GxsChannelPostItem(this, NEWSFEED_CHANNELNEWLIST, pe->mChannelGroupId, pe->mChannelMsgId, true));
 		break;
 	case RsChannelEventCode::NEW_COMMENT:
-        addFeedItem(new ChannelsCommentsItem(this, NEWSFEED_CHANNELNEWLIST, pe->mChannelGroupId, pe->mChannelMsgId,pe->mChannelThreadId, false, true));
+        addFeedItem(new ChannelsCommentsItem(this, NEWSFEED_CHANNELNEWLIST, pe->mChannelGroupId, pe->mChannelMsgId,pe->mChannelThreadId, true));
 		break;
 	case RsChannelEventCode::RECEIVED_PUBLISH_KEY:
-		addFeedItem(new GxsChannelGroupItem(this, NEWSFEED_CHANNELPUBKEYLIST, pe->mChannelGroupId, false, true));
+        addFeedItem(new GxsChannelGroupItem(this, NEWSFEED_CHANNELPUBKEYLIST, pe->mChannelGroupId, true));
 		break;
 	default: break;
 	}
@@ -513,23 +513,23 @@ void NewsFeed::testFeeds(RsFeedTypeFlags /*notifyFlags*/)
 		instance->addFeedItemIfUnique(new PeerItem(instance, NEWSFEED_PEERLIST, RsPeerId(""), PEER_TYPE_CONNECT, false), true);
 
     if (!!(flags & RsFeedTypeFlags::RS_FEED_TYPE_MSG))
-		instance->addFeedItemIfUnique(new MsgItem(instance, NEWSFEED_MESSAGELIST, std::string(""), false), true);
+        instance->addFeedItemIfUnique(new MsgItem(instance, NEWSFEED_MESSAGELIST, std::string("")), true);
 
     if (!!(flags & RsFeedTypeFlags::RS_FEED_TYPE_CHANNEL)){
-		instance->addFeedItem(new GxsChannelGroupItem(instance, NEWSFEED_CHANNELNEWLIST, RsGxsGroupId(""), false, true));
-		instance->addFeedItem(new GxsChannelPostItem(instance, NEWSFEED_CHANNELNEWLIST, RsGxsGroupId(""), RsGxsMessageId(""), false, true));
-		instance->addFeedItem(new ChannelsCommentsItem(instance, NEWSFEED_CHANNELNEWLIST, RsGxsGroupId(""), RsGxsMessageId(""), RsGxsMessageId(""), false, true));
+        instance->addFeedItem(new GxsChannelGroupItem(instance, NEWSFEED_CHANNELNEWLIST, RsGxsGroupId(""), true));
+        instance->addFeedItem(new GxsChannelPostItem(instance, NEWSFEED_CHANNELNEWLIST, RsGxsGroupId(""), RsGxsMessageId(""), true));
+        instance->addFeedItem(new ChannelsCommentsItem(instance, NEWSFEED_CHANNELNEWLIST, RsGxsGroupId(""), RsGxsMessageId(""), RsGxsMessageId(""), true));
 	}
 
     if(!!(flags & RsFeedTypeFlags::RS_FEED_TYPE_FORUM)){
-		instance->addFeedItem(new GxsForumGroupItem(instance, NEWSFEED_NEW_FORUM, RsGxsGroupId(""), false, true));
-		instance->addFeedItem(new GxsForumMsgItem(instance, NEWSFEED_NEW_FORUM, RsGxsGroupId(""), RsGxsMessageId(""), false, true ));
+        instance->addFeedItem(new GxsForumGroupItem(instance, NEWSFEED_NEW_FORUM, RsGxsGroupId(""), true));
+        instance->addFeedItem(new GxsForumMsgItem(instance, NEWSFEED_NEW_FORUM, RsGxsGroupId(""), RsGxsMessageId(""), true ));
 	}
 
     if(!!(flags & RsFeedTypeFlags::RS_FEED_TYPE_POSTED)){
-		instance->addFeedItem( new PostedGroupItem(instance, NEWSFEED_POSTEDNEWLIST, RsGxsGroupId(""), false, true));
-		instance->addFeedItem( new PostedItem(instance, NEWSFEED_POSTEDMSGLIST, RsGxsGroupId(""), RsGxsMessageId(""), false, true));
-		instance->addFeedItem( new BoardsCommentsItem(instance, NEWSFEED_POSTEDMSGLIST, RsGxsGroupId(""), RsGxsMessageId(""), false, true));
+        instance->addFeedItem( new PostedGroupItem(instance, NEWSFEED_POSTEDNEWLIST, RsGxsGroupId(""), true));
+        instance->addFeedItem( new PostedItem(instance, NEWSFEED_POSTEDMSGLIST, RsGxsGroupId(""), RsGxsMessageId(""), true));
+        instance->addFeedItem( new BoardsCommentsItem(instance, NEWSFEED_POSTEDMSGLIST, RsGxsGroupId(""), RsGxsMessageId(""), true));
 	}
 
     if (!!(flags & RsFeedTypeFlags::RS_FEED_TYPE_CIRCLE))
@@ -539,7 +539,7 @@ void NewsFeed::testFeeds(RsFeedTypeFlags /*notifyFlags*/)
                                            NEWSFEED_CHANNELNEWLIST,
                                            RsGxsGroupId  ("00000000000000000000000000000000"),
                                            RsGxsMessageId("0000000000000000000000000000000000000000")
-                                           , false, true);
+                                           , true);
 
     instance->addFeedItem(feedItem2);
 

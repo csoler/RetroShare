@@ -42,8 +42,8 @@
  * #define DEBUG_ITEM 1
  ****/
 
-GxsForumMsgItem::GxsForumMsgItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, const RsGxsMessageId &messageId, bool isHome, bool autoUpdate) :
-    GxsFeedItem(feedHolder, feedId, groupId, messageId, isHome, rsGxsForums, autoUpdate)
+GxsForumMsgItem::GxsForumMsgItem(FeedHolder *feedHolder, uint32_t feedId, const RsGxsGroupId &groupId, const RsGxsMessageId &messageId, bool autoUpdate) :
+    GxsFeedItem(feedHolder, feedId, groupId, messageId, rsGxsForums, autoUpdate)
 {
     mLoadingStatus = LOADING_STATUS_NO_DATA;
 
@@ -279,7 +279,7 @@ void GxsForumMsgItem::fillMessage()
     std::cerr << std::endl;
 #endif
 
-    if(!mIsHome && mCloseOnRead && !IS_MSG_NEW(mMessage.mMeta.mMsgStatus))
+    if(mCloseOnRead && !IS_MSG_NEW(mMessage.mMeta.mMsgStatus))
         removeItem();
 
     QString title = tr("Forum Feed") + ": ";
@@ -289,7 +289,7 @@ void GxsForumMsgItem::fillMessage()
 
     setReadStatus(IS_MSG_NEW(mMessage.mMeta.mMsgStatus), IS_MSG_UNREAD(mMessage.mMeta.mMsgStatus) || IS_MSG_NEW(mMessage.mMeta.mMsgStatus));
 
-    if (!mIsHome && IS_MSG_NEW(mMessage.mMeta.mMsgStatus))
+    if(IS_MSG_NEW(mMessage.mMeta.mMsgStatus))
         mCloseOnRead = true;
 
     RsIdentityDetails idDetails ;
@@ -313,13 +313,6 @@ void GxsForumMsgItem::fillMessage()
 
     /* header stuff */
     ui->subjectLabel->setText(msgLink.toHtml());
-
-    if (mIsHome)
-    {
-        /* disable buttons */
-        ui->clearButton->setEnabled(false);
-        ui->clearButton->hide();
-    }
 }
 void GxsForumMsgItem::fillGroup()
 {
